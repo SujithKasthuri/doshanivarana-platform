@@ -220,6 +220,7 @@ export function Schedule() {
                           {slot.bookings}
                         </span>
                         <span className="text-on-surface-variant">/ {slot.maxBookings}</span>
+                        <span className="text-xs text-on-surface-variant block mt-0.5">({slot.maxBookings - slot.bookings} remaining)</span>
                         <div className="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${slot.bookings >= slot.maxBookings ? 'bg-error' : 'bg-[#4caf50]'}`}
