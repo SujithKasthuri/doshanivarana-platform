@@ -148,12 +148,20 @@ export default function Profile() {
     };
   });
 
-<<<<<<< HEAD
   const [stats, setStats] = useState({
     totalPoojas: 12,
     upcoming: 3,
     devotionScore: 5.0,
   });
+
+  const getProfileValue = (key: keyof UserProfile, val: string) => {
+    if (!val) return '';
+    const cleanVal = val.trim().toLowerCase();
+    if (termTranslations[cleanVal]) {
+      return termTranslations[cleanVal][language] || val;
+    }
+    return val;
+  };
 
   useEffect(() => {
     const fetchProfile = () => {
@@ -215,16 +223,6 @@ export default function Profile() {
       }
     };
   }, []);
-=======
-  const getProfileValue = (key: keyof UserProfile, val: string) => {
-    if (!val) return '';
-    const cleanVal = val.trim().toLowerCase();
-    if (termTranslations[cleanVal]) {
-      return termTranslations[cleanVal][language] || val;
-    }
-    return val;
-  };
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
 
   const [notifications, setNotifications] = useState({
     poojaReminders: true,

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { useState, useEffect } from 'react';
-=======
-import { useState, useCallback } from 'react';
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, Image, Modal, ActivityIndicator } from 'react-native';
 import { CheckCircle2, Clock, Package, PlayCircle, Video, CreditCard, AlertCircle, Check } from 'lucide-react-native';
 import { Link, useFocusEffect } from 'expo-router';
@@ -10,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { getTranslatedTemple } from './poojas';
-<<<<<<< HEAD
 import { safeStorage } from '../../src/old_app/lib/storage';
 
 const getPoojaDetails = (poojaName: string) => {
@@ -45,9 +40,6 @@ const getBookingStage = (b: any) => {
   if (b.deliveryStatus === 'Delivered') stage = 9; // Delivered
   return stage;
 };
-=======
-import AsyncStorage from '@react-native-async-storage/async-storage';
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
 
 interface BookingItem {
   id: string;
@@ -106,87 +98,98 @@ export default function Bookings() {
   const { t } = useLanguage();
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
-<<<<<<< HEAD
   const [currentUserMobile, setCurrentUserMobile] = useState<string | null>(null);
   const [bookingsList, setBookingsList] = useState<BookingItem[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [payingBooking, setPayingBooking] = useState<BookingItem | null>(null);
+  const [paymentStep, setPaymentStep] = useState<'details' | 'processing' | 'success'>('details');
+
+  const fetchBookings = useCallback(() => {
+    const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+    const mobile = userSession ? JSON.parse(userSession).mobile : '+91 98765 43216'; // default to Suresh Raina for demo
+    setCurrentUserMobile(mobile);
+
+    let bookingsData = safeStorage.getItem('doshanivarana_bookings');
+    if (!bookingsData) {
+      const initialBookings = [
+        {
+          id: 'BK-1007',
+          devoteeName: 'Suresh Raina',
+          mobile: '+91 98765 43216',
+          poojaName: 'Rudra Abhishekam',
+          temple: 'Sri Venkateswara Temple',
+          dateTime: '05 Jun 2026, 10:00 AM',
+          paymentStatus: 'Confirmed',
+          amount: '₹1,500',
+          pujari: 'Pt. Sharma Ji',
+          deliveryStatus: 'Delivered',
+          streamStatus: 'Ended',
+          recordingStatus: 'Available'
+        },
+        {
+          id: 'BK-0990',
+          devoteeName: 'Suresh Raina',
+          mobile: '+91 98765 43216',
+          poojaName: 'Satyanarayana Pooja',
+          temple: 'Sri Venkateswara Temple',
+          dateTime: '01 Jun 2026, 08:00 AM',
+          paymentStatus: 'Confirmed',
+          amount: '₹2,000',
+          pujari: 'Pt. Sharma Ji',
+          deliveryStatus: 'Delivered',
+          streamStatus: 'Ended',
+          recordingStatus: 'Available'
+        }
+      ];
+      safeStorage.setItem('doshanivarana_bookings', JSON.stringify(initialBookings));
+      bookingsData = JSON.stringify(initialBookings);
+    }
+    
+    const allBookings = bookingsData ? JSON.parse(bookingsData) : [];
+
+    // Filter bookings belonging to this mobile number using normalized 10-digit matching
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    const userBookings = allBookings.filter((b: any) => 
+      b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile
+    );
+
+    // Map to the BookingItem format
+    const mapped = userBookings.map((b: any) => {
+      const details = getPoojaDetails(b.poojaName);
+      const status = b.tab || (b.streamStatus === 'Ended' ? 'completed' : 'upcoming');
+      const amountNum = parseInt(b.amount?.replace(/[^0-9]/g, '') || '0') || 0;
+      
+      const totalAmount = b.totalAmount !== undefined ? b.totalAmount : amountNum;
+      const paidAmount = b.paidAmount !== undefined ? b.paidAmount : (b.balanceDue ? Math.floor(amountNum * 0.4) : amountNum);
+      const remainingBalance = b.remainingBalance !== undefined ? b.remainingBalance : (b.balanceDue ? (totalAmount - paidAmount) : 0);
+      const balanceDue = b.balanceDue !== undefined ? b.balanceDue : false;
+
+      return {
+        id: b.id,
+        poojaId: details.id,
+        templeKey: details.key,
+        dateKey: b.dateTime, // Treated as direct display string by t() translation fallback
+        status: status,
+        currentStage: getBookingStage(b),
+        imageUrl: details.imageUrl,
+        hasRecording: b.recordingStatus === 'Available',
+        totalAmount,
+        paidAmount,
+        remainingBalance,
+        balanceDue,
+      };
+    });
+
+    setBookingsList(mapped);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [fetchBookings])
+  );
 
   useEffect(() => {
-    const fetchBookings = () => {
-      const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
-      const mobile = userSession ? JSON.parse(userSession).mobile : '+91 98765 43216'; // default to Suresh Raina for demo
-      setCurrentUserMobile(mobile);
-
-      let bookingsData = safeStorage.getItem('doshanivarana_bookings');
-      if (!bookingsData) {
-        // Seed initial bookings for native fallback/demo
-        const initialBookings = [
-          {
-            id: 'BK-1007',
-            devoteeName: 'Suresh Raina',
-            mobile: '+91 98765 43216',
-            poojaName: 'Rudra Abhishekam',
-            temple: 'Sri Venkateswara Temple',
-            dateTime: '05 Jun 2026, 10:00 AM',
-            paymentStatus: 'Confirmed',
-            amount: '₹1,500',
-            pujari: 'Pt. Sharma Ji',
-            deliveryStatus: 'Delivered',
-            streamStatus: 'Ended',
-            recordingStatus: 'Available'
-          },
-          {
-            id: 'BK-0990',
-            devoteeName: 'Suresh Raina',
-            mobile: '+91 98765 43216',
-            poojaName: 'Rudra Abhishekam',
-            temple: 'Sri Venkateswara Temple',
-            dateTime: '05 Jun 2026, 10:00 AM',
-            paymentStatus: 'Confirmed',
-            amount: '₹1,500',
-            pujari: 'Pt. Sharma Ji',
-            deliveryStatus: 'Delivered',
-            streamStatus: 'Ended',
-            recordingStatus: 'Available'
-          }
-        ];
-        safeStorage.setItem('doshanivarana_bookings', JSON.stringify(initialBookings));
-        bookingsData = JSON.stringify(initialBookings);
-      }
-      
-      const allBookings = bookingsData ? JSON.parse(bookingsData) : [];
-
-      // Filter bookings belonging to this mobile number using normalized 10-digit matching
-      const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
-      const userBookings = allBookings.filter((b: any) => 
-        b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile
-      );
-
-      // Map to the BookingItem format
-      const mapped = userBookings.map((b: any) => {
-        const details = getPoojaDetails(b.poojaName);
-        const status = b.tab || (b.streamStatus === 'Ended' ? 'completed' : 'upcoming');
-        const amountNum = parseInt(b.amount.replace(/[^0-9]/g, '')) || 0;
-        return {
-          id: b.id,
-          poojaId: details.id,
-          templeKey: details.key,
-          dateKey: b.dateTime, // Treated as direct display string by t() translation fallback
-          status: status,
-          currentStage: getBookingStage(b),
-          imageUrl: details.imageUrl,
-          hasRecording: b.recordingStatus === 'Available',
-          totalAmount: amountNum,
-          paidAmount: amountNum, // default fully paid
-          remainingBalance: 0,
-          balanceDue: false,
-        };
-      });
-
-      setBookingsList(mapped);
-    };
-
-    fetchBookings();
-
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('storage', fetchBookings);
       window.addEventListener('focus', fetchBookings);
@@ -200,51 +203,35 @@ export default function Bookings() {
         window.removeEventListener('doshanivarana_bookings_updated', fetchBookings);
       }
     };
-  }, []);
-=======
-  const [bookingsList, setBookingsList] = useState<BookingItem[]>([]);
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
-
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [payingBooking, setPayingBooking] = useState<BookingItem | null>(null);
-  const [paymentStep, setPaymentStep] = useState<'details' | 'processing' | 'success'>('details');
-
-  const loadBookings = async () => {
-    try {
-      const data = await AsyncStorage.getItem('doshanivarana_bookings');
-      if (data) {
-        setBookingsList(JSON.parse(data));
-      } else {
-        await AsyncStorage.setItem('doshanivarana_bookings', JSON.stringify(defaultBookings));
-        setBookingsList(defaultBookings);
-      }
-    } catch (err) {
-      console.error('Failed to load bookings:', err);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      loadBookings();
-    }, [])
-  );
+  }, [fetchBookings]);
 
   const processPayment = async () => {
     if (!payingBooking) return;
     setPaymentStep('processing');
     try {
-      const updatedList = bookingsList.map(b =>
-        b.id === payingBooking.id
-          ? {
-              ...b,
-              paidAmount: b.totalAmount,
-              remainingBalance: 0,
-              balanceDue: false,
-            }
-          : b
-      );
-      await AsyncStorage.setItem('doshanivarana_bookings', JSON.stringify(updatedList));
-      setBookingsList(updatedList);
+      const bookingsData = safeStorage.getItem('doshanivarana_bookings');
+      const allBookings = bookingsData ? JSON.parse(bookingsData) : [];
+      const updatedAllBookings = allBookings.map((b: any) => {
+        if (b.id === payingBooking.id) {
+          return {
+            ...b,
+            paymentStatus: 'Confirmed',
+            totalAmount: payingBooking.totalAmount,
+            paidAmount: payingBooking.totalAmount,
+            remainingBalance: 0,
+            balanceDue: false
+          };
+        }
+        return b;
+      });
+      safeStorage.setItem('doshanivarana_bookings', JSON.stringify(updatedAllBookings));
+
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new Event('doshanivarana_bookings_updated'));
+      }
+
+      fetchBookings();
+
       setTimeout(() => {
         setPaymentStep('success');
       }, 1500);

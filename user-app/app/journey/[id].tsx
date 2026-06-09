@@ -5,12 +5,8 @@ import { ArrowLeft, CheckCircle2, Package, PlayCircle, Truck } from 'lucide-reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
-<<<<<<< HEAD
 import { safeStorage } from '../../src/old_app/lib/storage';
-=======
 import { poojaCatalog, getTempleKey } from '../../src/old_app/constants/catalog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
 
 export default function PoojaJourneyScreen() {
   const router = useRouter();
@@ -38,53 +34,22 @@ export default function PoojaJourneyScreen() {
     }
   }
 
-<<<<<<< HEAD
-  // Load database dynamically
-  const bookingsData = safeStorage.getItem('doshanivarana_bookings');
-  const bookings = bookingsData ? JSON.parse(bookingsData) : [];
-
-  // Match ID
-  const cleanedId = id ? id.toString() : '';
-  const booking = bookings.find((b: any) => 
-    b.id === cleanedId || 
-    b.id === `BK-${cleanedId}` || 
-    b.id.replace('BK-', '') === cleanedId ||
-    b.id.replace('DS', '') === cleanedId
-  );
-
-  const getBookingStage = (b: any) => {
-    let stage = 1; // Seva Offered
-    if (b.paymentStatus === 'Confirmed') stage = 2; // Confirmed
-    if (b.pujari !== 'Not Assigned') stage = 3; // Scheduled
-    if (b.streamStatus === 'In Progress') stage = 4; // Pooja Live
-    if (b.streamStatus === 'Ended') stage = 5; // Completed
-    if (b.recordingStatus === 'Available') stage = 6; // Recording Ready
-    if (b.deliveryStatus === 'Packed') stage = 7; // Prasad Packed
-    if (b.deliveryStatus === 'Dispatched') stage = 8; // Dispatched
-    if (b.deliveryStatus === 'Delivered') stage = 9; // Delivered
-    return stage;
-  };
-
-  const currentStage = booking ? getBookingStage(booking) : 4;
-
-  const devoteeInfo = {
-    name: booking ? booking.devoteeName : 'Raghavan Iyer',
-    gothram: booking ? booking.gotra : 'Bharadwaja',
-    nakshatra: booking ? booking.nakshatra : 'Shravana',
-    poojaName: booking ? booking.poojaName : t('poojaDb.1.title'),
-    date: booking ? booking.dateTime : '15 April 2026',
-    temple: booking ? booking.temple : t('templeDb.rameshwaram.name'),
-  };
-=======
   const [booking, setBooking] = useState<any>(null);
 
   useEffect(() => {
-    const fetchBooking = async () => {
+    const fetchBooking = () => {
       try {
-        const data = await AsyncStorage.getItem('doshanivarana_bookings');
+        const data = safeStorage.getItem('doshanivarana_bookings');
         if (data) {
           const list = JSON.parse(data);
-          const found = list.find((b: any) => b.id === displayId);
+          const cleanedId = id ? id.toString() : '';
+          const found = list.find((b: any) => 
+            b.id === displayId ||
+            b.id === cleanedId || 
+            b.id === `BK-${cleanedId}` || 
+            b.id.replace('BK-', '') === cleanedId ||
+            b.id.replace('DS', '') === cleanedId
+          );
           if (found) {
             setBooking(found);
           }
@@ -94,7 +59,20 @@ export default function PoojaJourneyScreen() {
       }
     };
     fetchBooking();
-  }, [displayId]);
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('storage', fetchBooking);
+      window.addEventListener('focus', fetchBooking);
+      window.addEventListener('doshanivarana_bookings_updated', fetchBooking);
+    }
+    return () => {
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('storage', fetchBooking);
+        window.removeEventListener('focus', fetchBooking);
+        window.removeEventListener('doshanivarana_bookings_updated', fetchBooking);
+      }
+    };
+  }, [displayId, id]);
 
   const pooja = poojaCatalog.find(p => p.id.toString() === (booking?.poojaId?.toString() || currentPoojaId)) || poojaCatalog[0];
   const templeKey = getTempleKey(pooja.temple);
@@ -104,27 +82,27 @@ export default function PoojaJourneyScreen() {
       'Ashwini': { en: 'Ashwini', te: 'అశ్విని', hi: 'अश्विनी', gu: 'અશ્વિની' },
       'Bharani': { en: 'Bharani', te: 'భరణి', hi: 'भरणी', gu: 'భరણી' },
       'Krittika': { en: 'Krittika', te: 'కృత్తిక', hi: 'कृत्तिका', gu: 'કૃતિકા' },
-      'Rohini': { en: 'Rohini', te: 'రోహిణి', hi: 'रोहिणी', gu: 'రోహిణి' },
-      'Mrigashira': { en: 'Mrigashira', te: 'మృగశిర', hi: 'मृगशिरा', gu: 'మૃગશીર્ષ' },
+      'Rohini': { en: 'Rohini', te: 'రోహిణి', hi: 'రోహిణి', gu: 'રોહિણી' },
+      'Mrigashira': { en: 'Mrigashira', te: 'మృగశిర', hi: 'मृगशिरा', gu: 'મృગશીર્ષ' },
       'Ardra': { en: 'Ardra', te: 'ఆరుద్ర', hi: 'आर्द्रा', gu: 'આદ્રા' },
-      'Punarvasu': { en: 'Punarvasu', te: 'పునర్వసు', hi: 'पुनर्वसु', gu: 'పుનર્વసు' },
-      'Pushya': { en: 'Pushya', te: 'పుష్యమి', hi: 'पुष्य', gu: 'पुष्य' },
+      'Punarvasu': { en: 'Punarvasu', te: 'પુనర్వసు', hi: 'पुनर्वसु', gu: 'పుનર્వసు' },
+      'Pushya': { en: 'Pushya', te: 'పుష్యమి', hi: 'पुष्य', gu: 'પુષ્ય' },
       'Ashlesha': { en: 'Ashlesha', te: 'ఆశ్లేష', hi: 'आश्लेषा', gu: 'ఆశ్లేષા' },
-      'Magha': { en: 'Magha', te: 'మఖ', hi: 'मघा', gu: 'మઘా' },
-      'Purva Phalguni': { en: 'Purva Phalguni', te: 'పూర్వ ఫల్గుణి', hi: 'पूर्वाफाल्गुनी', gu: 'પૂર્વા ఫાલ્ગુની' },
-      'Uttara Phalguni': { en: 'Uttara Phalguni', te: 'ఉత్తర ఫల్గుణి', hi: 'उत्तराफाल्गुनी', gu: 'ఉત્તરા ఫાલ્ગુની' },
-      'Hasta': { en: 'Hasta', te: 'హస్త', hi: 'हस्त', gu: 'హస్త' },
+      'Magha': { en: 'Magha', te: 'మఖ', hi: 'मघा', gu: 'મઘా' },
+      'Purva Phalguni': { en: 'Purva Phalguni', te: 'పూర్વ ફલ્ગુણી', hi: 'पूर्वाफाल्గుनी', gu: 'પૂર્વા ફાલ્ગુની' },
+      'Uttara Phalguni': { en: 'Uttara Phalguni', te: 'ఉత్తర ફલ્ગુણી', hi: 'उत्तराफाल्గుनी', gu: 'ఉત્તરા ફાલ્ગુની' },
+      'Hasta': { en: 'Hasta', te: 'હસ્ત', hi: 'हस्त', gu: 'હસ્ત' },
       'Chitra': { en: 'Chitra', te: 'చిత్త', hi: 'చిత్రా', gu: 'ચિત્રા' },
       'Swati': { en: 'Swati', te: 'స్వాతి', hi: 'स्वाती', gu: 'સ્વાતિ' },
-      'Vishakha': { en: 'Vishakha', te: 'విశాఖ', hi: 'विशाखा', gu: 'વિશાખા' },
+      'Vishakha': { en: 'Vishakha', te: 'વિశాఖ', hi: 'विशाखा', gu: 'વિશાખા' },
       'Anuradha': { en: 'Anuradha', te: 'అనూరాధ', hi: 'अनुराधा', gu: 'અનુરાધા' },
       'Jyeshtha': { en: 'Jyeshtha', te: 'జ్యేష్ఠ', hi: 'ज्येष्ठा', gu: 'જ્યેષ્ઠા' },
       'Moola': { en: 'Moola', te: 'మూల', hi: 'मूल', gu: 'મૂળ' },
       'Purva Ashadha': { en: 'Purva Ashadha', te: 'పూర్వాషాఢ', hi: 'पूर्वाषाढ़ा', gu: 'પૂર્વાષાઢા' },
-      'Uttara Ashadha': { en: 'Uttara Ashadha', te: 'ఉత్తరాషాఢ', hi: 'उत्तराषाढ़ा', gu: 'ఉત્તરાષાઢા' },
+      'Uttara Ashadha': { en: 'Uttara Ashadha', te: 'ఉత్తరాషాఢ', hi: 'उत्तराषाढ़ा', gu: 'ఉત્તરાષાడ' },
       'Shravana': { en: 'Shravana', te: 'శ్రవణం', hi: 'श्रवण', gu: 'શ્રવણ' },
       'Dhanishta': { en: 'Dhanishta', te: 'ధనిష్ఠ', hi: 'धनिष्ठा', gu: 'ધનિષ્ઠા' },
-      'Shatabhisha': { en: 'Shatabhisha', te: 'శतభిషం', hi: 'शतभिषा', gu: 'શતભિષા' },
+      'Shatabhisha': { en: 'Shatabhisha', te: 'శతభిషం', hi: 'शतभिषा', gu: 'શતભિષા' },
       'Purva Bhadrapada': { en: 'Purva Bhadrapada', te: 'పూర్వాభాద్ర', hi: 'पूर्वाभाद्रपद', gu: 'પૂર્વાભાદ્રપદ' },
       'Uttara Bhadrapada': { en: 'Uttara Bhadrapada', te: 'ఉత్తరాభాద్ర', hi: 'उत्तराभाद्रपद', gu: 'ઉત્તરાભાદ્રપદ' },
       'Revati': { en: 'Revati', te: 'రేవతి', hi: 'रेवती', gu: 'રેવતી' }
@@ -146,7 +124,7 @@ export default function PoojaJourneyScreen() {
       'Vashishta': { en: 'Vashishta', te: 'వశిష్ట', hi: 'वशिष्ठ', gu: 'વસિષ્ઠ' },
       'Vishwamitra': { en: 'Vishwamitra', te: 'విశ్వామిత్ర', hi: 'विश्वामित्र', gu: 'વિશ્વામિત્ર' },
       'Gautama': { en: 'Gautama', te: 'గౌతమ', hi: 'गौतम', gu: 'ગૌતમ' },
-      'Jamadagni': { en: 'Jamadagni', te: 'జమదగ్ని', hi: 'जमदग्नि', gu: 'જમదગ્નિ' },
+      'Jamadagni': { en: 'Jamadagni', te: 'జమదగ్ని', hi: 'जमదగ్ని', gu: 'જમદગ્નિ' },
       'Atri': { en: 'Atri', te: 'అత్రి', hi: 'अत्रि', gu: 'అત્રિ' },
       'Angirasa': { en: 'Angirasa', te: 'అంగీరస', hi: 'अंगरस', gu: 'અંગિરસ' }
     };
@@ -184,16 +162,28 @@ export default function PoojaJourneyScreen() {
   };
 
   const devoteeInfo = {
-    name: booking?.devoteeNames || t('profile.val.raghavan'),
-    gothram: translateGothramLocal(booking?.gothram || 'Bharadwaja', language),
+    name: booking?.devoteeName || booking?.devoteeNames || t('profile.val.raghavan'),
+    gothram: translateGothramLocal(booking?.gotra || booking?.gothram || 'Bharadwaja', language),
     nakshatra: translateNakshatraLocal(booking?.nakshatra || 'Shravana', language),
-    poojaName: t('poojaDb.' + pooja.id + '.title'),
-    date: getDisplayDate(),
-    temple: t('templeDb.' + templeKey + '.name'),
+    poojaName: booking?.poojaName || t('poojaDb.' + pooja.id + '.title'),
+    date: booking?.dateTime || getDisplayDate(),
+    temple: booking?.temple || t('templeDb.' + templeKey + '.name'),
   };
 
-  const currentStage = booking?.currentStage ?? 4;
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
+  const getBookingStage = (b: any) => {
+    let stage = 1; // Seva Offered
+    if (b.paymentStatus === 'Confirmed') stage = 2; // Confirmed
+    if (b.pujari && b.pujari !== 'Not Assigned') stage = 3; // Scheduled
+    if (b.streamStatus === 'In Progress') stage = 4; // Pooja Live
+    if (b.streamStatus === 'Ended') stage = 5; // Completed
+    if (b.recordingStatus === 'Available') stage = 6; // Recording Ready
+    if (b.deliveryStatus === 'Packed') stage = 7; // Prasad Packed
+    if (b.deliveryStatus === 'Dispatched') stage = 8; // Dispatched
+    if (b.deliveryStatus === 'Delivered') stage = 9; // Delivered
+    return stage;
+  };
+
+  const currentStage = booking?.currentStage || (booking ? getBookingStage(booking) : 4);
 
   const stages = [
     {

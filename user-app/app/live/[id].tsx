@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { View, Text, Pressable, ActivityIndicator, StatusBar, StyleSheet } from 'react-native';
-=======
-import { View, Text, Pressable, Image } from 'react-native';
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
+import { View, Text, Pressable, ActivityIndicator, StatusBar, StyleSheet, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Volume2, VolumeX, Lock, Play, Pause, RotateCcw } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
-<<<<<<< HEAD
 import { safeStorage } from '../../src/old_app/lib/storage';
 
 // ─── Reliable public MP4 demo videos (no auth, no CORS issues) ───────────────
@@ -121,68 +116,6 @@ export default function LiveStreamScreen() {
     } else {
       player.play();
     }
-=======
-import { poojaCatalog, getTempleKey } from '../../src/old_app/constants/catalog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export default function LiveStreamScreen() {
-  const router = useRouter();
-  const { id, poojaId } = useLocalSearchParams();
-  const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
-  const { t } = useLanguage();
-
-  let currentPoojaId = '1';
-  if (poojaId) {
-    currentPoojaId = poojaId.toString();
-  } else if (id) {
-    const cleanId = id.toString();
-    if (parseInt(cleanId) > 0 && parseInt(cleanId) <= 20) {
-      currentPoojaId = cleanId;
-    } else {
-      if (cleanId.includes('2026031502')) {
-        currentPoojaId = '1';
-      } else if (cleanId.includes('2026032203')) {
-        currentPoojaId = '10';
-      } else if (cleanId.includes('2026031801')) {
-        currentPoojaId = '16';
-      }
-    }
-  }
-
-  const [booking, setBooking] = useState<any>(null);
-  const displayId = id ? `DS${id.toString()}` : 'DS2026031801';
-
-  useEffect(() => {
-    const fetchBooking = async () => {
-      try {
-        const data = await AsyncStorage.getItem('doshanivarana_bookings');
-        if (data) {
-          const list = JSON.parse(data);
-          const found = list.find((b: any) => b.id === displayId || b.id.replace('DS', '') === id?.toString());
-          if (found) {
-            setBooking(found);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    fetchBooking();
-  }, [id, displayId]);
-
-  const pooja = poojaCatalog.find(p => p.id.toString() === (booking?.poojaId?.toString() || currentPoojaId)) || poojaCatalog[0];
-  const templeKey = getTempleKey(pooja.temple);
-
-  const [isMuted, setIsMuted] = useState(false);
-
-  const streamInfo = {
-    title: t('poojaDb.' + pooja.id + '.title'),
-    temple: t('templeDb.' + templeKey + '.name'),
-    devoteeName: booking?.devoteeNames ? `${booking.devoteeNames} & Family` : 'Priya Sharma & Family',
-    viewerCount: 312,
-    videoUrl: pooja.imageUrl,
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
   };
 
   const replay = () => {
@@ -277,7 +210,6 @@ export default function LiveStreamScreen() {
           </View>
         )}
 
-<<<<<<< HEAD
         {/* Error */}
         {hasError && (
           <View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.85)', padding: 32 }]}>
@@ -285,13 +217,6 @@ export default function LiveStreamScreen() {
             <Text style={[styles.title, { marginBottom: 8 }]}>Unable to Load Video</Text>
             <Text style={[styles.subtitle, { marginBottom: 24 }]}>
               Check your internet connection and try again.
-=======
-          {/* Live Badge */}
-          <View className="flex-row items-center gap-1.5 px-3 py-1 rounded-full bg-red-600">
-            <View className="w-1.5 h-1.5 rounded-full bg-white" />
-            <Text className="text-[10px] font-bold text-white tracking-wider" style={{ fontFamily: 'System' }}>
-              {t('home.live').toUpperCase()}
->>>>>>> e945756e518d5f31dcd53128bb14f9c660e6114f
             </Text>
             <Pressable
               onPress={() => {
