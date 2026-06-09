@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, Clock, User, Star, ChevronRight, X } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Clock, User, Star, ChevronRight, X, MapPin } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
+import { useLanguage } from '../../src/old_app/context/LanguageContext';
 
 interface BookingFormData {
   selectedDate: string;
@@ -19,6 +20,7 @@ export default function BookingFlow() {
   const { theme } = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<BookingFormData>({
     selectedDate: '',
@@ -30,21 +32,21 @@ export default function BookingFlow() {
   });
   const [showNakshatraModal, setShowNakshatraModal] = useState(false);
 
-  // Mock pooja data
+  // Map search param id to translated pooja info
+  const poojaId = id || '1';
   const poojaData = {
-    title: 'Rudrabhishekam',
-    temple: 'Rameshwaram Temple',
-    deity: 'Lord Shiva',
-    duration: '45 mins',
+    title: t('poojaDb.' + poojaId + '.title'),
+    temple: t('templeDb.rameshwaram.name'),
+    deity: t('deity.shiva'),
     price: '₹1,200',
   };
 
   const availableDates = [
-    { date: '2026-03-20', label: 'Tomorrow', day: 'Thursday' },
-    { date: '2026-03-21', label: 'Mar 21', day: 'Friday' },
-    { date: '2026-03-22', label: 'Mar 22', day: 'Saturday' },
-    { date: '2026-03-23', label: 'Mar 23', day: 'Sunday' },
-    { date: '2026-03-24', label: 'Mar 24', day: 'Monday' },
+    { date: '2026-03-20', label: t('common.tomorrow'), day: t('home.thu') },
+    { date: '2026-03-21', label: 'Mar 21', day: t('home.fri') },
+    { date: '2026-03-22', label: 'Mar 22', day: t('home.sat') },
+    { date: '2026-03-23', label: 'Mar 23', day: t('home.sun') },
+    { date: '2026-03-24', label: 'Mar 24', day: t('home.mon') },
   ];
 
   const availableTimes = [
@@ -97,12 +99,12 @@ export default function BookingFlow() {
           </Pressable>
           <View className="flex-1">
             <Text className="text-xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
-              {step === 1 && 'Select Date & Time'}
-              {step === 2 && 'Your Details'}
-              {step === 3 && 'Review & Confirm'}
+              {step === 1 && t('booking.selectDateTime')}
+              {step === 2 && t('booking.yourDetails')}
+              {step === 3 && t('booking.reviewConfirm')}
             </Text>
             <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-              Step {step} of 3
+              {t('booking.stepInfo').replace('{step}', step.toString())}
             </Text>
           </View>
         </View>
@@ -141,7 +143,7 @@ export default function BookingFlow() {
             {/* Date Selection */}
             <View>
               <Text className="text-sm font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
-                Select Date
+                {t('booking.selectDate')}
               </Text>
               <View className="flex-row flex-wrap justify-between">
                 {availableDates.map((dateOption) => (
@@ -172,7 +174,7 @@ export default function BookingFlow() {
             {formData.selectedDate !== '' && (
               <View className="mt-4">
                 <Text className="text-sm font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
-                  Select Time
+                  {t('booking.selectTime')}
                 </Text>
                 <View className="flex-row flex-wrap justify-between gap-y-2">
                   {availableTimes.map((time) => (
@@ -207,15 +209,15 @@ export default function BookingFlow() {
           <View className="space-y-6">
             <View>
               <Text className="text-sm font-semibold text-foreground mb-1" style={{ fontFamily: 'System' }}>
-                Devotee Name(s)
+                {t('booking.devoteeNames')}
               </Text>
               <Text className="text-xs text-muted-foreground mb-3" style={{ fontFamily: 'System' }}>
-                The pooja will be performed in these names
+                {t('booking.devoteeNamesDesc')}
               </Text>
               <TextInput
                 value={formData.devoteeNames}
                 onChangeText={(text) => setFormData({ ...formData, devoteeNames: text })}
-                placeholder="e.g., Raghavan Iyer, Lakshmi Iyer"
+                placeholder={t('booking.devoteeNamesPlaceholder')}
                 placeholderTextColor="hsl(var(--muted-foreground))"
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
                 style={{ fontFamily: 'System' }}
@@ -224,11 +226,13 @@ export default function BookingFlow() {
 
             <View className="mt-4">
               <Text className="text-sm font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
-                Gothram
+                {t('booking.gothram')}
               </Text>
               <TextInput
                 value={formData.gothram}
                 onChangeText={(text) => setFormData({ ...formData, gothram: text })}
+                placeholder={t('booking.gothramPlaceholder')}
+                placeholderTextColor="hsl(var(--muted-foreground))"
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
                 style={{ fontFamily: 'System' }}
               />
@@ -236,14 +240,14 @@ export default function BookingFlow() {
 
             <View className="mt-4">
               <Text className="text-sm font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
-                Nakshatra (Optional)
+                {t('booking.nakshatra')} ({t('common.optional')})
               </Text>
               <Pressable
                 onPress={() => setShowNakshatraModal(true)}
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl flex-row items-center justify-between"
               >
                 <Text className={formData.nakshatra ? 'text-foreground' : 'text-muted-foreground'} style={{ fontFamily: 'System' }}>
-                  {formData.nakshatra || 'Select Nakshatra'}
+                  {formData.nakshatra || t('booking.nakshatraPlaceholder')}
                 </Text>
                 <ChevronRight size={16} color="#78716C" />
               </Pressable>
@@ -251,12 +255,12 @@ export default function BookingFlow() {
 
             <View className="mt-4">
               <Text className="text-sm font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
-                Special Requests (Optional)
+                {t('booking.specialRequests')} ({t('common.optional')})
               </Text>
               <TextInput
                 value={formData.specialRequests}
                 onChangeText={(text) => setFormData({ ...formData, specialRequests: text })}
-                placeholder="Any specific prayers or intentions..."
+                placeholder={t('booking.specialRequestsPlaceholder')}
                 placeholderTextColor="hsl(var(--muted-foreground))"
                 multiline={true}
                 numberOfLines={4}
@@ -273,36 +277,36 @@ export default function BookingFlow() {
             <View className="bg-card border border-border rounded-2xl overflow-hidden">
               <View className="p-4 border-b border-border">
                 <Text className="font-semibold text-foreground" style={{ fontFamily: 'System' }}>
-                  Pooja Details
+                  {t('booking.poojaDetails')}
                 </Text>
               </View>
-              <ReviewItem label="Date & Time" value={`${availableDates.find(d => d.date === formData.selectedDate)?.label}, ${formData.selectedTime}`} />
-              <ReviewItem label="Devotee(s)" value={formData.devoteeNames} />
-              <ReviewItem label="Gothram" value={formData.gothram} />
-              {formData.nakshatra !== '' && <ReviewItem label="Nakshatra" value={formData.nakshatra} />}
-              {formData.specialRequests !== '' && <ReviewItem label="Special Requests" value={formData.specialRequests} />}
+              <ReviewItem label={t('booking.selectDateTime')} value={`${availableDates.find(d => d.date === formData.selectedDate)?.label}, ${formData.selectedTime}`} />
+              <ReviewItem label={t('booking.devoteeNames')} value={formData.devoteeNames} />
+              <ReviewItem label={t('booking.gothram')} value={formData.gothram} />
+              {formData.nakshatra !== '' && <ReviewItem label={t('booking.nakshatra')} value={formData.nakshatra} />}
+              {formData.specialRequests !== '' && <ReviewItem label={t('booking.specialRequests')} value={formData.specialRequests} />}
             </View>
 
             <View className="bg-card border border-border rounded-2xl p-4 mt-6">
               <Text className="font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
-                Payment Summary
+                {t('booking.paymentSummary')}
               </Text>
               <View className="space-y-2">
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>Pooja Amount</Text>
+                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.poojaAmount')}</Text>
                   <Text className="text-sm text-foreground" style={{ fontFamily: 'System' }}>₹1,200</Text>
                 </View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>Prasad Delivery</Text>
-                  <Text className="text-sm text-foreground" style={{ fontFamily: 'System' }}>Free</Text>
+                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.prasadDelivery')}</Text>
+                  <Text className="text-sm text-primary font-semibold" style={{ fontFamily: 'System' }}>{t('common.free')}</Text>
                 </View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>Live Stream</Text>
-                  <Text className="text-sm text-foreground" style={{ fontFamily: 'System' }}>Included</Text>
+                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.liveStream')}</Text>
+                  <Text className="text-sm text-primary font-semibold" style={{ fontFamily: 'System' }}>{t('common.included')}</Text>
                 </View>
                 <View className="border-t border-border pt-3 mt-3">
                   <View className="flex-row justify-between">
-                    <Text className="font-semibold text-lg text-foreground" style={{ fontFamily: 'System' }}>Total Amount</Text>
+                    <Text className="font-semibold text-lg text-foreground" style={{ fontFamily: 'System' }}>{t('booking.totalAmount')}</Text>
                     <Text className="text-primary font-semibold text-lg" style={{ fontFamily: 'System' }}>₹1,200</Text>
                   </View>
                 </View>
@@ -311,7 +315,7 @@ export default function BookingFlow() {
 
             <View className="bg-primary/10 border border-primary/30 rounded-xl p-4 mt-6">
               <Text className="text-sm text-primary" style={{ fontFamily: 'System' }}>
-                <Text className="font-bold">Note:</Text> You will receive a confirmation with booking details and live stream link once payment is complete.
+                <Text className="font-bold">{t('booking.note')}:</Text> {t('booking.confirmationNote')}
               </Text>
             </View>
           </View>
@@ -331,11 +335,11 @@ export default function BookingFlow() {
         >
           <Text
             className={`font-semibold text-base ${
-              canContinue() ? 'text-primary-foreground' : 'text-muted-foreground'
+              canContinue() ? 'text-[#1A0A00]' : 'text-muted-foreground'
             }`}
             style={{ fontFamily: 'System' }}
           >
-            {step === 3 ? 'Proceed to Payment' : 'Continue'}
+            {step === 3 ? t('booking.proceedToPayment') : t('common.continue')}
           </Text>
         </Pressable>
       </View>
@@ -345,7 +349,7 @@ export default function BookingFlow() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-background rounded-t-3xl h-[70%]">
             <View className="flex-row justify-between items-center p-4 border-b border-border">
-              <Text className="font-semibold text-lg text-foreground" style={{ fontFamily: 'System' }}>Select Nakshatra</Text>
+              <Text className="font-semibold text-lg text-foreground" style={{ fontFamily: 'System' }}>{t('booking.nakshatraPlaceholder')}</Text>
               <Pressable onPress={() => setShowNakshatraModal(false)} className="p-2">
                 <X size={24} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
               </Pressable>

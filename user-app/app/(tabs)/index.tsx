@@ -17,25 +17,25 @@ export default function Home() {
     {
       id: 1,
       type: 'live',
-      title: 'Live Pooja Starting Soon',
-      message: 'Rudrabhishek at Sri Kalahasti starts in 2 hours',
-      time: '2h ago',
+      titleKey: 'home.notificationLiveTitle',
+      messageKey: 'home.notificationLiveMessage',
+      timeKey: 'home.notificationLiveTime',
       read: false
     },
     {
       id: 2,
       type: 'confirmation',
-      title: 'Pooja Confirmed',
-      message: 'Your Lakshmi Pooja has been scheduled for tomorrow',
-      time: '1 day ago',
+      titleKey: 'home.notificationConfirmationTitle',
+      messageKey: 'home.notificationConfirmationMessage',
+      timeKey: 'home.notificationConfirmationTime',
       read: false
     },
     {
       id: 3,
       type: 'festival',
-      title: 'Upcoming Festival',
-      message: 'Ekadashi is tomorrow - Book Vishnu poojas',
-      time: '2 days ago',
+      titleKey: 'home.notificationFestivalTitle',
+      messageKey: 'home.notificationFestivalMessage',
+      timeKey: 'home.notificationFestivalTime',
       read: true
     }
   ]);
@@ -78,7 +78,7 @@ export default function Home() {
           >
             <Languages size={20} color="#F5F5F0" />
           </Pressable>
-
+ 
           {/* Notification Button */}
           <Pressable 
             onPress={() => setShowNotifications(true)} 
@@ -94,7 +94,7 @@ export default function Home() {
           </Pressable>
         </View>
       </View>
-
+ 
       {/* Notifications Modal */}
       <Modal visible={showNotifications} transparent animationType="slide">
         <View className="flex-1 bg-black/50 justify-end">
@@ -115,9 +115,9 @@ export default function Home() {
                 notifications.map(n => (
                   <View key={n.id} className={`p-4 border-b border-border flex-row items-start justify-between ${!n.read ? 'bg-primary/5' : ''}`}>
                     <Pressable onPress={() => markAsRead(n.id)} className="flex-1 mr-4">
-                      <Text className="font-medium text-sm text-foreground mb-1">{n.title}</Text>
-                      <Text className="text-sm text-muted-foreground mb-1">{n.message}</Text>
-                      <Text className="text-xs text-muted-foreground">{n.time}</Text>
+                      <Text className="font-medium text-sm text-foreground mb-1">{t(n.titleKey)}</Text>
+                      <Text className="text-sm text-muted-foreground mb-1">{t(n.messageKey)}</Text>
+                      <Text className="text-xs text-muted-foreground">{t(n.timeKey)}</Text>
                     </Pressable>
                     <Pressable onPress={() => clearNotification(n.id)} className="p-1">
                       <X size={16} color="#78716C" />
@@ -137,14 +137,14 @@ export default function Home() {
           </View>
         </View>
       </Modal>
-
+ 
       {/* Language Selector Modal */}
       <Modal visible={showLanguageModal} transparent animationType="slide">
         <View className="flex-1 bg-black/50 justify-end">
           <Pressable className="absolute inset-0" onPress={() => setShowLanguageModal(false)} />
           <View className="bg-card rounded-t-3xl p-6 border-t border-border">
             <View className="flex-row items-center justify-between border-b border-border pb-4 mb-4">
-              <Text className="font-semibold text-lg text-foreground">Select Language / భాష / भाषा</Text>
+              <Text className="font-semibold text-lg text-foreground">Select Language / భాష / भाषा / ભાષા</Text>
               <Pressable onPress={() => setShowLanguageModal(false)} className="p-1">
                 <X size={24} color="#F5F5F0" />
               </Pressable>

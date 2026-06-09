@@ -93,6 +93,16 @@ export default function Temples() {
     },
   ];
 
+  const getTempleKey = (name: string) => {
+    const clean = name.toLowerCase();
+    if (clean.includes('tirumala')) return 'tirumala';
+    if (clean.includes('rameshwaram')) return 'rameshwaram';
+    if (clean.includes('madurai')) return 'madurai';
+    if (clean.includes('varanasi')) return 'varanasi';
+    if (clean.includes('siddhi vinayak') || clean.includes('siddhivinayak')) return 'siddhiVinayak';
+    return 'tirumala';
+  };
+
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
@@ -109,86 +119,89 @@ export default function Temples() {
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }}>
-        {temples.map((temple) => (
-          <View key={temple.id} className="bg-card border border-border rounded-2xl overflow-hidden mb-6">
-            {/* Image */}
-            <View className="relative h-48">
-              <Image
-                source={{ uri: temple.imageUrl }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-              <View className="absolute top-4 right-4 flex-row items-center gap-1 px-3 py-1.5 rounded-full bg-card/90">
-                <Star size={16} color="#EAB308" fill="#EAB308" />
-                <Text className="text-sm font-medium text-foreground" style={{ fontFamily: 'System' }}>
-                  {temple.rating}
-                </Text>
-              </View>
-            </View>
-
-            {/* Content */}
-            <View className="p-5">
-              <Text className="text-xl font-bold mb-1 text-foreground" style={{ fontFamily: 'System' }}>
-                {temple.name}
-              </Text>
-              <View className="flex-row items-center gap-4 mb-3">
-                <View className="flex-row items-center gap-1">
-                  <MapPin size={16} color="#78716C" />
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-                    {temple.location}
+        {temples.map((temple) => {
+          const tKey = getTempleKey(temple.name);
+          return (
+            <View key={temple.id} className="bg-card border border-border rounded-2xl overflow-hidden mb-6">
+              {/* Image */}
+              <View className="relative h-48">
+                <Image
+                  source={{ uri: temple.imageUrl }}
+                  className="w-full h-full"
+                  resizeMode="cover"
+                />
+                <View className="absolute top-4 right-4 flex-row items-center gap-1 px-3 py-1.5 rounded-full bg-card/90">
+                  <Star size={16} color="#EAB308" fill="#EAB308" />
+                  <Text className="text-sm font-medium text-foreground" style={{ fontFamily: 'System' }}>
+                    {temple.rating}
                   </Text>
                 </View>
-                <Text className="text-muted-foreground">•</Text>
-                <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-                  {temple.deity}
+              </View>
+
+              {/* Content */}
+              <View className="p-5">
+                <Text className="text-xl font-bold mb-1 text-foreground" style={{ fontFamily: 'System' }}>
+                  {t('templeDb.' + tKey + '.name')}
                 </Text>
-              </View>
-              <Text className="text-sm text-muted-foreground leading-relaxed mb-4" style={{ fontFamily: 'System' }}>
-                {temple.description}
-              </Text>
-
-              <View className="flex-row items-center justify-between pt-4 border-t border-border">
-                <View className="flex-row items-center gap-2">
-                  <Flame size={16} color="#F97316" />
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-                    {temple.poojas} {t('temples.availablePoojas')}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => setExpandedTemple(expandedTemple === temple.id ? null : temple.id)}
-                  className="px-5 py-2 rounded-xl bg-primary active:bg-[#E05C10]"
-                >
-                  <Text className="text-primary-foreground font-medium text-sm" style={{ fontFamily: 'System' }}>
-                    {expandedTemple === temple.id ? t('temples.hide') : t('temples.explore')}
-                  </Text>
-                </Pressable>
-              </View>
-
-              {/* Expanded Poojas List */}
-              {expandedTemple === temple.id && (
-                <View className="pt-4 mt-4 border-t border-border">
-                  <Text className="text-sm font-semibold mb-3 text-foreground" style={{ fontFamily: 'System' }}>
-                    {t('temples.availablePoojas')}
-                  </Text>
-                  <View className="space-y-2">
-                    {temple.availablePoojas.map((pooja) => (
-                      <Link key={pooja.id} href={`/pooja/${pooja.id}` as any} asChild>
-                        <Pressable className="flex-row items-center justify-between p-3 rounded-xl bg-muted/30 active:bg-muted/50 mb-2">
-                          <Text className="text-sm font-medium text-foreground" style={{ fontFamily: 'System' }}>
-                            {pooja.name}
-                          </Text>
-                          <Text className="text-sm font-semibold text-primary" style={{ fontFamily: 'System' }}>
-                            {pooja.price}
-                          </Text>
-                        </Pressable>
-                      </Link>
-                    ))}
+                <View className="flex-row items-center gap-4 mb-3">
+                  <View className="flex-row items-center gap-1">
+                    <MapPin size={16} color="#78716C" />
+                    <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+                      {t('templeDb.' + tKey + '.location')}
+                    </Text>
                   </View>
+                  <Text className="text-muted-foreground">•</Text>
+                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+                    {t('templeDb.' + tKey + '.deity')}
+                  </Text>
                 </View>
-              )}
+                <Text className="text-sm text-muted-foreground leading-relaxed mb-4" style={{ fontFamily: 'System' }}>
+                  {t('templeDb.' + tKey + '.description')}
+                </Text>
+
+                <View className="flex-row items-center justify-between pt-4 border-t border-border">
+                  <View className="flex-row items-center gap-2">
+                    <Flame size={16} color="#F97316" />
+                    <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+                      {temple.poojas} {t('temples.availablePoojas')}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => setExpandedTemple(expandedTemple === temple.id ? null : temple.id)}
+                    className="px-5 py-2 rounded-xl bg-primary active:bg-[#E05C10]"
+                  >
+                    <Text className="text-primary-foreground font-medium text-sm" style={{ fontFamily: 'System' }}>
+                      {expandedTemple === temple.id ? t('temples.hide') : t('temples.explore')}
+                    </Text>
+                  </Pressable>
+                </View>
+
+                {/* Expanded Poojas List */}
+                {expandedTemple === temple.id && (
+                  <View className="pt-4 mt-4 border-t border-border">
+                    <Text className="text-sm font-semibold mb-3 text-foreground" style={{ fontFamily: 'System' }}>
+                      {t('temples.availablePoojas')}
+                    </Text>
+                    <View className="space-y-2">
+                      {temple.availablePoojas.map((pooja) => (
+                        <Link key={pooja.id} href={`/pooja/${pooja.id}` as any} asChild>
+                          <Pressable className="flex-row items-center justify-between p-3 rounded-xl bg-muted/30 active:bg-muted/50 mb-2">
+                            <Text className="text-sm font-medium text-foreground" style={{ fontFamily: 'System' }}>
+                              {t('poojaDb.' + pooja.id + '.title')}
+                            </Text>
+                            <Text className="text-sm font-semibold text-primary" style={{ fontFamily: 'System' }}>
+                              {pooja.price}
+                            </Text>
+                          </Pressable>
+                        </Link>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </View>
   );

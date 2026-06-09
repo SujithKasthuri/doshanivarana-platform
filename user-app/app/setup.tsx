@@ -2,21 +2,23 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { View, Text, Pressable, ScrollView } from 'react-native';
+import { useLanguage } from '../src/old_app/context/LanguageContext';
 
 const deities = [
-  { id: 'ganesha', name: 'Ganesha', emoji: '🐘' },
-  { id: 'lakshmi', name: 'Lakshmi', emoji: '💰' },
-  { id: 'shiva', name: 'Shiva', emoji: '🔱' },
-  { id: 'vishnu', name: 'Vishnu', emoji: '🦅' },
-  { id: 'durga', name: 'Durga', emoji: '🦁' },
-  { id: 'saraswati', name: 'Saraswati', emoji: '📿' },
-  { id: 'hanuman', name: 'Hanuman', emoji: '🐵' },
-  { id: 'murugan', name: 'Murugan', emoji: '🦚' },
+  { id: 'ganesha', emoji: '🐘' },
+  { id: 'lakshmi', emoji: '💰' },
+  { id: 'shiva', emoji: '🔱' },
+  { id: 'vishnu', emoji: '🦅' },
+  { id: 'durga', emoji: '🦁' },
+  { id: 'saraswati', emoji: '📿' },
+  { id: 'hanuman', emoji: '🐵' },
+  { id: 'murugan', emoji: '🦚' },
 ];
 
 export default function ProfileSetup() {
   const [selected, setSelected] = useState<string[]>(['lakshmi', 'shiva']);
   const router = useRouter();
+  const { t } = useLanguage();
 
   const toggleDeity = (id: string) => {
     setSelected((prev) =>
@@ -41,7 +43,7 @@ export default function ProfileSetup() {
         className="text-2xl font-bold mb-3"
         style={{ fontFamily: 'System', color: '#F5F5F0' }}
       >
-        Which deities do you hold closest?
+        {t('setup.title')}
       </Text>
 
       {/* Subtitle */}
@@ -49,7 +51,7 @@ export default function ProfileSetup() {
         className="text-sm mb-8"
         style={{ fontFamily: 'System', color: '#78716C' }}
       >
-        We will personalise your pooja suggestions based on your answer.
+        {t('setup.subtitle')}
       </Text>
 
       {/* Deity Grid */}
@@ -81,7 +83,7 @@ export default function ProfileSetup() {
                 className="text-sm font-medium"
                 style={{ fontFamily: 'System', color: '#F5F5F0' }}
               >
-                {deity.name}
+                {t('deity.' + deity.id)}
               </Text>
             </Pressable>
           );
@@ -105,7 +107,7 @@ export default function ProfileSetup() {
             }`}
             style={{ fontFamily: 'System' }}
           >
-            Continue
+            {t('common.continue')}
           </Text>
         </Pressable>
 
@@ -117,7 +119,7 @@ export default function ProfileSetup() {
             className="text-sm text-muted-foreground"
             style={{ fontFamily: 'System' }}
           >
-            Skip for now
+            {t('setup.skip')}
           </Text>
         </Pressable>
       </View>

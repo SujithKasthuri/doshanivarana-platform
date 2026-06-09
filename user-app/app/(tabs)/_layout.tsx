@@ -3,6 +3,7 @@ import { Tabs } from "expo-router";
 import { Home, Flame, Calendar, Building2, User } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { useLanguage } from "../../src/old_app/context/LanguageContext";
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -25,18 +26,20 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     }
   };
 
+  const { t } = useLanguage();
+
   const getLabel = (name: string) => {
     switch (name) {
       case "index":
-        return "Home";
+        return t("nav.home");
       case "poojas":
-        return "Poojas";
+        return t("nav.poojas");
       case "bookings":
-        return "Bookings";
+        return t("nav.bookings");
       case "temples":
-        return "Temples";
+        return t("nav.temples");
       case "profile":
-        return "Profile";
+        return t("nav.profile");
       default:
         return name;
     }

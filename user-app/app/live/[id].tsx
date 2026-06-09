@@ -4,19 +4,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Volume2, VolumeX, Maximize2, Eye } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
+import { useLanguage } from '../../src/old_app/context/LanguageContext';
 
 export default function LiveStreamScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const { t } = useLanguage();
 
   const [isMuted, setIsMuted] = useState(false);
 
   // Mock details for the live broadcast
   const streamInfo = {
-    title: 'Rudrabhishek',
-    temple: 'Sri Kalahasti Shivalayam, Tirupati',
+    title: t('poojaDb.1.title'),
+    temple: t('templeDb.rameshwaram.name'),
     devoteeName: 'Priya Sharma & Family',
     viewerCount: 312,
     videoUrl: 'https://images.unsplash.com/photo-1680342786718-39d1febb5349?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB0ZW1wbGUlMjB3b3JzaGlwJTIwcml0dWFsfGVufDF8fHx8MTc3MzgyNTQ1Mnww&ixlib=rb-4.1.0&q=80&w=1080',
@@ -59,7 +61,7 @@ export default function LiveStreamScreen() {
           <View className="flex-row items-center gap-1.5 px-3 py-1 rounded-full bg-red-600">
             <View className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
             <Text className="text-[10px] font-bold text-white tracking-wider" style={{ fontFamily: 'System' }}>
-              LIVE
+              {t('home.live').toUpperCase()}
             </Text>
           </View>
         </View>
@@ -67,7 +69,7 @@ export default function LiveStreamScreen() {
         {/* Video Overlay Bottom Caption (Devotee dedication info) */}
         <View className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent pt-12">
           <Text className="text-center text-xs text-[#78716C] mb-1" style={{ fontFamily: 'System' }}>
-            This Seva is being conducted on behalf of:
+            {t('live.onBehalfOf')}
           </Text>
           <Text className="text-center text-sm font-bold text-primary" style={{ fontFamily: 'System' }}>
             {streamInfo.devoteeName}
@@ -84,12 +86,12 @@ export default function LiveStreamScreen() {
         <View className="flex-row items-center justify-between text-xs mb-3">
           <View className="flex-row items-center gap-1.5">
             <View className="w-2 h-2 rounded-full bg-green-500" />
-            <Text className="text-[#78716C] text-xs" style={{ fontFamily: 'System' }}>720p HD • Smooth</Text>
+            <Text className="text-[#78716C] text-xs" style={{ fontFamily: 'System' }}>720p HD • {t('live.smooth')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <Eye size={14} color="#78716C" />
             <Text className="text-[#78716C] text-xs" style={{ fontFamily: 'System' }}>
-              {streamInfo.viewerCount} Devotees Joined
+              {t('live.devoteesJoined').replace('{count}', streamInfo.viewerCount.toString())}
             </Text>
           </View>
         </View>
@@ -116,7 +118,7 @@ export default function LiveStreamScreen() {
         {/* Brand/Devotional warning guidance */}
         <View className="bg-card border border-border/20 rounded-2xl p-4 items-center">
           <Text className="text-center text-xs text-muted-foreground leading-relaxed" style={{ fontFamily: 'System' }}>
-            🙏 Chant along with the pujari if you know the mantras. Feel free to light a diya at your home temple during the Mangalarati.
+            {t('live.guidance')}
           </Text>
         </View>
       </View>

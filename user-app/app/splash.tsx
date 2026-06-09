@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { View, Text } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { useLanguage } from '../src/old_app/context/LanguageContext';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   useEffect(() => {
     // Navigate to welcome screen after 2.5 seconds
@@ -40,7 +42,7 @@ export default function SplashScreen() {
           color: '#78716C',
         }}
       >
-        Where Technology Meets Devotion
+        {t('welcome.tagline')}
       </Animated.Text>
     </View>
   );

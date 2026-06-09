@@ -4,6 +4,7 @@ import { useRouter, Link } from 'expo-router';
 import { ArrowLeft, ChevronLeft, ChevronRight, MapPin, Calendar, Flame } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../src/old_app/context/ThemeContext';
+import { useLanguage } from '../src/old_app/context/LanguageContext';
 
 interface CalendarDay {
   dayNum: number;
@@ -17,6 +18,7 @@ export default function HinduCalendarScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const router = useRouter();
+  const { t } = useLanguage();
   const [selectedDay, setSelectedDay] = useState<number>(14); // Default to April 14 (Ugadi)
 
   const calendarDays: CalendarDay[] = [
@@ -66,20 +68,18 @@ export default function HinduCalendarScreen() {
     switch (dayNum) {
       case 14:
         return {
-          title: '14 April — Ugadi (Telugu New Year)',
-          significance: 'Telugu & Kannada New Year. A deeply auspicious day for new beginnings, buying assets, and offering special prayers.',
+          title: t('calendar.eventUgadiTitle'),
+          significance: t('calendar.eventUgadiDesc'),
           poojas: [
             {
               id: '16',
-              title: 'Satyanarayana Vratam',
-              temple: 'Tirumala Temple',
+              templeKey: 'tirumala',
               price: '₹1,800',
               imageUrl: 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
             },
             {
               id: '3',
-              title: 'Lakshmi Abhishekam',
-              temple: 'Madurai Temple',
+              templeKey: 'madurai',
               price: '₹900',
               imageUrl: 'https://images.unsplash.com/photo-1598089842456-ac3c6ef91f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMGRlaXR5JTIwc2hyaW5lJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
             },
@@ -87,13 +87,12 @@ export default function HinduCalendarScreen() {
         };
       case 17:
         return {
-          title: '17 April — Sri Ram Navami',
-          significance: 'Birth anniversary of Lord Rama. Ideal for peace, purification of the mind, and chanting holy names.',
+          title: t('calendar.eventRamNavamiTitle'),
+          significance: t('calendar.eventRamNavamiDesc'),
           poojas: [
             {
               id: '14',
-              title: 'Hanuman Chalisa Archana',
-              temple: 'Varanasi Temple',
+              templeKey: 'varanasi',
               price: '₹350',
               imageUrl: 'https://images.unsplash.com/photo-1772787429537-77ba39d3f855?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZW1wbGUlMjBmbG93ZXIlMjBvZmZlcmluZ3MlMjBpbmNlbnNlfGVufDF8fHx8MTc3MzgyNTQ1Nnww&ixlib=rb-4.1.0&q=80&w=1080',
             },
@@ -101,13 +100,12 @@ export default function HinduCalendarScreen() {
         };
       case 18:
         return {
-          title: '18 April — Amavasya',
-          significance: 'New Moon day. A highly powerful time for ancestral blessings, releasing negative karma, and performing cleansing homams.',
+          title: t('calendar.eventAmavasyaTitle'),
+          significance: t('calendar.eventAmavasyaDesc'),
           poojas: [
             {
               id: '7',
-              title: 'Navagraha Homam',
-              temple: 'Varanasi Temple',
+              templeKey: 'varanasi',
               price: '₹3,500',
               imageUrl: 'https://images.unsplash.com/photo-1772787429537-77ba39d3f855?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZW1wbGUlMjBmbG93ZXIlMjBvZmZlcmluZ3MlMjBpbmNlbnNlfGVufDF8fHx8MTc3MzgyNTQ1Nnww&ixlib=rb-4.1.0&q=80&w=1080',
             },
@@ -115,13 +113,12 @@ export default function HinduCalendarScreen() {
         };
       case 3:
         return {
-          title: '3 April — Pournami',
-          significance: 'Full Moon day. Auspicious for receiving divine energy, meditation, and Satyanarayana Vratam for family prosperity.',
+          title: t('calendar.eventPournamiTitle'),
+          significance: t('calendar.eventPournamiDesc'),
           poojas: [
             {
               id: '16',
-              title: 'Satyanarayana Vratam',
-              temple: 'Tirumala Temple',
+              templeKey: 'tirumala',
               price: '₹1,800',
               imageUrl: 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
             },
@@ -130,13 +127,12 @@ export default function HinduCalendarScreen() {
       case 6:
       case 21:
         return {
-          title: `${dayNum} April — Ekadashi`,
-          significance: 'A sacred day dedicated to Lord Vishnu. Highly beneficial for fasting, mental clarity, and spiritual progress.',
+          title: t('calendar.eventEkadashiTitle').replace('{day}', dayNum.toString()),
+          significance: t('calendar.eventEkadashiDesc'),
           poojas: [
             {
               id: '11',
-              title: 'Sahasranama Archana',
-              temple: 'Tirumala Temple',
+              templeKey: 'tirumala',
               price: '₹500',
               imageUrl: 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
             },
@@ -144,13 +140,12 @@ export default function HinduCalendarScreen() {
         };
       default:
         return {
-          title: `${dayNum} April`,
-          significance: 'An auspicious day for daily prayers, meditation, and offering sacred archana at temples.',
+          title: t('calendar.dayTitle').replace('{day}', dayNum.toString()),
+          significance: t('calendar.dayDesc'),
           poojas: [
             {
               id: '11',
-              title: 'Sahasranama Archana',
-              temple: 'Tirumala Temple',
+              templeKey: 'tirumala',
               price: '₹500',
               imageUrl: 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
             },
@@ -165,20 +160,18 @@ export default function HinduCalendarScreen() {
     <View className="flex-1 bg-background">
       {/* Header */}
       <View 
-        className="flex-row items-center justify-between px-6 pb-4 border-b border-border/40 bg-background"
+        className="flex-row items-center gap-4 px-6 pb-4 border-b border-border/40 bg-background"
         style={{ paddingTop: insets.top > 0 ? insets.top + 8 : 16 }}
       >
-        <View className="flex-row items-center gap-4">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-xl items-center justify-center bg-card/40 border border-border/40 active:bg-muted/40"
-          >
-            <ArrowLeft size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
-          </Pressable>
-          <Text className="text-xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
-            Hindu Calendar
-          </Text>
-        </View>
+        <Pressable
+          onPress={() => router.back()}
+          className="w-10 h-10 rounded-xl items-center justify-center bg-card/40 border border-border/40 active:bg-muted/40"
+        >
+          <ArrowLeft size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
+        </Pressable>
+        <Text className="text-xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
+          {t('calendar.title')}
+        </Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, paddingBottom: 60 }} className="flex-1">
@@ -189,7 +182,7 @@ export default function HinduCalendarScreen() {
             <ChevronLeft size={18} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
           </Pressable>
           <Text className="text-base font-bold text-foreground" style={{ fontFamily: 'System' }}>
-            April 2026
+            {t('calendar.april')} 2026
           </Text>
           <Pressable className="p-1.5 rounded-lg bg-muted/30 border border-border/20 active:bg-muted/50">
             <ChevronRight size={18} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
@@ -200,19 +193,19 @@ export default function HinduCalendarScreen() {
         <View className="flex-row flex-wrap gap-x-4 gap-y-2 mb-6 justify-center">
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-primary" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>Festival</Text>
+            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendFestival')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>Ekadashi</Text>
+            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendEkadashi')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-accent" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>Amavasya</Text>
+            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendAmavasya')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>Pournami</Text>
+            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendPournami')}</Text>
           </View>
         </View>
 
@@ -220,9 +213,9 @@ export default function HinduCalendarScreen() {
         <View className="bg-card border border-border/40 rounded-3xl p-5 mb-6">
           {/* Weekday Headers */}
           <View className="flex-row justify-between mb-4 px-1">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((dayName, idx) => (
+            {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
               <Text key={idx} className="w-[12%] text-center text-xs font-semibold text-muted-foreground" style={{ fontFamily: 'System' }}>
-                {dayName}
+                {t(`calendar.weekday${idx}`)}
               </Text>
             ))}
           </View>
@@ -287,7 +280,7 @@ export default function HinduCalendarScreen() {
           </Text>
 
           <Text className="text-sm font-bold text-foreground mb-4" style={{ fontFamily: 'System' }}>
-            Recommended Poojas
+            {t('calendar.recommendedPoojas')}
           </Text>
 
           {/* Recommended Pooja Cards */}
@@ -302,12 +295,12 @@ export default function HinduCalendarScreen() {
                 <View className="flex-1 p-3.5 justify-between">
                   <View>
                     <Text className="font-semibold text-foreground text-sm mb-1" style={{ fontFamily: 'System' }}>
-                      {pooja.title}
+                      {t('poojaDb.' + pooja.id + '.title')}
                     </Text>
                     <View className="flex-row items-center gap-1">
                       <MapPin size={12} color="#78716C" />
                       <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-                        {pooja.temple}
+                        {t('templeDb.' + pooja.templeKey + '.name')}
                       </Text>
                     </View>
                   </View>
@@ -318,7 +311,7 @@ export default function HinduCalendarScreen() {
                     <Link href={`/pooja/${pooja.id}` as any} asChild>
                       <Pressable className="px-3 py-1.5 rounded-lg bg-primary active:bg-[#E05C10]">
                         <Text className="text-[#1A0A00] font-semibold text-[10px]" style={{ fontFamily: 'System' }}>
-                          Offer Seva
+                          {t('calendar.offerSeva')}
                         </Text>
                       </Pressable>
                     </Link>

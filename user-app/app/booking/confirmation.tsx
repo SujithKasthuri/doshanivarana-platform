@@ -1,9 +1,11 @@
 import { View, Text, Pressable } from 'react-native';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { Bell, Share2 } from 'lucide-react-native';
+import { useLanguage } from '../../src/old_app/context/LanguageContext';
 
 export default function BookingConfirmation() {
   const { bookingId } = useLocalSearchParams();
+  const { t } = useLanguage();
   const displayId = bookingId || 'BKG-20260415-00001';
 
   return (
@@ -26,7 +28,7 @@ export default function BookingConfirmation() {
         className="text-3xl font-bold text-center mb-4 text-[#F5F5F0]"
         style={{ fontFamily: 'System' }}
       >
-        Your Seva Has Been Offered
+        {t('bookingConfirmation.title')}
       </Text>
 
       {/* Subtitle */}
@@ -34,7 +36,7 @@ export default function BookingConfirmation() {
         className="text-center text-sm mb-8 max-w-md text-[#78716C]"
         style={{ fontFamily: 'System' }}
       >
-        The pooja will be performed in your name and Gothram. May the blessings of Lord Shiva be with you and your family.
+        {t('bookingConfirmation.subtitle')}
       </Text>
 
       {/* Booking ID Card */}
@@ -48,7 +50,7 @@ export default function BookingConfirmation() {
             DOSHANIVARANA
           </Text>
           <Text className="text-xs text-[#78716C]" style={{ fontFamily: 'System' }}>
-            Booking Confirmed
+            {t('bookingConfirmation.bookingConfirmed')}
           </Text>
         </View>
 
@@ -60,13 +62,13 @@ export default function BookingConfirmation() {
           className="text-xl font-bold mb-2 text-[#F5F5F0]"
           style={{ fontFamily: 'System' }}
         >
-          Rudrabhishek
+          {t('poojaDb.1.title')}
         </Text>
         <Text className="text-xs mb-1 text-[#78716C]" style={{ fontFamily: 'System' }}>
-          Sri Kalahasti Shivalayam, Tirupati
+          {t('templeDb.rameshwaram.name')}, {t('templeDb.rameshwaram.location')}
         </Text>
         <Text className="text-xs mb-4 text-[#78716C]" style={{ fontFamily: 'System' }}>
-          15 April 2026 — 9:00 AM
+          15 {t('calendar.april')} 2026 — 9:00 AM
         </Text>
 
         {/* Divider */}
@@ -75,7 +77,7 @@ export default function BookingConfirmation() {
         {/* Booking ID */}
         <View>
           <Text className="text-xs mb-1 text-[#78716C]" style={{ fontFamily: 'System' }}>
-            Booking ID
+            {t('bookingConfirmation.bookingId')}
           </Text>
           <Text
             className="text-sm text-primary font-bold"
@@ -91,14 +93,14 @@ export default function BookingConfirmation() {
         <Pressable className="w-full py-3 rounded-xl bg-primary items-center justify-center flex-row gap-2 active:bg-[#E05C10] mb-3">
           <Bell size={20} color="#1A0A00" />
           <Text className="text-primary-foreground font-medium" style={{ fontFamily: 'System' }}>
-            Set Reminder
+            {t('bookingConfirmation.setReminder')}
           </Text>
         </Pressable>
 
         <Pressable className="w-full py-3 rounded-xl border-2 border-primary bg-transparent items-center justify-center flex-row gap-2 active:bg-primary/5">
           <Share2 size={20} color="#F97316" />
           <Text className="text-primary font-medium" style={{ fontFamily: 'System' }}>
-            Share Blessing
+            {t('bookingConfirmation.shareBlessing')}
           </Text>
         </Pressable>
       </View>
@@ -111,21 +113,21 @@ export default function BookingConfirmation() {
               <Text className="text-xs text-primary-foreground font-bold">✓</Text>
             </View>
             <Text className="text-xs text-[#78716C]" style={{ fontFamily: 'System' }}>
-              Seva Offered
+              {t('journey.sevaOffered')}
             </Text>
           </View>
           <View className="w-8 h-0.5 bg-border" />
           <View className="flex-row items-center gap-2">
             <View className="w-6 h-6 rounded-full border border-border" />
             <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-              Pujari Assigned
+              {t('journey.pujariAssigned')}
             </Text>
           </View>
           <View className="w-8 h-0.5 bg-border" />
           <View className="flex-row items-center gap-2">
             <View className="w-6 h-6 rounded-full border border-border" />
             <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-              Scheduled
+              {t('journey.poojaScheduled')}
             </Text>
           </View>
         </View>
@@ -135,7 +137,7 @@ export default function BookingConfirmation() {
       <Link href="/(tabs)/bookings" asChild>
         <Pressable className="p-2">
           <Text className="text-primary text-sm font-medium" style={{ fontFamily: 'System' }}>
-            View My Bookings
+            {t('bookingConfirmation.viewJourney')}
           </Text>
         </Pressable>
       </Link>

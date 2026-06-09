@@ -5,12 +5,13 @@ import { Link } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
+import { getTranslatedTemple } from './poojas';
 
 interface BookingItem {
   id: string;
-  title: string;
-  temple: string;
-  date: string;
+  poojaId: number;
+  templeKey: string;
+  dateKey: string;
   status: string;
   currentStage: number;
   imageUrl: string;
@@ -30,18 +31,18 @@ export default function Bookings() {
   const [bookingsList, setBookingsList] = useState<BookingItem[]>([
     {
       id: 'DS2026031801',
-      title: 'Satyanarayana Pooja',
-      temple: 'Tirumala Temple',
-      date: 'Tomorrow, 6:30 AM',
+      poojaId: 16,
+      templeKey: 'tirumala',
+      dateKey: 'booking.date1',
       status: 'upcoming',
       currentStage: 2,
       imageUrl: 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
     },
     {
       id: 'DS2026032203',
-      title: 'Maha Mrityunjaya Homam',
-      temple: 'Kashi Vishwanath Temple',
-      date: 'March 22, 2026, 8:00 AM',
+      poojaId: 10,
+      templeKey: 'varanasi',
+      dateKey: 'booking.date2',
       status: 'upcoming',
       currentStage: 1,
       imageUrl: 'https://images.unsplash.com/photo-1609137144814-7e77a28e75cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmaXJlJTIwYWx0YXIlMjBob21hbXxlbnwxfHx8fDE3NzM4MjU0NTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
@@ -52,9 +53,9 @@ export default function Bookings() {
     },
     {
       id: 'DS2026031502',
-      title: 'Rudrabhishekam',
-      temple: 'Rameshwaram Temple',
-      date: 'March 15, 2026',
+      poojaId: 1,
+      templeKey: 'rameshwaram',
+      dateKey: 'booking.date3',
       status: 'completed',
       currentStage: 9,
       hasRecording: true,
@@ -101,7 +102,7 @@ export default function Bookings() {
           {t('bookings.title')}
         </Text>
         <Text className="text-sm text-muted-foreground mt-1" style={{ fontFamily: 'System' }}>
-          Track your pooja journey
+          {t('bookings.subtitle')}
         </Text>
       </View>
 
@@ -146,13 +147,13 @@ export default function Bookings() {
                 <Package size={32} color="#78716C" />
               </View>
               <Text className="font-semibold text-lg text-foreground mb-1" style={{ fontFamily: 'System' }}>
-                No {activeTab} bookings
-              </Text>
-              <Text className="text-sm text-muted-foreground text-center" style={{ fontFamily: 'System' }}>
-                {activeTab === 'active' 
-                  ? 'Book your first pooja to get started' 
-                  : 'Your completed poojas will appear here'}
-              </Text>
+              {activeTab === 'active' ? t('bookings.noActive') : t('bookings.noCompleted')}
+            </Text>
+            <Text className="text-sm text-muted-foreground text-center" style={{ fontFamily: 'System' }}>
+              {activeTab === 'active' 
+                ? t('bookings.noActiveDesc') 
+                : t('bookings.noCompletedDesc')}
+            </Text>
             </View>
           ) : (
             filteredBookings.map((booking) => (
@@ -182,40 +183,40 @@ export default function Bookings() {
               <View className="space-y-4">
                 <View className="flex-row items-center justify-between border-b border-border pb-4">
                   <Text className="font-bold text-lg text-foreground" style={{ fontFamily: 'System' }}>
-                    Complete Seva Payment
+                    {t('booking.completePayment')}
                   </Text>
                   <Pressable onPress={() => setShowPaymentModal(false)} className="p-1">
-                    <Text className="text-muted-foreground text-sm font-semibold">Cancel</Text>
+                    <Text className="text-muted-foreground text-sm font-semibold">{t('common.cancel')}</Text>
                   </Pressable>
                 </View>
 
                 <View className="bg-muted/30 p-4 rounded-xl space-y-2 mt-2">
                   <Text className="text-xs text-muted-foreground uppercase tracking-wider font-semibold" style={{ fontFamily: 'System' }}>
-                    Seva Details
+                    {t('booking.sevaDetails')}
                   </Text>
                   <Text className="font-bold text-base text-foreground" style={{ fontFamily: 'System' }}>
-                    {payingBooking.title}
+                    {t('poojaDb.' + payingBooking.poojaId + '.title')}
                   </Text>
                   <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-                    {payingBooking.temple}
+                    {t('templeDb.' + payingBooking.templeKey + '.name')}
                   </Text>
                   <View className="flex-row justify-between pt-2 border-t border-border/20 text-xs">
-                    <Text className="text-muted-foreground">Booking ID</Text>
+                    <Text className="text-muted-foreground">{t('bookingConfirmation.bookingId')}</Text>
                     <Text className="font-semibold text-foreground">{payingBooking.id}</Text>
                   </View>
                 </View>
 
                 <View className="space-y-2.5 mt-2">
                   <View className="flex-row justify-between text-sm">
-                    <Text className="text-muted-foreground">Total Seva Price</Text>
+                    <Text className="text-muted-foreground">{t('booking.totalPrice')}</Text>
                     <Text className="text-foreground">₹{payingBooking.totalAmount}</Text>
                   </View>
                   <View className="flex-row justify-between text-sm">
-                    <Text className="text-muted-foreground">Paid Amount (Advance)</Text>
+                    <Text className="text-muted-foreground">{t('booking.paidAdvance')}</Text>
                     <Text className="text-green-500">-₹{payingBooking.paidAmount}</Text>
                   </View>
                   <View className="flex-row justify-between pt-3 border-t border-border/40">
-                    <Text className="font-bold text-base text-foreground">Remaining Balance Due</Text>
+                    <Text className="font-bold text-base text-foreground">{t('booking.remainingBalanceDue')}</Text>
                     <Text className="font-bold text-lg text-primary">₹{payingBooking.remainingBalance}</Text>
                   </View>
                 </View>
@@ -225,7 +226,7 @@ export default function Bookings() {
                   className="w-full mt-6 py-4 rounded-xl bg-primary active:bg-[#E05C10] items-center justify-center"
                 >
                   <Text className="text-primary-foreground font-semibold text-base" style={{ fontFamily: 'System' }}>
-                    Pay Balance — ₹{payingBooking.remainingBalance}
+                    {t('booking.payBalanceAmount').replace('{amount}', payingBooking.remainingBalance?.toString() ?? '0')}
                   </Text>
                 </Pressable>
               </View>
@@ -235,10 +236,10 @@ export default function Bookings() {
               <View className="py-12 items-center justify-center space-y-4">
                 <ActivityIndicator size="large" color="#F97316" />
                 <Text className="font-bold text-lg text-foreground mt-4" style={{ fontFamily: 'System' }}>
-                  Processing Sacred Offering...
+                  {t('booking.processingOffering')}
                 </Text>
                 <Text className="text-xs text-muted-foreground text-center px-6" style={{ fontFamily: 'System' }}>
-                  Please do not close the app or press back. We are connecting to the temple secure gateway.
+                  {t('booking.processingDesc')}
                 </Text>
               </View>
             )}
@@ -249,19 +250,19 @@ export default function Bookings() {
                   <Check size={32} color="#22C55E" />
                 </View>
                 <Text className="font-bold text-2xl text-green-500 text-center" style={{ fontFamily: 'System' }}>
-                  Payment Successful! 🙏
+                  {t('booking.paymentSuccess')}
                 </Text>
                 <Text className="text-sm text-foreground text-center font-medium px-4" style={{ fontFamily: 'System' }}>
-                  Your seva '{payingBooking.title}' is now fully confirmed.
+                  {t('booking.confirmSuccess').replace('{title}', t('poojaDb.' + payingBooking.poojaId + '.title'))}
                 </Text>
                 <Text className="text-xs text-muted-foreground text-center px-8" style={{ fontFamily: 'System' }}>
-                  The temple priest will chant the sankalpam in your name. Prasad delivery tracking details will update shortly.
+                  {t('booking.sankalpamNote')}
                 </Text>
                 <Pressable
                   onPress={() => setShowPaymentModal(false)}
                   className="w-full mt-6 py-3.5 rounded-xl bg-primary active:bg-[#E05C10] items-center justify-center"
                 >
-                  <Text className="text-[#1A0A00] font-semibold text-sm">Close</Text>
+                  <Text className="text-[#1A0A00] font-semibold text-sm">{t('common.close')}</Text>
                 </Pressable>
               </View>
             )}
@@ -274,9 +275,9 @@ export default function Bookings() {
 
 function BookingCard({
   id,
-  title,
-  temple,
-  date,
+  poojaId,
+  templeKey,
+  dateKey,
   status,
   currentStage,
   imageUrl,
@@ -288,9 +289,9 @@ function BookingCard({
   onPayBalance,
 }: {
   id: string;
-  title: string;
-  temple: string;
-  date: string;
+  poojaId: number;
+  templeKey: string;
+  dateKey: string;
   status: string;
   currentStage: number;
   imageUrl: string;
@@ -302,16 +303,17 @@ function BookingCard({
   onPayBalance?: (id: string) => void;
 }) {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const stages = [
-    { label: 'Seva Offered', icon: CheckCircle2 },
-    { label: 'Confirmed', icon: CheckCircle2 },
-    { label: 'Scheduled', icon: Clock },
-    { label: 'Pooja Live', icon: PlayCircle },
-    { label: 'Completed', icon: CheckCircle2 },
-    { label: 'Recording Ready', icon: PlayCircle },
-    { label: 'Prasad Packed', icon: Package },
-    { label: 'Dispatched', icon: Package },
-    { label: 'Delivered', icon: CheckCircle2 },
+    { labelKey: 'journey.sevaOffered', icon: CheckCircle2 },
+    { labelKey: 'journey.confirmed', icon: CheckCircle2 },
+    { labelKey: 'journey.poojaScheduled', icon: Clock },
+    { labelKey: 'journey.goingLive', icon: PlayCircle },
+    { labelKey: 'journey.poojaCompleted', icon: CheckCircle2 },
+    { labelKey: 'journey.recordingReady', icon: PlayCircle },
+    { labelKey: 'journey.prasadPacked', icon: Package },
+    { labelKey: 'journey.prasadDispatched', icon: Package },
+    { labelKey: 'journey.prasadDelivered', icon: CheckCircle2 },
   ];
 
   return (
@@ -326,10 +328,10 @@ function BookingCard({
         <View className="flex-1 justify-between">
           <View>
             <Text className="font-semibold text-lg text-foreground mb-1" style={{ fontFamily: 'System' }}>
-              {title}
+              {t('poojaDb.' + poojaId + '.title')}
             </Text>
             <Text className="text-sm text-muted-foreground mb-2" style={{ fontFamily: 'System' }}>
-              {temple}
+              {t('templeDb.' + templeKey + '.name')}
             </Text>
             <View className="self-start px-2 py-1 bg-muted/50 rounded">
               <Text
@@ -354,11 +356,11 @@ function BookingCard({
             <Text className={`text-xs font-medium ${
               balanceDue ? 'text-red-500' : status === 'upcoming' ? 'text-primary' : 'text-green-500'
             }`}>
-              {balanceDue ? 'Balance Due' : status === 'upcoming' ? 'Upcoming' : 'Completed'}
+              {balanceDue ? t('booking.remainingBalanceDue') : status === 'upcoming' ? t('common.upcoming') : t('common.completed')}
             </Text>
           </View>
           <Text className="text-xs text-muted-foreground mt-2" style={{ fontFamily: 'System' }}>
-            {date}
+            {t(dateKey)}
           </Text>
         </View>
       </View>
@@ -370,7 +372,7 @@ function BookingCard({
             <View className="flex-row items-center gap-1.5">
               <AlertCircle size={14} color="#EF4444" />
               <Text className="text-xs font-bold text-red-500" style={{ fontFamily: 'System' }}>
-                Remaining Balance Due
+                {t('booking.remainingBalanceDue')}
               </Text>
             </View>
             <Text className="text-base font-bold text-red-500" style={{ fontFamily: 'System' }}>
@@ -379,8 +381,8 @@ function BookingCard({
           </View>
           
           <View className="flex-row justify-between mb-3 text-xs text-muted-foreground">
-            <Text style={{ fontFamily: 'System' }}>Total Seva: ₹{totalAmount}</Text>
-            <Text style={{ fontFamily: 'System' }}>Paid: ₹{paidAmount}</Text>
+            <Text style={{ fontFamily: 'System' }}>{t('booking.totalPrice')}: ₹{totalAmount}</Text>
+            <Text style={{ fontFamily: 'System' }}>{t('booking.paidAdvance')}: ₹{paidAmount}</Text>
           </View>
 
           <Pressable 
@@ -389,7 +391,7 @@ function BookingCard({
           >
             <CreditCard size={15} color={theme === 'dark' ? '#1A0A00' : '#F5F5F0'} />
             <Text className="text-primary-foreground font-semibold text-xs" style={{ fontFamily: 'System' }}>
-              Pay Remaining Balance (₹{remainingBalance})
+              {t('booking.payBalanceAmount').replace('{amount}', remainingBalance.toString())}
             </Text>
           </Pressable>
         </View>
@@ -398,7 +400,7 @@ function BookingCard({
       {/* Journey Timeline */}
       <View className="p-4">
         <Text className="text-sm font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
-          Pooja Journey
+          {t('bookings.poojaJourney')}
         </Text>
         <View className="space-y-3 mb-4">
           {stages.slice(0, 5).map((stage, index) => {
@@ -430,7 +432,7 @@ function BookingCard({
                     }`}
                     style={{ fontFamily: 'System' }}
                   >
-                    {stage.label}
+                    {t(stage.labelKey)}
                   </Text>
                 </View>
                 {isCompleted && (
@@ -444,7 +446,7 @@ function BookingCard({
         <Link href={`/journey/${id}`} asChild>
           <Pressable className="w-full mt-4 py-2.5 rounded-xl border-2 border-primary items-center justify-center active:bg-primary/5">
             <Text className="text-primary font-medium text-sm">
-              View Full Journey
+              {t('bookings.viewJourney')}
             </Text>
           </Pressable>
         </Link>
@@ -455,7 +457,7 @@ function BookingCard({
             <Pressable className="w-full mt-3 py-2.5 rounded-xl bg-primary active:bg-[#E05C10] items-center justify-center flex-row gap-2">
               <Video size={16} color={theme === 'dark' ? '#1A0A00' : '#F5F5F0'} />
               <Text className="text-primary-foreground font-medium text-sm">
-                Watch Recording
+                {t('bookings.watchRecording')}
               </Text>
             </Pressable>
           </Link>

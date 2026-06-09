@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, MapPin, Clock, Play, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, Share2, MapPin, Clock, Play } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
+import { useLanguage } from '../../src/old_app/context/LanguageContext';
 
 export default function PoojaDetail() {
   const insets = useSafeAreaInsets();
@@ -11,6 +12,7 @@ export default function PoojaDetail() {
   const [activeTab, setActiveTab] = useState<'overview' | 'where' | 'how' | 'why'>('overview');
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { t } = useLanguage();
 
   return (
     <View className="flex-1 bg-background pb-24">
@@ -54,7 +56,7 @@ export default function PoojaDetail() {
                   }`}
                   style={{ fontFamily: 'System' }}
                 >
-                  {tab}
+                  {t('poojaDetail.' + tab)}
                 </Text>
                 {activeTab === tab && (
                   <View className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
@@ -66,10 +68,10 @@ export default function PoojaDetail() {
 
         {/* Tab Content */}
         <View className="px-6 py-6">
-          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'overview' && <OverviewTab id={id ? id.toString() : '1'} />}
           {activeTab === 'where' && <WhereTab />}
           {activeTab === 'how' && <HowTab />}
-          {activeTab === 'why' && <WhyTab />}
+          {activeTab === 'why' && <WhyTab id={id ? id.toString() : '1'} />}
         </View>
       </ScrollView>
 
@@ -79,8 +81,8 @@ export default function PoojaDetail() {
           onPress={() => router.push(`/booking/${id || '1'}` as any)}
           className="w-full py-4 rounded-xl bg-primary items-center justify-center active:bg-[#E05C10]"
         >
-          <Text className="text-primary-foreground font-medium text-base" style={{ fontFamily: 'System' }}>
-            Offer This Pooja — ₹1,100
+          <Text className="text-[#1A0A00] font-semibold text-base" style={{ fontFamily: 'System' }}>
+            {t('poojaDetail.offerPooja')} — ₹1,100
           </Text>
         </Pressable>
       </View>
@@ -88,17 +90,18 @@ export default function PoojaDetail() {
   );
 }
 
-function OverviewTab() {
+function OverviewTab({ id }: { id: string }) {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   return (
     <View className="space-y-6">
       {/* Title */}
       <View>
         <Text className="text-3xl font-bold mb-2 text-foreground" style={{ fontFamily: 'System' }}>
-          Rudrabhishek
+          {t('poojaDb.' + id + '.title')}
         </Text>
-        <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-          Sacred bathing of the Shivalinga with holy water, milk and bilva leaves.
+        <Text className="text-sm text-muted-foreground mb-4" style={{ fontFamily: 'System' }}>
+          {t('poojaDb.' + id + '.purpose')}
         </Text>
       </View>
 
@@ -122,10 +125,10 @@ function OverviewTab() {
         <MapPin size={20} color="#F97316" />
         <View>
           <Text className="font-medium text-sm text-foreground" style={{ fontFamily: 'System' }}>
-            Sri Kalahasti Shivalayam
+            {t('templeDb.rameshwaram.name')}
           </Text>
           <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-            Prithvi Linga Shrine, Tirupati
+            {t('templeDb.rameshwaram.location')}
           </Text>
         </View>
       </View>
@@ -134,7 +137,7 @@ function OverviewTab() {
       <View className="self-start flex-row items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
         <Play size={16} color="#F97316" />
         <Text className="text-sm font-medium text-primary" style={{ fontFamily: 'System' }}>
-          Live Stream Available
+          {t('poojaDetail.liveStreamAvailable')}
         </Text>
       </View>
 
@@ -155,7 +158,7 @@ function OverviewTab() {
       {/* Price */}
       <View className="pt-4 border-t border-border mt-2">
         <Text className="text-sm text-muted-foreground mb-1" style={{ fontFamily: 'System' }}>
-          Seva Amount
+          {t('poojaDetail.sevaAmount')}
         </Text>
         <Text className="text-3xl font-bold text-primary" style={{ fontFamily: 'System' }}>
           ₹1,100
@@ -166,39 +169,35 @@ function OverviewTab() {
 }
 
 function WhereTab() {
+  const { t } = useLanguage();
   return (
     <View className="space-y-6">
       <Text className="text-xl font-semibold text-foreground mb-4" style={{ fontFamily: 'System' }}>
-        Where this pooja is conducted
+        {t('poojaDetail.whereTitle')}
       </Text>
 
       <View>
         <Text className="text-2xl font-bold mb-2 text-foreground" style={{ fontFamily: 'System' }}>
-          Sri Kalahasti Shivalayam
+          {t('templeDb.rameshwaram.name')}
         </Text>
         <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-          Prithvi Linga Shrine — one of the Pancha Bhuta Stalas
+          {t('templeDb.rameshwaram.location')}
         </Text>
       </View>
 
       {/* Map Placeholder */}
-      <View className="aspect-video bg-card border border-border rounded-xl items-center justify-center">
+      <View className="aspect-video bg-card border border-border rounded-xl items-center justify-center mb-4">
         <MapPin size={48} color="#78716C" />
       </View>
 
       <View>
-        <Text className="text-xs text-muted-foreground mb-4" style={{ fontFamily: 'System' }}>
-          Kailasa Kona, Sri Kalahasti, Tirupati, Andhra Pradesh — 517640
-        </Text>
         <Text className="text-sm leading-relaxed text-muted-foreground" style={{ fontFamily: 'System' }}>
-          Sri Kalahasti is one of the five Pancha Bhuta Stalas representing the element of Air (Vayu). 
-          The temple is renowned for its Rahu-Ketu pooja and is believed to be the place where the divine 
-          spider Kala, serpent Hasti, and elephant worshipped Lord Shiva, giving the temple its name.
+          {t('templeDb.rameshwaram.description')}
         </Text>
       </View>
 
       {/* Temple Photos */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row pb-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row pb-2 mt-4">
         {[1, 2, 3].map((i) => (
           <Image
             key={i}
@@ -213,11 +212,11 @@ function WhereTab() {
 }
 
 function HowTab() {
+  const { t } = useLanguage();
   const steps = [
     { name: 'Ganapathi Vandanam', desc: 'Invoking Lord Ganesha to remove obstacles.' },
     { name: 'Punyahavachanam', desc: 'Purification of the space and devotee.' },
     { name: 'Shivalinga Abhishekam', desc: 'Sacred bath with water, milk, curd, honey and ghee.' },
-    { name: 'Sri Rudram Chanting', desc: 'The pujari chants all 11 anuvakas of Sri Rudram.' },
     { name: 'Bilvaarchana', desc: 'Offering of 108 bilva leaves chanting each name of Shiva.' },
     { name: 'Mangalarati', desc: 'Concluding aarti with camphor and conch.' },
   ];
@@ -225,7 +224,7 @@ function HowTab() {
   return (
     <View className="space-y-6">
       <Text className="text-xl font-semibold text-foreground mb-4" style={{ fontFamily: 'System' }}>
-        How this pooja is conducted
+        {t('poojaDetail.howTitle')}
       </Text>
 
       {/* Duration & Language */}
@@ -233,12 +232,12 @@ function HowTab() {
         <View className="px-4 py-2 rounded-lg bg-primary/10 flex-row items-center gap-2">
           <Clock size={16} color="#F97316" />
           <Text className="text-sm font-medium text-primary" style={{ fontFamily: 'System' }}>
-            2 Hours
+            45 {t('poojas.min')}
           </Text>
         </View>
         <View className="px-4 py-2 rounded-lg bg-card border border-border flex-row items-center gap-2">
           <Text className="text-sm font-medium text-foreground" style={{ fontFamily: 'System' }}>
-            Sanskrit + Telugu
+            Sanskrit
           </Text>
         </View>
       </View>
@@ -246,7 +245,7 @@ function HowTab() {
       {/* Steps */}
       <View className="space-y-4">
         {steps.map((step, index) => (
-          <View key={index} className="flex-row gap-4">
+          <View key={index} className="flex-row gap-4 mb-4">
             <View className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center">
               <Text className="text-primary font-semibold">{index + 1}</Text>
             </View>
@@ -265,40 +264,32 @@ function HowTab() {
       {/* What to do during stream */}
       <View className="bg-card border border-border rounded-xl p-4 mt-2">
         <Text className="font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
-          What to do during the stream
+          {t('journey.watchBroadcast')}
         </Text>
         <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-          Have the stream open. Chant along if you know the mantras. Light a diya at home during the aarti.
+          {t('live.guidance')}
         </Text>
       </View>
     </View>
   );
 }
 
-function WhyTab() {
+function WhyTab({ id }: { id: string }) {
+  const { t } = useLanguage();
   return (
     <View className="space-y-6">
       <Text className="text-xl font-semibold text-foreground mb-4" style={{ fontFamily: 'System' }}>
-        Why devotees offer this pooja
+        {t('poojaDetail.whyTitle')}
       </Text>
 
       <Text className="text-sm leading-relaxed text-muted-foreground" style={{ fontFamily: 'System' }}>
-        The Rudrabhishek is one of the most sacred rituals in Hindu tradition. It is performed to invoke 
-        Lord Shiva's blessings and to seek his grace for peace, prosperity, and spiritual growth. This 
-        pooja is particularly powerful for removing negative energies and obstacles from one's life.
+        {t('poojaDb.' + id + '.purpose')}
       </Text>
-
-      {/* Puranic Reference */}
-      <View className="bg-card border border-border rounded-xl p-4 mt-2">
-        <Text className="text-xs text-muted-foreground italic" style={{ fontFamily: 'System' }}>
-          The Shiva Purana describes the Rudrabhishek as equivalent to performing a thousand Ashwamedha Yagnas.
-        </Text>
-      </View>
 
       {/* Blessings */}
       <View className="mt-4">
         <Text className="font-medium text-foreground mb-3" style={{ fontFamily: 'System' }}>
-          Blessings this pooja is said to bring
+          {t('poojaDetail.blessings')}
         </Text>
         <View className="flex-row flex-wrap gap-2">
           <View className="px-4 py-2 rounded-full bg-green-500/10 mb-2 mr-2">
@@ -313,21 +304,10 @@ function WhyTab() {
         </View>
       </View>
 
-      {/* Personalized Highlight */}
-      <View className="bg-primary/5 border-2 border-primary/30 rounded-xl p-4 mt-4">
-        <Text className="font-semibold text-primary mb-2" style={{ fontFamily: 'System' }}>
-          Especially auspicious for you
-        </Text>
-        <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-          This pooja is especially auspicious for your Shravana Nakshatra. Lord Vishnu, the ruling deity 
-          of Shravana, is closely connected to Lord Shiva through this ritual.
-        </Text>
-      </View>
-
       {/* Suitable for Rashi */}
       <View className="mt-4">
         <Text className="text-sm font-medium text-muted-foreground mb-2" style={{ fontFamily: 'System' }}>
-          Suitable for Rashi
+          {t('poojaDetail.suitableForRashi')}
         </Text>
         <View className="flex-row gap-2">
           {['Makara ✓', 'Kumbha ✓', 'Simha ✓'].map((rashi) => (

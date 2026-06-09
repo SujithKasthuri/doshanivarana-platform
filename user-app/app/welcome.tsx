@@ -1,7 +1,10 @@
 import { Link } from 'expo-router';
 import { View, Text, Pressable } from 'react-native';
+import { useLanguage } from '../src/old_app/context/LanguageContext';
 
 export default function WelcomeScreen() {
+  const { t } = useLanguage();
+
   return (
     <View className="flex-1 flex-col bg-[#1A0A00] px-6">
       {/* Logo */}
@@ -21,7 +24,7 @@ export default function WelcomeScreen() {
           className="text-4xl font-bold mb-4"
           style={{ fontFamily: 'System', color: '#F5F5F0' }}
         >
-          Namaste 🙏
+          {t('home.greeting')} 🙏
         </Text>
 
         {/* Subtitle */}
@@ -29,7 +32,7 @@ export default function WelcomeScreen() {
           className="text-center text-base mb-6 max-w-sm"
           style={{ fontFamily: 'System', color: '#44403C' }}
         >
-          Your sacred space for poojas, wherever you are.
+          {t('welcome.subtitle')}
         </Text>
 
         {/* Decorative Divider */}
@@ -45,7 +48,7 @@ export default function WelcomeScreen() {
                 className="text-[#1A0A00] font-medium text-base"
                 style={{ fontFamily: 'System' }}
               >
-                Continue with Mobile
+                {t('welcome.continueMobile')}
               </Text>
             </Pressable>
           </Link>
@@ -58,7 +61,7 @@ export default function WelcomeScreen() {
                 className="text-primary font-medium text-base"
                 style={{ fontFamily: 'System' }}
               >
-                Sign In
+                {t('common.signIn')}
               </Text>
             </Pressable>
           </Link>
@@ -67,15 +70,8 @@ export default function WelcomeScreen() {
 
       {/* Terms */}
       <View className="pb-8 items-center">
-        <Text className="text-xs" style={{ fontFamily: 'System', color: '#78716C' }}>
-          By continuing you agree to our{' '}
-          <Text className="underline text-primary">
-            Terms
-          </Text>
-          {' '}and{' '}
-          <Text className="underline text-primary">
-            Privacy Policy
-          </Text>
+        <Text className="text-center text-xs px-4" style={{ fontFamily: 'System', color: '#78716C' }}>
+          {t('welcome.termsAgree')}
         </Text>
       </View>
     </View>

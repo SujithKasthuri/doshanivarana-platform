@@ -2,9 +2,11 @@ import { useState, useRef } from 'react';
 import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Phone, Lock } from 'lucide-react-native';
+import { useLanguage } from '../src/old_app/context/LanguageContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1); // 1: Mobile Number, 2: OTP
   const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -15,7 +17,7 @@ export default function LoginScreen() {
 
   const handleSendOtp = () => {
     if (mobileNumber.length !== 10) {
-      setError('Please enter a valid 10-digit mobile number');
+      setError(t('login.errorPhone'));
       return;
     }
     setError('');
@@ -31,7 +33,7 @@ export default function LoginScreen() {
 
   const handleVerifyOtp = () => {
     if (otp.length !== 6) {
-      setError('Please enter the 6-digit OTP');
+      setError(t('login.errorOtp'));
       return;
     }
     setError('');
@@ -66,7 +68,7 @@ export default function LoginScreen() {
             DOSHANIVARANA
           </Text>
           <Text className="text-sm text-center text-[#78716C]" style={{ fontFamily: 'System' }}>
-            Sacred poojas & ritual offerings
+            {t('login.brandSubtitle')}
           </Text>
         </View>
 
@@ -75,10 +77,10 @@ export default function LoginScreen() {
             <View className="space-y-6">
               <View className="mb-6">
                 <Text className="text-2xl font-bold mb-2 text-[#F5F5F0]" style={{ fontFamily: 'System' }}>
-                  Sign In with Mobile
+                  {t('login.signInMobile')}
                 </Text>
                 <Text className="text-sm text-[#78716C]" style={{ fontFamily: 'System' }}>
-                  Enter your phone number to receive a one-time password (OTP).
+                  {t('login.enterPhoneDesc')}
                 </Text>
               </View>
 
@@ -91,7 +93,7 @@ export default function LoginScreen() {
                 <TextInput
                   keyboardType="phone-pad"
                   maxLength={10}
-                  placeholder="Enter Mobile Number"
+                  placeholder={t('login.enterPhonePlaceholder')}
                   placeholderTextColor="#78716C"
                   value={mobileNumber}
                   onChangeText={(text) => {
@@ -126,7 +128,7 @@ export default function LoginScreen() {
                 }`}
                 style={{ fontFamily: 'System' }}
               >
-                {loading ? 'Sending OTP...' : 'Send OTP'}
+                {loading ? t('login.sendingOtp') : t('login.sendOtp')}
               </Text>
             </Pressable>
           </View>
@@ -135,10 +137,10 @@ export default function LoginScreen() {
             <View className="space-y-6">
               <View className="mb-6">
                 <Text className="text-2xl font-bold mb-2 text-[#F5F5F0]" style={{ fontFamily: 'System' }}>
-                  Verify OTP
+                  {t('login.verifyOtp')}
                 </Text>
                 <Text className="text-sm text-[#78716C]" style={{ fontFamily: 'System' }}>
-                  We've sent a 6-digit OTP to +91 {mobileNumber}
+                  {t('login.otpSentDesc').replace('{number}', mobileNumber)}
                 </Text>
               </View>
 
@@ -149,7 +151,7 @@ export default function LoginScreen() {
                   ref={otpInputRef}
                   keyboardType="number-pad"
                   maxLength={6}
-                  placeholder="Enter 6-Digit OTP"
+                  placeholder={t('login.enterOtpPlaceholder')}
                   placeholderTextColor="#78716C"
                   value={otp}
                   onChangeText={(text) => {
@@ -175,7 +177,7 @@ export default function LoginScreen() {
                 className="self-start py-2"
               >
                 <Text className="text-primary text-sm font-semibold" style={{ fontFamily: 'System' }}>
-                  Resend OTP
+                  {t('login.resendOtp')}
                 </Text>
               </Pressable>
             </View>
@@ -196,7 +198,7 @@ export default function LoginScreen() {
                 }`}
                 style={{ fontFamily: 'System' }}
               >
-                {loading ? 'Verifying...' : 'Verify & Login'}
+                {loading ? t('login.verifying') : t('login.verifyLogin')}
               </Text>
             </Pressable>
           </View>

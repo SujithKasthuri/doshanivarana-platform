@@ -110,9 +110,9 @@ export default function Profile() {
 
           {/* Profile Stats */}
           <View className="flex-row justify-between gap-3">
-            <StatCard icon={<Star size={20} color="#F97316" />} value={stats.totalPoojas.toString()} label="Poojas" />
-            <StatCard icon={<Calendar size={20} color="#F97316" />} value={stats.upcoming.toString()} label="Upcoming" />
-            <StatCard icon={<Sparkles size={20} color="#F97316" />} value={stats.devotionScore.toFixed(1)} label="Devotion" />
+            <StatCard icon={<Star size={20} color="#F97316" />} value={stats.totalPoojas.toString()} label={t('profile.totalPoojas')} />
+            <StatCard icon={<Calendar size={20} color="#F97316" />} value={stats.upcoming.toString()} label={t('profile.upcomingCount')} />
+            <StatCard icon={<Sparkles size={20} color="#F97316" />} value={stats.devotionScore.toFixed(1)} label={t('profile.devotionScore')} />
           </View>
         </View>
 
@@ -121,35 +121,35 @@ export default function Profile() {
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-3 px-2">
               <Text className="text-lg font-semibold text-foreground" style={{ fontFamily: 'System' }}>
-                Personalisation
+                {t('profile.personalisation')}
               </Text>
               <Pressable
                 onPress={() => setIsEditingPersonal(true)}
                 className="flex-row items-center gap-1"
               >
                 <Edit2 size={14} color="#F97316" />
-                <Text className="text-primary text-sm font-medium">Edit</Text>
+                <Text className="text-primary text-sm font-medium">{t('common.edit')}</Text>
               </Pressable>
             </View>
             <View className="bg-card border border-border rounded-2xl overflow-hidden">
               <ProfileItem
                 icon={<Star size={20} color="#78716C" />}
-                label="Nakshatra"
+                label={t('profile.nakshatra')}
                 value={profile.nakshatra}
               />
               <ProfileItem
                 icon={<Star size={20} color="#78716C" />}
-                label="Rashi"
+                label={t('profile.rashi')}
                 value={profile.rashi}
               />
               <ProfileItem
                 icon={<Calendar size={20} color="#78716C" />}
-                label="Date of Birth"
+                label={t('profile.dateOfBirth')}
                 value={profile.dateOfBirth}
               />
               <ProfileItem
                 icon={<User size={20} color="#78716C" />}
-                label="Gothram"
+                label={t('profile.gothram')}
                 value={profile.gothram}
               />
             </View>
@@ -159,7 +159,7 @@ export default function Profile() {
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-3 px-2">
               <Text className="text-lg font-semibold text-foreground" style={{ fontFamily: 'System' }}>
-                Ishta Devatas (Deity Preferences)
+                {t('profile.ishtaDevatas')}
               </Text>
               <Pressable
                 onPress={() => {
@@ -169,19 +169,19 @@ export default function Profile() {
                 className="flex-row items-center gap-1"
               >
                 <Edit2 size={14} color="#F97316" />
-                <Text className="text-primary text-sm font-medium">Edit</Text>
+                <Text className="text-primary text-sm font-medium">{t('common.edit')}</Text>
               </Pressable>
             </View>
             <View className="bg-card border border-border rounded-2xl p-4 flex-row flex-wrap gap-2">
               {selectedDeities.length === 0 ? (
-                <Text className="text-sm text-muted-foreground italic px-1">No deities selected yet</Text>
+                <Text className="text-sm text-muted-foreground italic px-1">{t('profile.noDeities')}</Text>
               ) : (
                 selectedDeities.map((id) => {
                   const deity = deitiesList.find((d) => d.id === id);
                   return deity ? (
                     <View key={id} className="flex-row items-center gap-1 bg-primary/5 border border-primary/20 px-3 py-1.5 rounded-full">
                       <Text className="text-base">{deity.emoji}</Text>
-                      <Text className="text-xs text-primary font-medium">{deity.name}</Text>
+                      <Text className="text-xs text-primary font-medium">{t('deity.' + deity.id)}</Text>
                     </View>
                   ) : null;
                 })
@@ -202,15 +202,15 @@ export default function Profile() {
                   </View>
                   <View className="flex-1">
                     <Text className="font-semibold text-foreground mb-1" style={{ fontFamily: 'System' }}>
-                      Based on Your {profile.nakshatra} Nakshatra
+                      {t('profile.recommendationsTitle')} ({profile.nakshatra})
                     </Text>
                     <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
-                      Personalised pooja recommendations just for you
+                      {t('profile.recommendationsDesc')}
                     </Text>
                   </View>
                 </View>
                 <View className="w-full py-2.5 rounded-xl bg-primary/10 items-center justify-center">
-                  <Text className="text-primary font-medium text-sm">View Recommendations</Text>
+                  <Text className="text-primary font-medium text-sm">{t('profile.viewRecommendations')}</Text>
                 </View>
               </Pressable>
             </Link>
@@ -219,29 +219,29 @@ export default function Profile() {
           {/* Settings Section */}
           <View className="mb-6">
             <Text className="text-lg font-semibold mb-3 px-2 text-foreground" style={{ fontFamily: 'System' }}>
-              Settings
+              {t('profile.settings')}
             </Text>
             <View className="bg-card border border-border rounded-2xl overflow-hidden">
 
 
               <SettingsItem 
                 icon={<Bell size={20} color="#78716C" />} 
-                label="Notifications" 
+                label={t('profile.notifications')} 
                 onClick={() => setShowNotifications(true)}
               />
               <SettingsItem 
                 icon={<Calendar size={20} color="#78716C" />} 
-                label="Hindu Calendar" 
+                label={t('profile.hinduCalendar')} 
                 onClick={() => router.push('/calendar')}
               />
               <SettingsItem 
                 icon={<HelpCircle size={20} color="#78716C" />} 
-                label="Help & Support" 
+                label={t('profile.helpSupport')} 
                 onClick={() => setShowHelp(true)}
               />
               <SettingsItem
                 icon={<Languages size={20} color="#78716C" />}
-                label={`Language (${language.toUpperCase()})`}
+                label={`${t('language.label')} (${language.toUpperCase()})`}
                 onClick={() => setShowLanguageModal(true)}
               />
             </View>
@@ -253,12 +253,12 @@ export default function Profile() {
             className="w-full py-3 rounded-xl border-2 border-destructive items-center justify-center flex-row gap-2 active:bg-destructive/5"
           >
             <LogOut size={20} color="#EF4444" />
-            <Text className="text-destructive font-medium" style={{ fontFamily: 'System' }}>Sign Out</Text>
+            <Text className="text-destructive font-medium" style={{ fontFamily: 'System' }}>{t('profile.signOut')}</Text>
           </Pressable>
 
           {/* Version */}
           <Text className="text-center text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-            DOSHANIVARANA v1.0.0 • Made with devotion 🙏
+            DOSHANIVARANA v1.0.0 • {t('profile.version')} 🙏
           </Text>
         </View>
       </ScrollView>
@@ -268,14 +268,14 @@ export default function Profile() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-background rounded-t-3xl p-6">
             <View className="flex-row items-center justify-between pb-4 border-b border-border mb-4">
-              <Text className="text-xl font-bold text-foreground">Edit Profile</Text>
+              <Text className="text-xl font-bold text-foreground">{t('profile.editProfile')}</Text>
               <Pressable onPress={() => setIsEditingProfile(false)} className="p-2">
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
             <View className="space-y-4">
               <View>
-                <Text className="text-sm font-medium mb-2 text-foreground">Full Name</Text>
+                <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.fullName')}</Text>
                 <TextInput
                   value={profile.name}
                   onChangeText={(text) => setProfile({ ...profile, name: text })}
@@ -283,7 +283,7 @@ export default function Profile() {
                 />
               </View>
               <View className="mt-3">
-                <Text className="text-sm font-medium mb-2 text-foreground">Email</Text>
+                <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.email')}</Text>
                 <TextInput
                   value={profile.email}
                   onChangeText={(text) => setProfile({ ...profile, email: text })}
@@ -292,7 +292,7 @@ export default function Profile() {
                 />
               </View>
               <View className="mt-3">
-                <Text className="text-sm font-medium mb-2 text-foreground">Location</Text>
+                <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.location')}</Text>
                 <TextInput
                   value={profile.location}
                   onChangeText={(text) => setProfile({ ...profile, location: text })}
@@ -303,7 +303,7 @@ export default function Profile() {
                 onPress={() => setIsEditingProfile(false)}
                 className="w-full py-4 bg-primary rounded-xl items-center justify-center mt-6"
               >
-                <Text className="text-primary-foreground font-semibold">Save Changes</Text>
+                <Text className="text-[#1A0A00] font-semibold">{t('profile.saveChanges')}</Text>
               </Pressable>
             </View>
           </View>
@@ -315,14 +315,14 @@ export default function Profile() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-background rounded-t-3xl p-6">
             <View className="flex-row items-center justify-between pb-4 border-b border-border mb-4">
-              <Text className="text-xl font-bold text-foreground">Edit Personal Info</Text>
+              <Text className="text-xl font-bold text-foreground">{t('profile.editPersonalInfo')}</Text>
               <Pressable onPress={() => setIsEditingPersonal(false)} className="p-2">
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
             <View className="space-y-4">
               <View>
-                <Text className="text-sm font-medium mb-2 text-foreground">Nakshatra</Text>
+                <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.nakshatra')}</Text>
                 <TextInput
                   value={profile.nakshatra}
                   onChangeText={(text) => setProfile({ ...profile, nakshatra: text })}
@@ -330,7 +330,7 @@ export default function Profile() {
                 />
               </View>
               <View className="mt-3">
-                <Text className="text-sm font-medium mb-2 text-foreground">Gothram</Text>
+                <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.gothram')}</Text>
                 <TextInput
                   value={profile.gothram}
                   onChangeText={(text) => setProfile({ ...profile, gothram: text })}
@@ -338,7 +338,7 @@ export default function Profile() {
                 />
               </View>
               <View className="mt-3">
-                <Text className="text-sm font-medium mb-2 text-foreground">Date of Birth</Text>
+                <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.dateOfBirth')}</Text>
                 <TextInput
                   value={profile.dateOfBirth}
                   onChangeText={(text) => setProfile({ ...profile, dateOfBirth: text })}
@@ -349,7 +349,7 @@ export default function Profile() {
                 onPress={() => setIsEditingPersonal(false)}
                 className="w-full py-4 bg-primary rounded-xl items-center justify-center mt-6"
               >
-                <Text className="text-primary-foreground font-semibold">Save Changes</Text>
+                <Text className="text-[#1A0A00] font-semibold">{t('profile.saveChanges')}</Text>
               </Pressable>
             </View>
           </View>
@@ -361,29 +361,29 @@ export default function Profile() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-background rounded-t-3xl p-6">
             <View className="flex-row items-center justify-between pb-4 border-b border-border mb-4">
-              <Text className="text-xl font-bold text-foreground">Notification Settings</Text>
+              <Text className="text-xl font-bold text-foreground">{t('notifications.title')}</Text>
               <Pressable onPress={() => setShowNotifications(false)} className="p-2">
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
             <View className="space-y-4">
               <NotificationToggleItem
-                label="Pooja Reminders"
+                label={t('notifications.poojaReminders')}
                 value={notifications.poojaReminders}
                 onValueChange={(val) => setNotifications({ ...notifications, poojaReminders: val })}
               />
               <NotificationToggleItem
-                label="Live Streams"
+                label={t('notifications.liveStreams')}
                 value={notifications.liveStreams}
                 onValueChange={(val) => setNotifications({ ...notifications, liveStreams: val })}
               />
               <NotificationToggleItem
-                label="Prasad Updates"
+                label={t('notifications.prasadUpdates')}
                 value={notifications.prasadUpdates}
                 onValueChange={(val) => setNotifications({ ...notifications, prasadUpdates: val })}
               />
               <NotificationToggleItem
-                label="Festival Alerts"
+                label={t('notifications.festivalAlerts')}
                 value={notifications.festivalAlerts}
                 onValueChange={(val) => setNotifications({ ...notifications, festivalAlerts: val })}
               />
@@ -391,7 +391,7 @@ export default function Profile() {
                 onPress={() => setShowNotifications(false)}
                 className="w-full py-4 bg-primary rounded-xl items-center justify-center mt-6"
               >
-                <Text className="text-primary-foreground font-semibold">Save Settings</Text>
+                <Text className="text-[#1A0A00] font-semibold">{t('notifications.saveSettings')}</Text>
               </Pressable>
             </View>
           </View>
@@ -403,21 +403,21 @@ export default function Profile() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-background rounded-t-3xl p-6 h-[70%]">
             <View className="flex-row items-center justify-between pb-4 border-b border-border mb-4">
-              <Text className="text-xl font-bold text-foreground">Hindu Calendar</Text>
+              <Text className="text-xl font-bold text-foreground">{t('calendar.title')}</Text>
               <Pressable onPress={() => setShowCalendar(false)} className="p-2">
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
             <ScrollView>
               <View className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-4">
-                <Text className="text-sm font-medium text-primary mb-1">Today's Tithi</Text>
-                <Text className="text-lg font-bold text-foreground">Shukla Paksha Chaturthi</Text>
+                <Text className="text-sm font-medium text-primary mb-1">{t('calendar.todayTithi')}</Text>
+                <Text className="text-lg font-bold text-foreground">{t('calendar.shuklaPakshaChaturthi')}</Text>
               </View>
-              <Text className="font-semibold mb-3 text-foreground">Upcoming Festivals</Text>
-              <CalendarEventItem date="Mar 21, 2026" event="Ugadi" description="Telugu & Kannada New Year" />
-              <CalendarEventItem date="Mar 25, 2026" event="Ram Navami" description="Birth of Lord Rama" />
-              <CalendarEventItem date="Apr 14, 2026" event="Vishu" description="Malayalam New Year" />
-              <CalendarEventItem date="Apr 17, 2026" event="Hanuman Jayanti" description="Birth of Lord Hanuman" />
+              <Text className="font-semibold mb-3 text-foreground">{t('calendar.upcomingFestivals')}</Text>
+              <CalendarEventItem date="Mar 21, 2026" event={t('festival.ugadi')} description={t('festival.ugadiDesc')} />
+              <CalendarEventItem date="Mar 25, 2026" event={t('festival.ramNavami')} description={t('festival.ramNavamiDesc')} />
+              <CalendarEventItem date="Apr 14, 2026" event={t('festival.vishu')} description={t('festival.vishuDesc')} />
+              <CalendarEventItem date="Apr 17, 2026" event={t('festival.hanumanJayanti')} description={t('festival.hanumanJayantiDesc')} />
             </ScrollView>
           </View>
         </View>
@@ -428,14 +428,14 @@ export default function Profile() {
         <View className="flex-1 justify-end bg-black/50">
           <View className="bg-background rounded-t-3xl p-6 h-[70%]">
             <View className="flex-row items-center justify-between pb-4 border-b border-border mb-4">
-              <Text className="text-xl font-bold text-foreground">Help & Support</Text>
+              <Text className="text-xl font-bold text-foreground">{t('help.title')}</Text>
               <Pressable onPress={() => setShowHelp(false)} className="p-2">
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
             <ScrollView>
               <View className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
-                <Text className="font-semibold mb-2 text-foreground">Contact Support</Text>
+                <Text className="font-semibold mb-2 text-foreground">{t('help.contactSupport')}</Text>
                 <View className="flex-row items-center gap-2 mb-2">
                   <Mail size={16} color="#F97316" />
                   <Text className="text-foreground">support@doshanivarana.in</Text>
@@ -445,10 +445,10 @@ export default function Profile() {
                   <Text className="text-foreground">+91 80 1234 5678</Text>
                 </View>
               </View>
-              <Text className="font-semibold mb-3 text-foreground">Frequently Asked Questions</Text>
-              <FAQItem q="How do I book a pooja?" a="Browse poojas, select your preferred temple and time, then click 'Offer This Pooja' to complete your booking." />
-              <FAQItem q="Can I watch the pooja live?" a="Yes! When your pooja begins, you'll receive a notification. Click 'View Live' in your bookings to watch in real-time." />
-              <FAQItem q="How is prasad delivered?" a="After your pooja is completed, prasad is carefully packed and shipped to your address." />
+              <Text className="font-semibold mb-3 text-foreground">{t('help.faq')}</Text>
+              <FAQItem q={t('help.faq1Q')} a={t('help.faq1A')} />
+              <FAQItem q={t('help.faq2Q')} a={t('help.faq2A')} />
+              <FAQItem q={t('help.faq3Q')} a={t('help.faq3A')} />
             </ScrollView>
           </View>
         </View>
@@ -460,7 +460,7 @@ export default function Profile() {
           <Pressable className="absolute inset-0" onPress={() => setIsEditingDeities(false)} />
           <View className="bg-background rounded-t-3xl p-6 h-[65%] border-t border-border">
             <View className="flex-row items-center justify-between pb-4 border-b border-border mb-4">
-              <Text className="text-xl font-bold text-foreground">Select Ishta Devatas</Text>
+              <Text className="text-xl font-bold text-foreground">{t('profile.selectIshtaDevatas')}</Text>
               <Pressable onPress={() => setIsEditingDeities(false)} className="p-2">
                 <X size={24} color="#F5F5F0" />
               </Pressable>
@@ -493,7 +493,7 @@ export default function Profile() {
                         </View>
                       )}
                       <Text className="text-3xl mb-2">{deity.emoji}</Text>
-                      <Text className="text-sm font-semibold text-foreground">{deity.name}</Text>
+                      <Text className="text-sm font-semibold text-foreground">{t('deity.' + deity.id)}</Text>
                     </Pressable>
                   );
                 })}
@@ -506,7 +506,7 @@ export default function Profile() {
               }}
               className="w-full py-4 bg-primary rounded-xl items-center justify-center active:bg-[#E05C10]"
             >
-              <Text className="text-[#1A0A00] font-semibold text-base">Save Preferences</Text>
+              <Text className="text-[#1A0A00] font-semibold text-base">{t('profile.savePreferences')}</Text>
             </Pressable>
           </View>
         </View>
