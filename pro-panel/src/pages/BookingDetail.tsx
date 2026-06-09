@@ -190,9 +190,12 @@ export function BookingDetail() {
                 onChange={(e) => setSelectedPujari(e.target.value)}
               >
                 <option value="Not Assigned">Select Pujari</option>
-                <option value="Sharma Ji">Sharma Ji</option>
-                <option value="Ravi Pandit">Ravi Pandit</option>
-                <option value="Krishna Acharya">Krishna Acharya</option>
+                {db.getPujaris()
+                  .filter(p => p.status === 'Active' || p.name === booking.pujari)
+                  .map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))
+                }
               </select>
             </div>
             

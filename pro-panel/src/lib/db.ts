@@ -53,12 +53,41 @@ export interface Pujari {
   name: string;
   status: 'Active' | 'Inactive';
   specializations: string[];
+  languages: string[];
   experience: string;
   bookingsCount: number;
   avatarText: string;
   avatarBg: string;
   contact?: string;
+  alternateContact?: string;
+  photoUrl?: string;
 }
+
+export const AVAILABLE_SPECIALIZATIONS = [
+  'Satyanarayana Pooja',
+  'Ganapathi Homam',
+  'Lakshmi Pooja',
+  'Navagraha Pooja',
+  'Rudra Abhishekam'
+];
+
+export const AVAILABLE_LANGUAGES = [
+  'Telugu',
+  'Hindi',
+  'English',
+  'Tamil',
+  'Kannada',
+  'Malayalam',
+  'Marathi',
+  'Bengali',
+  'Gujarati',
+  'Punjabi',
+  'Odia',
+  'Assamese',
+  'Urdu',
+  'Sanskrit'
+];
+
 
 export interface ChatMessage {
   sender: 'devotee' | 'admin';
@@ -365,7 +394,7 @@ const initialBookings: Booking[] = [
     amount: '₹2,500',
     paymentMethod: 'UPI',
     orderId: 'RZP-2026-00896',
-    pujari: 'Sharma Ji',
+    pujari: 'Pt. Sharma Ji',
     delivery: 'No',
     deliveryAddress: 'N/A',
     deliveryStatus: 'Not Applicable',
@@ -390,7 +419,7 @@ const initialBookings: Booking[] = [
     amount: '₹1,500',
     paymentMethod: 'UPI',
     orderId: 'RZP-2026-00790',
-    pujari: 'Sharma Ji',
+    pujari: 'Pt. Sharma Ji',
     delivery: 'Yes',
     deliveryAddress: '12 Ram Nagar, Ghaziabad, Uttar Pradesh 201001',
     deliveryStatus: 'Packed',
@@ -534,7 +563,7 @@ const initialBookings: Booking[] = [
     amount: '₹1,500',
     paymentMethod: 'UPI',
     orderId: 'RZP-2026-00790',
-    pujari: 'Sharma Ji',
+    pujari: 'Pt. Sharma Ji',
     delivery: 'Yes',
     deliveryAddress: '12 Ram Nagar, Ghaziabad, Uttar Pradesh 201001',
     deliveryStatus: 'Delivered',
@@ -570,7 +599,7 @@ const initialBookings: Booking[] = [
     amount: '₹2,500',
     paymentMethod: 'UPI',
     orderId: 'RZP-2026-00778',
-    pujari: 'Sharma Ji',
+    pujari: 'Pt. Sharma Ji',
     delivery: 'Yes',
     deliveryAddress: '10 Chinnaswamy Way, Bangalore, Karnataka 560001',
     deliveryStatus: 'Delivered',
@@ -633,6 +662,7 @@ const initialPujaris: Pujari[] = [
     name: 'Pt. Sharma Ji',
     status: 'Active',
     specializations: ['Satyanarayana Pooja', 'Ganapathi Homam'],
+    languages: ['Telugu', 'Hindi', 'Sanskrit'],
     experience: '15 years',
     bookingsCount: 24,
     avatarText: 'SJ',
@@ -643,6 +673,7 @@ const initialPujaris: Pujari[] = [
     name: 'Ravi Pandit',
     status: 'Active',
     specializations: ['Lakshmi Pooja', 'Navagraha Pooja'],
+    languages: ['Hindi', 'English', 'Sanskrit'],
     experience: '8 years',
     bookingsCount: 18,
     avatarText: 'RP',
@@ -653,6 +684,7 @@ const initialPujaris: Pujari[] = [
     name: 'Krishna Acharya',
     status: 'Active',
     specializations: ['Rudra Abhishekam', 'Satyanarayana Pooja'],
+    languages: ['Telugu', 'Kannada', 'Tamil', 'Sanskrit'],
     experience: '22 years',
     bookingsCount: 31,
     avatarText: 'KA',
@@ -663,6 +695,7 @@ const initialPujaris: Pujari[] = [
     name: 'Venkat Sastry',
     status: 'Active',
     specializations: ['Ganapathi Homam'],
+    languages: ['Telugu', 'Sanskrit'],
     experience: '5 years',
     bookingsCount: 9,
     avatarText: 'VS',
@@ -673,6 +706,7 @@ const initialPujaris: Pujari[] = [
     name: 'Narasimha Bhat',
     status: 'Active',
     specializations: ['Navagraha Pooja', 'Lakshmi Pooja'],
+    languages: ['Kannada', 'Telugu', 'Sanskrit'],
     experience: '12 years',
     bookingsCount: 15,
     avatarText: 'NB',
@@ -683,6 +717,7 @@ const initialPujaris: Pujari[] = [
     name: 'Gopal Das',
     status: 'Inactive',
     specializations: ['Satyanarayana Pooja'],
+    languages: ['Hindi'],
     experience: '3 years',
     bookingsCount: 0,
     avatarText: 'GD',
