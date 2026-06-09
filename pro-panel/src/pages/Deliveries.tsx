@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { db } from '../lib/db';
 
 interface DeliveryRecord {
   bookingId: string;
@@ -14,27 +15,32 @@ interface DeliveryRecord {
 export function Deliveries() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'action' | 'ready' | 'transit' | 'completed'>('action');
+  
+  const [records] = useState<DeliveryRecord[]>(() => {
+    const bookings = db.getBookings();
+    const deliveryBookings = bookings.filter(b => b.delivery === 'Yes');
+    return deliveryBookings.map(b => {
+      const address = b.deliveryAddress;
+      let destination = address;
+      if (address.includes(',')) {
+        const parts = address.split(',');
+        const stateAndPin = parts[parts.length - 1].trim();
+        const city = parts[parts.length - 2].trim();
+        const state = stateAndPin.replace(/\s+\d{6}$/, '').replace(/\d{6}$/, '').trim();
+        destination = `${city}, ${state}`;
+      }
 
-  const [records] = useState<DeliveryRecord[]>([
-    // Action Required Tab
-    { bookingId: 'BK-1001', devoteeName: 'Rajesh Kumar', poojaName: 'Satyanarayana Pooja', destination: 'Bangalore, Karnataka', status: 'Booked', daysPending: 2 },
-    { bookingId: 'BK-1003', devoteeName: 'Anand Reddy', poojaName: 'Lakshmi Pooja', destination: 'Hyderabad, Telangana', status: 'Booked', daysPending: 1 },
-    { bookingId: 'BK-1005', devoteeName: 'Kiran Patel', poojaName: 'Satyanarayana Pooja', destination: 'Mumbai, Maharashtra', status: 'Booked', daysPending: 3, isUrgent: true },
-    
-    // Ready to Dispatch Tab
-    { bookingId: 'BK-1006', devoteeName: 'Meena Iyer', poojaName: 'Ganapathi Homam', destination: 'Chennai, Tamil Nadu', status: 'Packed', daysPending: 0 },
-    { bookingId: 'BK-1007', devoteeName: 'Suresh Raina', poojaName: 'Rudra Abhishekam', destination: 'Ghaziabad, Uttar Pradesh', status: 'Packed', daysPending: 1 },
-
-    // In Transit Tab
-    { bookingId: 'BK-1008', devoteeName: 'Amit Shah', poojaName: 'Ganapathi Homam', destination: 'Ahmedabad, Gujarat', status: 'Dispatched', daysPending: 2 },
-    { bookingId: 'BK-1009', devoteeName: 'Rahul G', poojaName: 'Lakshmi Pooja', destination: 'Wayanad, Kerala', status: 'In Transit', daysPending: 1 },
-    { bookingId: 'BK-1010', devoteeName: 'Arvind K', poojaName: 'Navagraha Pooja', destination: 'New Delhi, Delhi', status: 'In Transit', daysPending: 3 },
-
-    // Completed Tab
-    { bookingId: 'BK-0990', devoteeName: 'Suresh Raina', poojaName: 'Rudra Abhishekam', destination: 'Ghaziabad, Uttar Pradesh', status: 'Delivered', daysPending: 4 },
-    { bookingId: 'BK-0989', devoteeName: 'Virat K', poojaName: 'Ganapathi Homam', destination: 'Bangalore, Karnataka', status: 'Delivered', daysPending: 5 },
-    { bookingId: 'BK-0988', devoteeName: 'Rohit S', poojaName: 'Lakshmi Pooja', destination: 'Mumbai, Maharashtra', status: 'Delivered', daysPending: 6 }
-  ]);
+      return {
+        bookingId: b.id,
+        devoteeName: b.devoteeName,
+        poojaName: b.poojaName,
+        destination,
+        status: (b.deliveryStatus === 'Not Applicable' ? 'Booked' : b.deliveryStatus) as DeliveryRecord['status'],
+        daysPending: b.deliveryDaysPending || 0,
+        isUrgent: b.deliveryIsUrgent || false
+      };
+    });
+  });
 
   const handleViewDetails = (bookingId: string) => {
     navigate(`/deliveries/${bookingId}`);

@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { db } from '../lib/db';
 
 export function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('pro@temple.org');
+  const [email, setEmail] = useState(() => db.getProfile().email);
   const [password, setPassword] = useState('password');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'pro@temple.org' && password === 'password') {
+    if (email === db.getProfile().email && password === 'password') {
       navigate('/');
     } else {
       setError('Invalid email or password. Please try again.');

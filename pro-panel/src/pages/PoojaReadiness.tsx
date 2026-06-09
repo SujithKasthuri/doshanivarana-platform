@@ -1,50 +1,62 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
+import { db, type ChecklistItem } from '../lib/db';
 
-interface ChecklistItem {
-  id: string;
-  name: string;
-  ready: boolean;
-  notes?: string;
-}
+const getDaysToGo = (dateTimeStr: string) => {
+  try {
+    const parts = dateTimeStr.split(',');
+    if (parts.length > 0) {
+      const dateVal = new Date(parts[0]);
+      if (!isNaN(dateVal.getTime())) {
+        const diffTime = dateVal.getTime() - new Date().getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Tomorrow';
+        if (diffDays < 0) return `${Math.abs(diffDays)} days ago`;
+        return `${diffDays} days to go`;
+      }
+    }
+  } catch {
+    // Return fallback value if date parsing fails
+  }
+  return 'Scheduled';
+};
 
 export function PoojaReadiness() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [items, setItems] = useState<ChecklistItem[]>([
-    { id: '1', name: 'Turmeric (Pasupu)', ready: false, notes: 'Need to procure' },
-    { id: '2', name: 'Kumkum', ready: false },
-    { id: '3', name: 'Panchamrutam Ingredients', ready: false },
-    { id: '4', name: 'Pooja Plate (Thamboolam)', ready: false },
-    { id: '5', name: 'Flowers', ready: true },
-    { id: '6', name: 'Coconut', ready: true },
-    { id: '7', name: 'Banana', ready: true },
-    { id: '8', name: 'Incense Sticks', ready: true },
-    { id: '9', name: 'Camphor', ready: true },
-    { id: '10', name: 'Sacred Thread', ready: true },
-    { id: '11', name: 'Betel Leaves', ready: true },
-    { id: '12', name: 'Ghee', ready: true },
-  ]);
+  const bookingId = id || 'BK-1001';
+  const booking = db.getBookingById(bookingId) || db.getBookings()[0];
+
+  const [items, setItems] = useState<ChecklistItem[]>(() => db.getReadinessChecklist(bookingId));
+
+  const saveItems = (updated: ChecklistItem[]) => {
+    setItems(updated);
+    db.saveReadinessChecklist(bookingId, updated);
+  };
 
   const [customItemName, setCustomItemName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
   const toggleItem = (itemId: string) => {
-    setItems(prev => prev.map(item => 
+    const updated = items.map(item => 
       item.id === itemId ? { ...item, ready: !item.ready } : item
-    ));
+    );
+    saveItems(updated);
   };
 
   const handleMarkAllReady = () => {
-    setItems(prev => prev.map(item => ({ ...item, ready: true })));
+    const updated = items.map(item => ({ ...item, ready: true }));
+    saveItems(updated);
     setNotification('All items marked as Ready!');
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleResetAll = () => {
-    setItems(prev => prev.map(item => ({ ...item, ready: false })));
+    const updated = items.map(item => ({ ...item, ready: false }));
+    saveItems(updated);
     setNotification('Checklist reset.');
     setTimeout(() => setNotification(null), 3000);
   };
@@ -59,7 +71,8 @@ export function PoojaReadiness() {
       ready: false
     };
 
-    setItems(prev => [newItem, ...prev]);
+    const updated = [newItem, ...items];
+    saveItems(updated);
     setCustomItemName('');
     setShowAddModal(false);
     setNotification(`Added item: ${newItem.name}`);
@@ -69,7 +82,7 @@ export function PoojaReadiness() {
   const handleConfirmReady = () => {
     setNotification('Pooja readiness confirmed!');
     setTimeout(() => {
-      navigate(`/stream-readiness/${id}`);
+      navigate(`/stream-readiness/${bookingId}`);
     }, 1500);
   };
 
@@ -124,18 +137,18 @@ export function PoojaReadiness() {
           </label>
           <div className="flex items-center gap-2">
             <h3 className="font-display text-headline-sm text-on-surface font-bold">
-              Satyanarayana Pooja — 15 May 2026 at 10:00 AM (Pujari: Pt. Sharma Ji)
+              {booking?.poojaName} — {booking?.dateTime} (Pujari: {booking?.pujari})
             </h3>
           </div>
           <div className="flex flex-wrap gap-3 mt-3 font-semibold">
             <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs flex items-center gap-1 border border-blue-100">
-              <span className="material-symbols-outlined text-[16px]">calendar_month</span> 3 days to go
+              <span className="material-symbols-outlined text-[16px]">calendar_month</span> {booking ? getDaysToGo(booking.dateTime) : ''}
             </span>
             <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs flex items-center gap-1 border border-green-100">
-              <span className="material-symbols-outlined text-[16px]">person</span> Pujari: Pt. Sharma Ji
+              <span className="material-symbols-outlined text-[16px]">person</span> Pujari: {booking?.pujari}
             </span>
             <span className="px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs flex items-center gap-1 border border-[#f6be39]">
-              <span className="material-symbols-outlined text-[16px]">confirmation_number</span> 12 Bookings Confirmed
+              <span className="material-symbols-outlined text-[16px]">confirmation_number</span> {booking?.currentBookings} Bookings Confirmed
             </span>
           </div>
         </div>

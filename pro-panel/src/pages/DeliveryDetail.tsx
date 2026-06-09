@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
+import { db, type Booking } from '../lib/db';
 
 interface DeliveryDetailData {
   bookingId: string;
@@ -21,123 +22,73 @@ interface DeliveryDetailData {
   estimatedDelivery: string;
 }
 
-const mockDeliveries: Record<string, DeliveryDetailData> = {
-  'BK-1001': {
-    bookingId: 'BK-1001',
-    devoteeName: 'Rajesh Kumar',
-    mobile: '+91 98765 43210',
-    poojaName: 'Satyanarayana Pooja',
-    poojaDate: '10 May 2026',
-    address: '42 MG Road, Apartment 3B, Bangalore, Karnataka',
-    pincode: '560 001',
-    status: 'Packed',
-    weight: '0.8',
-    length: '25',
-    width: '20',
-    height: '15',
-    contents: 'Prasad items: coconut, flowers, sacred thread, tilak powder',
-    courier: 'Delhivery',
-    trackingNumber: 'DL2026051098765',
-    dispatchDate: '10 May 2026',
-    estimatedDelivery: '13 May 2026'
-  },
-  'BK-1003': {
-    bookingId: 'BK-1003',
-    devoteeName: 'Anand Reddy',
-    mobile: '+91 98765 43212',
-    poojaName: 'Lakshmi Pooja',
-    poojaDate: '08 May 2026',
-    address: '128 Jayanagar, Bangalore, Karnataka',
-    pincode: '560 041',
-    status: 'Booked',
-    weight: '0.5',
-    length: '20',
-    width: '15',
-    height: '10',
-    contents: 'Prasad items: kumkum, turmeric, sweet prasadam packet',
-    courier: 'BlueDart',
-    trackingNumber: '',
-    dispatchDate: '10 May 2026',
-    estimatedDelivery: '14 May 2026'
-  },
-  'BK-1005': {
-    bookingId: 'BK-1005',
-    devoteeName: 'Kiran Patel',
-    mobile: '+91 98765 43215',
-    poojaName: 'Satyanarayana Pooja',
-    poojaDate: '07 May 2026',
-    address: 'Block C, Flat 402, Powai, Mumbai, Maharashtra',
-    pincode: '400 076',
-    status: 'Booked',
-    weight: '0.9',
-    length: '30',
-    width: '20',
-    height: '15',
-    contents: 'Prasad items: holy water, coconut, dry fruits, flowers',
-    courier: 'DTDC',
-    trackingNumber: '',
-    dispatchDate: '10 May 2026',
-    estimatedDelivery: '13 May 2026'
-  }
-};
-
 export function DeliveryDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const defaultDelivery: DeliveryDetailData = {
-    bookingId: id || 'BK-1001',
-    devoteeName: 'Rajesh Kumar',
-    mobile: '+91 98765 43210',
-    poojaName: 'Satyanarayana Pooja',
-    poojaDate: '10 May 2026',
-    address: '42 MG Road, Apartment 3B, Bangalore, Karnataka',
-    pincode: '560 001',
-    status: 'Booked',
-    weight: '0.8',
-    length: '25',
-    width: '20',
-    height: '15',
-    contents: 'Prasad items: coconut, flowers, sacred thread, tilak powder',
-    courier: 'Delhivery',
-    trackingNumber: '',
-    dispatchDate: '10 May 2026',
-    estimatedDelivery: '13 May 2026'
+  const mapBookingToDeliveryDetail = (b: Booking): DeliveryDetailData => {
+    const fullAddress = b.deliveryAddress;
+    const pincodeMatch = fullAddress.match(/\d{5,6}$/) || fullAddress.match(/\d{3}\s?\d{3}$/);
+    const pincode = pincodeMatch ? pincodeMatch[0] : '';
+    const address = pincodeMatch ? fullAddress.replace(pincodeMatch[0], '').trim().replace(/,\s*$/, '') : fullAddress;
+
+    return {
+      bookingId: b.id,
+      devoteeName: b.devoteeName,
+      mobile: b.mobile,
+      poojaName: b.poojaName,
+      poojaDate: b.dateTime.split(',')[0],
+      address,
+      pincode,
+      status: (b.deliveryStatus === 'Not Applicable' ? 'Booked' : b.deliveryStatus) as DeliveryDetailData['status'],
+      weight: b.deliveryWeight || '',
+      length: b.deliveryLength || '',
+      width: b.deliveryWidth || '',
+      height: b.deliveryHeight || '',
+      contents: b.deliveryContents || '',
+      courier: b.deliveryCourier || 'BlueDart',
+      trackingNumber: b.deliveryTrackingNumber || '',
+      dispatchDate: b.deliveryDispatchDate || b.dateTime.split(',')[0],
+      estimatedDelivery: b.deliveryEstimatedDelivery || ''
+    };
   };
 
-  const deliveryData = (id && mockDeliveries[id]) ? mockDeliveries[id] : defaultDelivery;
-  const [delivery, setDelivery] = useState<DeliveryDetailData>(deliveryData);
+  const existingBooking = id ? db.getBookingById(id) : null;
+  const initialDelivery = existingBooking ? mapBookingToDeliveryDetail(existingBooking) : null;
+
+  const [delivery, setDelivery] = useState<DeliveryDetailData | null>(initialDelivery);
   
-  // Editable form states
-  const [weight, setWeight] = useState(delivery.weight);
-  const [length, setLength] = useState(delivery.length);
-  const [width, setWidth] = useState(delivery.width);
-  const [height, setHeight] = useState(delivery.height);
-  const [contents, setContents] = useState(delivery.contents);
-  const [courier, setCourier] = useState(delivery.courier);
-  const [trackingNumber, setTrackingNumber] = useState(delivery.trackingNumber);
-  const [estimatedDelivery, setEstimatedDelivery] = useState(delivery.estimatedDelivery);
+  const [weight, setWeight] = useState(initialDelivery?.weight || '');
+  const [length, setLength] = useState(initialDelivery?.length || '');
+  const [width, setWidth] = useState(initialDelivery?.width || '');
+  const [height, setHeight] = useState(initialDelivery?.height || '');
+  const [contents, setContents] = useState(initialDelivery?.contents || '');
+  const [courier, setCourier] = useState(initialDelivery?.courier || '');
+  const [trackingNumber, setTrackingNumber] = useState(initialDelivery?.trackingNumber || '');
+  const [estimatedDelivery, setEstimatedDelivery] = useState(initialDelivery?.estimatedDelivery || '');
 
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
 
-  useEffect(() => {
-    const freshData = (id && mockDeliveries[id]) ? mockDeliveries[id] : defaultDelivery;
-    setDelivery(freshData);
-    setWeight(freshData.weight);
-    setLength(freshData.length);
-    setWidth(freshData.width);
-    setHeight(freshData.height);
-    setContents(freshData.contents);
-    setCourier(freshData.courier);
-    setTrackingNumber(freshData.trackingNumber);
-    setEstimatedDelivery(freshData.estimatedDelivery);
-  }, [id]);
-
   const handleMarkAsPacked = () => {
-    setDelivery(prev => ({ ...prev, status: 'Packed' }));
-    setNotification('Parcel marked as Packed!');
-    setTimeout(() => setNotification(null), 3000);
+    if (!id) return;
+    const b = db.getBookingById(id);
+    if (b) {
+      const updatedBooking: Booking = {
+        ...b,
+        deliveryStatus: 'Packed',
+        deliveryWeight: weight,
+        deliveryLength: length,
+        deliveryWidth: width,
+        deliveryHeight: height,
+        deliveryContents: contents
+      };
+      db.updateBooking(updatedBooking);
+      const mapped = mapBookingToDeliveryDetail(updatedBooking);
+      setDelivery(mapped);
+      setNotification('Parcel marked as Packed!');
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
 
   const handleConfirmDispatch = (e: React.FormEvent) => {
@@ -147,9 +98,30 @@ export function DeliveryDetail() {
       setTimeout(() => setNotification(null), 3000);
       return;
     }
-    setDelivery(prev => ({ ...prev, status: 'Dispatched', trackingNumber, courier, estimatedDelivery }));
-    setShowSuccessOverlay(true);
+    if (!id) return;
+    const b = db.getBookingById(id);
+    if (b) {
+      const updatedBooking: Booking = {
+        ...b,
+        deliveryStatus: 'Dispatched',
+        deliveryCourier: courier,
+        deliveryTrackingNumber: trackingNumber,
+        deliveryEstimatedDelivery: estimatedDelivery
+      };
+      db.updateBooking(updatedBooking);
+      const mapped = mapBookingToDeliveryDetail(updatedBooking);
+      setDelivery(mapped);
+      setShowSuccessOverlay(true);
+    }
   };
+
+  if (!delivery) {
+    return (
+      <div className="max-w-[1440px] mx-auto pb-12 font-sans relative p-8 text-center text-on-surface-variant">
+        Loading delivery details...
+      </div>
+    );
+  }
 
   const isBooked = delivery.status === 'Booked';
   const isPacked = delivery.status === 'Packed';

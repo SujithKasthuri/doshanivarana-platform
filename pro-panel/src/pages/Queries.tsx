@@ -1,156 +1,8 @@
 import { useState } from 'react';
-
-interface ChatMessage {
-  sender: 'devotee' | 'admin';
-  senderName: string;
-  avatarText: string;
-  time: string;
-  text: string;
-}
-
-interface DevoteeQuery {
-  id: string;
-  bookingId: string;
-  devoteeName: string;
-  timeAgo: string;
-  subject: string;
-  snippet: string;
-  status: 'Open' | 'Replied' | 'Closed';
-  thread: ChatMessage[];
-}
+import { db, type DevoteeQuery, type ChatMessage } from '../lib/db';
 
 export function Queries() {
-  const [queries, setQueries] = useState<DevoteeQuery[]>([
-    {
-      id: 'Q-101',
-      bookingId: 'BK-1001',
-      devoteeName: 'Rajesh Kumar',
-      timeAgo: '2 hours ago',
-      subject: 'Can I reschedule my pooja date?',
-      snippet: 'Namaste, I have booked Satyanarayana Pooja...',
-      status: 'Open',
-      thread: [
-        {
-          sender: 'devotee',
-          senderName: 'Rajesh Kumar',
-          avatarText: 'RK',
-          time: '10 May, 08:30 AM',
-          text: 'Namaste, I have booked the Satyanarayana Pooja for 15 May 2026. Due to a family emergency I need to know if there is any option to move it to a different date. Please help. Thank you.'
-        }
-      ]
-    },
-    {
-      id: 'Q-102',
-      bookingId: 'BK-1002',
-      devoteeName: 'Priya Sharma',
-      timeAgo: '5 hours ago',
-      subject: 'When will recording be available?',
-      snippet: 'I watched the pooja live but wanted to download...',
-      status: 'Open',
-      thread: [
-        {
-          sender: 'devotee',
-          senderName: 'Priya Sharma',
-          avatarText: 'PS',
-          time: '10 May, 05:15 AM',
-          text: 'I watched the pooja live but wanted to download the high quality recording file to share with my relatives. Will it be sent via email or is it available inside the portal?'
-        }
-      ]
-    },
-    {
-      id: 'Q-103',
-      bookingId: 'BK-1003',
-      devoteeName: 'Anand Reddy',
-      timeAgo: 'Yesterday',
-      subject: 'Prasad delivery status',
-      snippet: 'My parcel was dispatched 3 days ago but has not...',
-      status: 'Open',
-      thread: [
-        {
-          sender: 'devotee',
-          senderName: 'Anand Reddy',
-          avatarText: 'AR',
-          time: '09 May, 04:20 PM',
-          text: 'My parcel was dispatched 3 days ago according to the notification, but the tracking ID is not updating on BlueDart. Can you check if it was picked up?'
-        }
-      ]
-    },
-    {
-      id: 'Q-104',
-      bookingId: 'BK-1004',
-      devoteeName: 'Sunita Devi',
-      timeAgo: '2 days ago',
-      subject: 'Booking confirmation not received',
-      snippet: 'I completed payment but did not get confirmation...',
-      status: 'Replied',
-      thread: [
-        {
-          sender: 'devotee',
-          senderName: 'Sunita Devi',
-          avatarText: 'SD',
-          time: '08 May, 09:10 AM',
-          text: 'I completed payment of Rs.1500 on UPI but did not get any booking confirmation email or slot details. Please verify payment.'
-        },
-        {
-          sender: 'admin',
-          senderName: 'Ravi PRO',
-          avatarText: 'RP',
-          time: '08 May, 11:30 AM',
-          text: 'Namaste Sunita Devi, we checked our system and confirmed your payment for Booking BK-1004. You should have received the notification on the app now. Let us know if you need more assistance.'
-        }
-      ]
-    },
-    {
-      id: 'Q-105',
-      bookingId: 'BK-1005',
-      devoteeName: 'Kiran Patel',
-      timeAgo: '3 days ago',
-      subject: 'Pujari name for my pooja',
-      snippet: 'Who is the pujari assigned for Satyanarayana?',
-      status: 'Replied',
-      thread: [
-        {
-          sender: 'devotee',
-          senderName: 'Kiran Patel',
-          avatarText: 'KP',
-          time: '07 May, 02:40 PM',
-          text: 'Who is the pujari assigned for our Satyanarayana Pooja booking? We would like to connect with him beforehand.'
-        },
-        {
-          sender: 'admin',
-          senderName: 'Ravi PRO',
-          avatarText: 'RP',
-          time: '07 May, 04:00 PM',
-          text: 'Namaste Kiran Patel, Pt. Sharma Ji has been assigned to your pooja. You can see his profile details and specialization inside the bookings tab.'
-        }
-      ]
-    },
-    {
-      id: 'Q-106',
-      bookingId: 'BK-1006',
-      devoteeName: 'Gopal Das',
-      timeAgo: '4 days ago',
-      subject: 'System login issues',
-      snippet: 'I am not able to login using OTP...',
-      status: 'Closed',
-      thread: [
-        {
-          sender: 'devotee',
-          senderName: 'Gopal Das',
-          avatarText: 'GD',
-          time: '06 May, 01:10 PM',
-          text: 'I am not able to login using OTP. It shows verification timed out. Can you please check?'
-        },
-        {
-          sender: 'admin',
-          senderName: 'Ravi PRO',
-          avatarText: 'RP',
-          time: '06 May, 03:00 PM',
-          text: 'Namaste Gopal, there was a temporary gateway timeout which has now been fixed. Please try logging in again.'
-        }
-      ]
-    }
-  ]);
+  const [queries, setQueries] = useState<DevoteeQuery[]>(() => db.getQueries());
 
   const [selectedQueryId, setSelectedQueryId] = useState('Q-101');
   const [activeTab, setActiveTab] = useState<'All' | 'Open' | 'Replied' | 'Closed'>('All');
@@ -162,26 +14,28 @@ export function Queries() {
 
   const handleSendReply = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || !activeQuery) return;
+
+    const now = new Date();
+    const formattedTime = now.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + `, ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
 
     const newReply: ChatMessage = {
       sender: 'admin',
       senderName: 'Ravi PRO',
       avatarText: 'RP',
-      time: 'Today, Just Now',
+      time: formattedTime,
       text: replyText.trim()
     };
 
-    setQueries(prev => prev.map(q => {
-      if (q.id === activeQuery.id) {
-        return {
-          ...q,
-          status: 'Replied',
-          thread: [...q.thread, newReply]
-        };
-      }
-      return q;
-    }));
+    const updatedQuery: DevoteeQuery = {
+      ...activeQuery,
+      status: 'Replied',
+      snippet: replyText.trim(),
+      thread: [...activeQuery.thread, newReply]
+    };
+
+    db.updateQuery(updatedQuery);
+    setQueries(prev => prev.map(q => q.id === activeQuery.id ? updatedQuery : q));
 
     setReplyText('');
     setNotification('Reply sent successfully!');
@@ -189,9 +43,13 @@ export function Queries() {
   };
 
   const handleCloseQuery = () => {
-    setQueries(prev => prev.map(q => 
-      q.id === activeQuery.id ? { ...q, status: 'Closed' } : q
-    ));
+    if (!activeQuery) return;
+    const updatedQuery: DevoteeQuery = {
+      ...activeQuery,
+      status: 'Closed'
+    };
+    db.updateQuery(updatedQuery);
+    setQueries(prev => prev.map(q => q.id === activeQuery.id ? updatedQuery : q));
     setNotification('Query marked as Closed.');
     setTimeout(() => setNotification(null), 3000);
   };
@@ -470,7 +328,9 @@ export function Queries() {
                   </p>
                   <button 
                     onClick={() => {
-                      setQueries(prev => prev.map(q => q.id === activeQuery.id ? { ...q, status: 'Open' } : q));
+                      const updatedQuery: DevoteeQuery = { ...activeQuery, status: 'Open' };
+                      db.updateQuery(updatedQuery);
+                      setQueries(prev => prev.map(q => q.id === activeQuery.id ? updatedQuery : q));
                       setNotification('Query reopened.');
                       setTimeout(() => setNotification(null), 3000);
                     }}

@@ -1,19 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router';
-
-interface PoojaSlot {
-  id: string;
-  name: string;
-  date: string;
-  time: string;
-  bookings: number;
-  maxBookings: number;
-  availability: 'Open' | 'Full';
-  status: boolean; // true = Active, false = Inactive
-}
+import { Link } from 'react-router';
+import { db, type PoojaSlot } from '../lib/db';
 
 export function Schedule() {
-  const navigate = useNavigate();
   const [selectedPooja, setSelectedPooja] = useState('All Poojas');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [fromDate, setFromDate] = useState('');
@@ -21,14 +10,7 @@ export function Schedule() {
   const [isPastExpanded, setIsPastExpanded] = useState(false);
   const [deactivatingSlot, setDeactivatingSlot] = useState<PoojaSlot | null>(null);
 
-  const [slots, setSlots] = useState<PoojaSlot[]>([
-    { id: '1', name: 'Satyanarayana Pooja', date: '2026-05-10', time: '10:00 AM', bookings: 12, maxBookings: 15, availability: 'Open', status: true },
-    { id: '2', name: 'Ganapathi Homam', date: '2026-05-10', time: '02:00 PM', bookings: 10, maxBookings: 10, availability: 'Full', status: true },
-    { id: '3', name: 'Lakshmi Pooja', date: '2026-05-11', time: '09:00 AM', bookings: 5, maxBookings: 10, availability: 'Open', status: true },
-    { id: '4', name: 'Navagraha Pooja', date: '2026-05-12', time: '11:00 AM', bookings: 8, maxBookings: 8, availability: 'Full', status: true },
-    { id: '5', name: 'Satyanarayana Pooja', date: '2026-05-15', time: '10:00 AM', bookings: 3, maxBookings: 15, availability: 'Open', status: true },
-    { id: '6', name: 'Ganapathi Homam', date: '2026-05-08', time: '02:00 PM', bookings: 10, maxBookings: 10, availability: 'Full', status: false },
-  ]);
+  const [slots, setSlots] = useState<PoojaSlot[]>(() => db.getSlots());
 
   const pastSlotsCount = 4;
 
@@ -36,16 +18,19 @@ export function Schedule() {
     setSlots(prev => prev.map(s => {
       if (s.id === id) {
         const nextStatus = !s.status;
-        return { 
+        const updated: PoojaSlot = { 
           ...s, 
           status: nextStatus,
           // If reactivated, set availability
           availability: s.bookings >= s.maxBookings ? 'Full' : 'Open'
         };
+        db.updateSlot(updated);
+        return updated;
       }
       return s;
     }));
   };
+
 
   const handleOpenDeactivateModal = (slot: PoojaSlot) => {
     setDeactivatingSlot(slot);
@@ -55,7 +40,9 @@ export function Schedule() {
     if (deactivatingSlot) {
       setSlots(prev => prev.map(s => {
         if (s.id === deactivatingSlot.id) {
-          return { ...s, status: false };
+          const updated = { ...s, status: false };
+          db.updateSlot(updated);
+          return updated;
         }
         return s;
       }));

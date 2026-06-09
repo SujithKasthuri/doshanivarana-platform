@@ -1,77 +1,8 @@
 import { useState } from 'react';
-
-interface Review {
-  id: string;
-  devoteeName: string;
-  avatarText: string;
-  avatarBg: string;
-  poojaName: string;
-  date: string;
-  rating: number;
-  submittedTime: string;
-  comment: string;
-  flagged?: boolean;
-}
+import { db, type Review } from '../lib/db';
 
 export function Feedback() {
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: '1',
-      devoteeName: 'Rajesh Kumar',
-      avatarText: 'R',
-      avatarBg: 'bg-tertiary-container text-on-tertiary-container',
-      poojaName: 'Satyanarayana Pooja',
-      date: '10 May 2026',
-      rating: 5,
-      submittedTime: 'Submitted 11 May 9:00 AM',
-      comment: '"The pooja was conducted beautifully by Pt. Sharma Ji. The live stream quality was excellent and we could participate fully from Bangalore. The prasad also arrived on time. Highly recommended!"'
-    },
-    {
-      id: '2',
-      devoteeName: 'Priya Sharma',
-      avatarText: 'P',
-      avatarBg: 'bg-secondary-container text-on-secondary-container',
-      poojaName: 'Ganapathi Homam',
-      date: '10 May 2026',
-      rating: 4,
-      submittedTime: 'Submitted 10 May 6:30 PM',
-      comment: '"Very well organized. The recording was available quickly after the pooja. Would have liked a better camera angle during the main ritual."'
-    },
-    {
-      id: '3',
-      devoteeName: 'Anand Reddy',
-      avatarText: 'A',
-      avatarBg: 'bg-[#e8def8] text-[#1d192b]',
-      poojaName: 'Lakshmi Pooja',
-      date: '08 May 2026',
-      rating: 5,
-      submittedTime: 'Submitted 09 May 10:15 AM',
-      comment: '"Excellent experience. First time using Doshanivarana and very impressed with the seamless process from booking to delivery."'
-    },
-    {
-      id: '4',
-      devoteeName: 'Sunita Devi',
-      avatarText: 'S',
-      avatarBg: 'bg-[#f8bd00] text-white',
-      poojaName: 'Navagraha Pooja',
-      date: '07 May 2026',
-      rating: 3,
-      submittedTime: 'Submitted 07 May 4:00 PM',
-      comment: '"The stream went offline for about 10 minutes in the middle of the pooja. Please ensure stable internet connection."'
-    },
-    {
-      id: '5',
-      devoteeName: 'Unknown User',
-      avatarText: 'U',
-      avatarBg: 'bg-surface-variant text-on-surface-variant',
-      poojaName: 'Special Archana',
-      date: '05 May 2026',
-      rating: 1,
-      submittedTime: 'Submitted 06 May 1:00 PM',
-      comment: 'This feedback has been flagged by Admin for review',
-      flagged: true
-    }
-  ]);
+  const [reviews] = useState<Review[]>(() => db.getFeedback());
 
   const [poojaFilter, setPoojaFilter] = useState('All Poojas');
   const [starFilter, setStarFilter] = useState<number | null>(null);
@@ -86,6 +17,16 @@ export function Feedback() {
     const matchesStar = starFilter === null || r.rating === starFilter;
     return matchesPooja && matchesStar;
   });
+
+  const totalReviewsCount = reviews.length;
+  const averageRating = totalReviewsCount > 0 
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviewsCount).toFixed(1)
+    : '0.0';
+
+  const countByStar = (star: number) => reviews.filter(r => r.rating === star).length;
+  const pctByStar = (star: number) => totalReviewsCount > 0
+    ? Math.round((countByStar(star) / totalReviewsCount) * 100)
+    : 0;
 
   return (
     <div className="max-w-[1440px] mx-auto pb-12 font-sans relative">
@@ -111,15 +52,24 @@ export function Feedback() {
           </div>
           
           <div className="flex flex-col items-center text-center md:text-left md:items-start shrink-0">
-            <div className="text-[64px] leading-none text-[#D4A017] font-bold mb-2 font-display">4.6</div>
+            <div className="text-[64px] leading-none text-[#D4A017] font-bold mb-2 font-display">{averageRating}</div>
             <div className="flex text-[#D4A017] mb-2 text-2xl gap-1">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>star_half</span>
+              {[1, 2, 3, 4, 5].map(star => {
+                const val = parseFloat(averageRating);
+                const isFull = star <= val;
+                const isHalf = !isFull && (star - 0.5 <= val);
+                return (
+                  <span 
+                    key={star} 
+                    className="material-symbols-outlined" 
+                    style={{ fontVariationSettings: isFull || isHalf ? "'FILL' 1" : "'FILL' 0" }}
+                  >
+                    {isFull ? 'star' : isHalf ? 'star_half' : 'star'}
+                  </span>
+                );
+              })}
             </div>
-            <p className="text-body-sm text-on-surface-variant font-medium">Based on 156 reviews</p>
+            <p className="text-body-sm text-on-surface-variant font-medium">Based on {totalReviewsCount} reviews</p>
           </div>
           
           <div className="w-full flex-grow flex flex-col gap-2 z-10 text-xs text-on-surface-variant">
@@ -130,9 +80,9 @@ export function Feedback() {
                 5 stars
               </div>
               <div className="flex-grow h-2 bg-surface-variant rounded-full overflow-hidden flex">
-                <div className="bg-[#D4A017] h-full w-[50%] rounded-full"></div>
+                <div className="bg-[#D4A017] h-full rounded-full" style={{ width: `${pctByStar(5)}%` }}></div>
               </div>
-              <div className="w-20 text-right font-medium">78 reviews</div>
+              <div className="w-20 text-right font-medium">{countByStar(5)} reviews</div>
             </div>
             
             {/* 4 Stars */}
@@ -142,9 +92,9 @@ export function Feedback() {
                 4 stars
               </div>
               <div className="flex-grow h-2 bg-surface-variant rounded-full overflow-hidden flex">
-                <div className="bg-[#D4A017] h-full w-[33%] rounded-full opacity-80"></div>
+                <div className="bg-[#D4A017] h-full rounded-full" style={{ width: `${pctByStar(4)}%` }}></div>
               </div>
-              <div className="w-20 text-right font-medium">52 reviews</div>
+              <div className="w-20 text-right font-medium">{countByStar(4)} reviews</div>
             </div>
 
             {/* 3 Stars */}
@@ -154,9 +104,9 @@ export function Feedback() {
                 3 stars
               </div>
               <div className="flex-grow h-2 bg-surface-variant rounded-full overflow-hidden flex">
-                <div className="bg-[#D4A017] h-full w-[11%] rounded-full opacity-60"></div>
+                <div className="bg-[#D4A017] h-full rounded-full" style={{ width: `${pctByStar(3)}%` }}></div>
               </div>
-              <div className="w-20 text-right font-medium">18 reviews</div>
+              <div className="w-20 text-right font-medium">{countByStar(3)} reviews</div>
             </div>
 
             {/* 2 Stars */}
@@ -166,9 +116,9 @@ export function Feedback() {
                 2 stars
               </div>
               <div className="flex-grow h-2 bg-surface-variant rounded-full overflow-hidden flex">
-                <div className="bg-[#D4A017] h-full w-[4%] rounded-full opacity-40"></div>
+                <div className="bg-[#D4A017] h-full rounded-full" style={{ width: `${pctByStar(2)}%` }}></div>
               </div>
-              <div className="w-20 text-right font-medium">6 reviews</div>
+              <div className="w-20 text-right font-medium">{countByStar(2)} reviews</div>
             </div>
 
             {/* 1 Star */}
@@ -178,9 +128,9 @@ export function Feedback() {
                 1 star
               </div>
               <div className="flex-grow h-2 bg-surface-variant rounded-full overflow-hidden flex">
-                <div className="bg-[#D4A017] h-full w-[2%] rounded-full opacity-20"></div>
+                <div className="bg-[#D4A017] h-full rounded-full" style={{ width: `${pctByStar(1)}%` }}></div>
               </div>
-              <div className="w-20 text-right font-medium">2 reviews</div>
+              <div className="w-20 text-right font-medium">{countByStar(1)} reviews</div>
             </div>
           </div>
         </div>
@@ -190,7 +140,7 @@ export function Feedback() {
           <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-[#F0E6D2] p-4 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">Total Reviews</span>
-              <span className="text-headline-lg text-on-surface font-bold leading-none">156</span>
+              <span className="text-headline-lg text-on-surface font-bold leading-none">{totalReviewsCount}</span>
             </div>
             <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-[20px]">forum</span>
@@ -200,7 +150,7 @@ export function Feedback() {
           <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-[#F0E6D2] p-4 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">This Month</span>
-              <span className="text-headline-lg text-on-surface font-bold leading-none">24</span>
+              <span className="text-headline-lg text-on-surface font-bold leading-none">{totalReviewsCount}</span>
             </div>
             <div className="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-[20px]">trending_up</span>
@@ -210,7 +160,7 @@ export function Feedback() {
           <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-[#F0E6D2] p-4 flex items-center justify-between bg-gradient-to-r from-surface-container-lowest to-[#fffbf0]">
             <div className="flex flex-col">
               <span className="text-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">Average</span>
-              <span className="text-headline-lg text-[#D4A017] font-bold leading-none">4.6 ★</span>
+              <span className="text-headline-lg text-[#D4A017] font-bold leading-none">{averageRating} ★</span>
             </div>
             <div className="w-12 h-12 rounded-full bg-[#fdf5e6] border border-[#f0e6d2] flex items-center justify-center text-[#D4A017]">
               <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>workspace_premium</span>
@@ -337,7 +287,7 @@ export function Feedback() {
 
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row justify-between items-center bg-surface-container-lowest rounded-xl border border-[#F0E6D2] p-4 gap-4 font-semibold text-body-sm">
-        <span className="text-on-surface-variant">Showing 1–{filteredReviews.length} of 156 reviews</span>
+        <span className="text-on-surface-variant">Showing 1–{filteredReviews.length} of {reviews.length} reviews</span>
         <div className="flex items-center gap-2">
           <button disabled className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low cursor-pointer disabled:opacity-40">
             <span className="material-symbols-outlined text-sm">chevron_left</span>

@@ -1,9 +1,13 @@
 import { useState } from 'react';
+import { db } from '../lib/db';
 
 export function ProfileSettings() {
+  const profile = db.getProfile();
+
   // Personal Info States
-  const [fullName, setFullName] = useState('Ravi Kumar');
-  const [mobile, setMobile] = useState('+91 98765 43210');
+  const [fullName, setFullName] = useState(profile.fullName);
+  const [mobile, setMobile] = useState(profile.mobile);
+  const [email] = useState(profile.email);
 
   // Password Change States
   const [currentPassword, setCurrentPassword] = useState('');
@@ -13,13 +17,13 @@ export function ProfileSettings() {
   const [showNew, setShowNew] = useState(false);
 
   // Notification Preference States
-  const [prefEmail1, setPrefEmail1] = useState(true);
-  const [prefEmail2, setPrefEmail2] = useState(true);
-  const [prefEmail3, setPrefEmail3] = useState(false);
-  const [prefSMS1, setPrefSMS1] = useState(true);
-  const [prefSMS2, setPrefSMS2] = useState(true);
-  const [prefPush1, setPrefPush1] = useState(true);
-  const [prefPush2, setPrefPush2] = useState(true);
+  const [prefEmail1, setPrefEmail1] = useState(profile.prefEmail1);
+  const [prefEmail2, setPrefEmail2] = useState(profile.prefEmail2);
+  const [prefEmail3, setPrefEmail3] = useState(profile.prefEmail3);
+  const [prefSMS1, setPrefSMS1] = useState(profile.prefSMS1);
+  const [prefSMS2, setPrefSMS2] = useState(profile.prefSMS2);
+  const [prefPush1, setPrefPush1] = useState(profile.prefPush1);
+  const [prefPush2, setPrefPush2] = useState(profile.prefPush2);
 
   // Success Toasts
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -54,6 +58,18 @@ export function ProfileSettings() {
 
   const handleSavePersonalInfo = (e: React.FormEvent) => {
     e.preventDefault();
+    db.saveProfile({
+      fullName,
+      mobile,
+      email,
+      prefEmail1,
+      prefEmail2,
+      prefEmail3,
+      prefSMS1,
+      prefSMS2,
+      prefPush1,
+      prefPush2
+    });
     triggerToast('Profile updated successfully!');
   };
 
@@ -65,8 +81,25 @@ export function ProfileSettings() {
   };
 
   const handleSavePreferences = () => {
+    db.saveProfile({
+      fullName,
+      mobile,
+      email,
+      prefEmail1,
+      prefEmail2,
+      prefEmail3,
+      prefSMS1,
+      prefSMS2,
+      prefPush1,
+      prefPush2
+    });
     triggerToast('Notification preferences updated!');
   };
+
+  const nameParts = fullName.trim().split(/\s+/);
+  const initials = nameParts.length >= 2 
+    ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+    : (nameParts[0][0] || '').toUpperCase();
 
   return (
     <div className="max-w-[1440px] mx-auto pb-16 font-sans relative">
@@ -97,7 +130,7 @@ export function ProfileSettings() {
       <section className="bg-surface-container-lowest rounded-xl shadow-sm border border-[#F0E6D2] p-6 mb-8 flex flex-col md:flex-row items-center md:items-start gap-8">
         <div className="flex flex-col items-center gap-2">
           <div className="w-[80px] h-[80px] rounded-full bg-primary flex items-center justify-center text-on-primary font-display text-headline-lg font-bold shadow-sm">
-            RK
+            {initials || 'RK'}
           </div>
           <button 
             onClick={() => triggerToast('Photo upload simulation started...')}
@@ -109,7 +142,7 @@ export function ProfileSettings() {
         
         <div className="flex-1 flex flex-col items-center md:items-start gap-3 w-full">
           <div className="flex flex-col md:flex-row items-center gap-3">
-            <h3 className="font-display text-headline-md text-on-surface font-bold">Ravi Kumar</h3>
+            <h3 className="font-display text-headline-md text-on-surface font-bold">{fullName}</h3>
             <span className="bg-primary text-on-primary font-label-md text-[10px] px-3 py-1 rounded-full uppercase tracking-wider font-bold">
               PRO — Public Relations Officer
             </span>
@@ -159,7 +192,7 @@ export function ProfileSettings() {
                     disabled
                     className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2.5 pr-10 text-on-surface-variant cursor-not-allowed opacity-75 outline-none font-medium"
                     type="email" 
-                    value="ravi.kumar@doshanivarana.in" 
+                    value={email} 
                   />
                   <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">lock</span>
                 </div>

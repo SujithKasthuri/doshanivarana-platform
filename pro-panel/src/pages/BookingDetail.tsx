@@ -1,143 +1,33 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router';
-
-interface BookingDetailData {
-  id: string;
-  devoteeName: string;
-  gotra: string;
-  nakshatra: string;
-  mobile: string;
-  email: string;
-  poojaName: string;
-  temple: string;
-  dateTime: string;
-  paymentStatus: 'Confirmed' | 'Pending';
-  amount: string;
-  paymentMethod: string;
-  orderId: string;
-  pujari: string;
-  delivery: 'Yes' | 'No';
-  deliveryAddress: string;
-  deliveryStatus: 'Not Applicable' | 'Pending' | 'Packed' | 'Dispatched' | 'Delivered';
-  streamStatus: 'Not Started' | 'In Progress' | 'Ended';
-  recordingStatus: 'Not Available' | 'Processing' | 'Available';
-  feedback: string | null;
-  maxBookings: number;
-  currentBookings: number;
-}
-
-const mockBookings: Record<string, BookingDetailData> = {
-  'BK-1001': {
-    id: 'BK-1001',
-    devoteeName: 'Rajesh Kumar',
-    gotra: 'Kashyapa',
-    nakshatra: 'Rohini',
-    mobile: '+91 98765 43210',
-    email: 'rajesh@email.com',
-    poojaName: 'Satyanarayana Pooja',
-    temple: 'Sri Venkateswara Temple',
-    dateTime: '10 May 2026, 10:00 AM',
-    paymentStatus: 'Confirmed',
-    amount: '₹1,500',
-    paymentMethod: 'UPI',
-    orderId: 'RZP-2026-00891',
-    pujari: 'Not Assigned',
-    delivery: 'Yes',
-    deliveryAddress: '42 MG Road, Bangalore, Karnataka 560001',
-    deliveryStatus: 'Packed',
-    streamStatus: 'Not Started',
-    recordingStatus: 'Not Available',
-    feedback: null,
-    maxBookings: 15,
-    currentBookings: 12
-  },
-  'BK-1002': {
-    id: 'BK-1002',
-    devoteeName: 'Priya Sharma',
-    gotra: 'Bharadwaja',
-    nakshatra: 'Arudra',
-    mobile: '+91 98765 43211',
-    email: 'priya@email.com',
-    poojaName: 'Ganapathi Homam',
-    temple: 'Sri Venkateswara Temple',
-    dateTime: '10 May 2026, 02:00 PM',
-    paymentStatus: 'Confirmed',
-    amount: '₹2,500',
-    paymentMethod: 'Netbanking',
-    orderId: 'RZP-2026-00892',
-    pujari: 'Not Assigned',
-    delivery: 'No',
-    deliveryAddress: 'N/A',
-    deliveryStatus: 'Not Applicable',
-    streamStatus: 'Not Started',
-    recordingStatus: 'Not Available',
-    feedback: null,
-    maxBookings: 5,
-    currentBookings: 3
-  },
-  'BK-1003': {
-    id: 'BK-1003',
-    devoteeName: 'Anand Reddy',
-    gotra: 'Vashishta',
-    nakshatra: 'Anuradha',
-    mobile: '+91 98765 43212',
-    email: 'anand@email.com',
-    poojaName: 'Lakshmi Pooja',
-    temple: 'Sri Venkateswara Temple',
-    dateTime: '11 May 2026, 09:00 AM',
-    paymentStatus: 'Confirmed',
-    amount: '₹3,000',
-    paymentMethod: 'Credit Card',
-    orderId: 'RZP-2026-00893',
-    pujari: 'Not Assigned',
-    delivery: 'Yes',
-    deliveryAddress: '128 Jayanagar, Bangalore, Karnataka 560041',
-    deliveryStatus: 'Pending',
-    streamStatus: 'Not Started',
-    recordingStatus: 'Not Available',
-    feedback: null,
-    maxBookings: 10,
-    currentBookings: 8
-  }
-};
+import { db, type Booking } from '../lib/db';
 
 export function BookingDetail() {
   const { id } = useParams<{ id: string }>();
-  const defaultBooking: BookingDetailData = {
-    id: id || 'BK-UNKNOWN',
-    devoteeName: 'Guest Devotee',
-    gotra: 'Shandilya',
-    nakshatra: 'Pushya',
-    mobile: '+91 99999 88888',
-    email: 'devotee@email.com',
-    poojaName: 'Satyanarayana Pooja',
-    temple: 'Sri Venkateswara Temple',
-    dateTime: '12 May 2026, 11:00 AM',
-    paymentStatus: 'Confirmed',
-    amount: '₹1,500',
-    paymentMethod: 'UPI',
-    orderId: 'RZP-2026-00999',
-    pujari: 'Sharma Ji',
-    delivery: 'No',
-    deliveryAddress: 'N/A',
-    deliveryStatus: 'Not Applicable',
-    streamStatus: 'Not Started',
-    recordingStatus: 'Not Available',
-    feedback: 'Very serene and well conducted Pooja. Thanks to the temple authorities.',
-    maxBookings: 15,
-    currentBookings: 10
-  };
-
-  const bookingData = (id && mockBookings[id]) ? mockBookings[id] : defaultBooking;
-  const [booking, setBooking] = useState<BookingDetailData>(bookingData);
-  const [selectedPujari, setSelectedPujari] = useState(booking.pujari);
+  const initialBooking = id ? db.getBookingById(id) || null : null;
+  const [booking, setBooking] = useState<Booking | null>(initialBooking);
+  const [selectedPujari, setSelectedPujari] = useState(initialBooking?.pujari || 'Not Assigned');
   const [notification, setNotification] = useState<string | null>(null);
 
   const handleSaveAssignment = () => {
-    setBooking(prev => ({ ...prev, pujari: selectedPujari }));
-    setNotification('Pujari assigned successfully!');
-    setTimeout(() => setNotification(null), 3000);
+    if (booking) {
+      const updated: Booking = { ...booking, pujari: selectedPujari };
+      db.updateBooking(updated);
+      setBooking(updated);
+      setNotification('Pujari assigned successfully!');
+      setTimeout(() => setNotification(null), 3000);
+    }
   };
+
+  if (!booking) {
+    return (
+      <div className="p-xl text-center font-sans">
+        <h2 className="text-headline-md font-bold text-on-surface">Booking not found</h2>
+        <Link to="/bookings" className="text-primary hover:underline font-bold mt-4 inline-block">Back to Bookings</Link>
+      </div>
+    );
+  }
+
 
   return (
     <div className="max-w-[1440px] mx-auto pb-24 relative">

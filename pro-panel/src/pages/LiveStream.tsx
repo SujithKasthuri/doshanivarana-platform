@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { db, type Booking, type Recording } from '../lib/db';
 
 export function LiveStream() {
-  const [selectedSlot, setSelectedSlot] = useState('satya');
+  const initialBookings = db.getBookings().filter(b => b.tab === 'upcoming');
+  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>(initialBookings);
+  const [selectedSlot, setSelectedSlot] = useState(initialBookings[0]?.id || '');
   const [streamState, setStreamState] = useState<'idle' | 'live' | 'ended'>('idle');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [viewers, setViewers] = useState<number | null>(null);
@@ -13,6 +16,8 @@ export function LiveStream() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const viewersRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const booking = upcomingBookings.find(b => b.id === selectedSlot) || upcomingBookings[0];
+
   useEffect(() => {
     if (streamState === 'live') {
       // Start duration timer
@@ -21,11 +26,10 @@ export function LiveStream() {
       }, 1000);
 
       // Start viewers simulation
-      setViewers(12);
-      setStreamHealth('Excellent');
+      const baseViewers = booking ? booking.currentBookings : 12;
       viewersRef.current = setInterval(() => {
         setViewers(prev => {
-          if (prev === null) return 12;
+          if (prev === null) return baseViewers;
           const delta = Math.floor(Math.random() * 5) - 2; // -2 to +2
           const nextVal = prev + delta;
           return nextVal < 1 ? 1 : nextVal;
@@ -34,31 +38,38 @@ export function LiveStream() {
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
       if (viewersRef.current) clearInterval(viewersRef.current);
-      if (streamState === 'idle') {
-        setElapsedSeconds(0);
-        setViewers(null);
-        setStreamHealth('—');
-      }
     }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (viewersRef.current) clearInterval(viewersRef.current);
     };
-  }, [streamState]);
+  }, [streamState, booking]);
 
   const handleStartStream = () => {
+    if (booking) {
+      db.updateBooking({ ...booking, streamStatus: 'In Progress' });
+    }
+    const baseViewers = booking ? booking.currentBookings : 12;
+    setViewers(baseViewers);
+    setStreamHealth('Excellent');
     setStreamState('live');
     setNotification('Live broadcast started successfully!');
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleStopStream = () => {
+    if (booking) {
+      db.updateBooking({ ...booking, streamStatus: 'Ended', recordingStatus: 'Processing' });
+    }
     setStreamState('ended');
     setShowFinishedModal(true);
   };
 
   const handleRestartStream = () => {
+    if (booking) {
+      db.updateBooking({ ...booking, streamStatus: 'Not Started' });
+    }
     setStreamState('idle');
     setElapsedSeconds(0);
     setViewers(null);
@@ -86,6 +97,27 @@ export function LiveStream() {
 
   const handleModalSubmit = (notify: boolean) => {
     setShowFinishedModal(false);
+    if (booking) {
+      db.updateBooking({ 
+        ...booking, 
+        recordingStatus: notify ? 'Available' : 'Processing',
+        tab: 'completed'
+      });
+
+      // Save recording to database
+      const newRec = {
+        id: String(db.getRecordings().length + 1),
+        poojaName: booking.poojaName,
+        slotDate: booking.dateTime.split(',')[0],
+        duration: formatTime(elapsedSeconds),
+        autoSaved: 'Yes' as const,
+        status: (notify ? 'Published' : 'Ready to Publish') as Recording['status'],
+        bookingsCount: booking.currentBookings
+      };
+      const updatedRecordings = [newRec, ...db.getRecordings()];
+      db.saveRecordings(updatedRecordings);
+    }
+
     if (notify) {
       setNotification('Devotees notified with the recording link!');
     } else {
@@ -94,6 +126,15 @@ export function LiveStream() {
     setTimeout(() => setNotification(null), 3500);
     setStreamState('idle');
     setElapsedSeconds(0);
+    
+    // Refresh list of upcoming bookings since this one is now completed
+    const list = db.getBookings().filter(b => b.tab === 'upcoming');
+    setUpcomingBookings(list);
+    if (list.length > 0) {
+      setSelectedSlot(list[0].id);
+    } else {
+      setSelectedSlot('');
+    }
   };
 
   return (
@@ -125,8 +166,14 @@ export function LiveStream() {
               onChange={(e) => setSelectedSlot(e.target.value)}
               className="w-full appearance-none bg-surface border border-primary/30 rounded-lg px-4 py-3 text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary pr-10 font-semibold cursor-pointer"
             >
-              <option value="satya">Satyanarayana Pooja — Today 10 May 2026 at 10:00 AM (12 Bookings)</option>
-              <option value="aarti">Evening Aarti — Today 10 May 2026 at 6:30 PM (45 Bookings)</option>
+              {upcomingBookings.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.poojaName} — {b.id} at {b.dateTime} ({b.currentBookings} Bookings)
+                </option>
+              ))}
+              {upcomingBookings.length === 0 && (
+                <option value="">No upcoming pooja bookings</option>
+              )}
             </select>
             <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
           </div>
@@ -137,7 +184,7 @@ export function LiveStream() {
             </span>
             <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface-variant text-on-surface-variant text-[11px] border border-outline-variant/30">
               <span className="material-symbols-outlined text-[16px]">info</span>
-              {selectedSlot === 'satya' ? '12' : '45'} devotees will be notified
+              {booking ? booking.currentBookings : 0} devotees will be notified
             </span>
           </div>
         </div>
@@ -157,7 +204,7 @@ export function LiveStream() {
                 <span className="material-symbols-outlined text-green-600">check_circle</span>
                 <div>
                   <p className="text-button text-on-surface font-bold">Pujari Assigned</p>
-                  <p className="text-body-sm text-on-surface-variant font-medium">Pt. Sharma Ji</p>
+                  <p className="text-body-sm text-on-surface-variant font-medium">{booking ? booking.pujari : 'None'}</p>
                 </div>
               </li>
               <li className="flex items-start gap-3">
@@ -165,7 +212,7 @@ export function LiveStream() {
                 <div>
                   <p className="text-button text-on-surface font-bold">Confirmed Bookings</p>
                   <p className="text-body-sm text-on-surface-variant font-medium">
-                    {selectedSlot === 'satya' ? '12 devotees booked' : '45 devotees booked'}
+                    {booking ? `${booking.currentBookings} devotees booked` : '0 devotees booked'}
                   </p>
                 </div>
               </li>
@@ -180,7 +227,7 @@ export function LiveStream() {
                 <span className="material-symbols-outlined text-green-600">check_circle</span>
                 <div>
                   <p className="text-button text-on-surface font-bold">Scheduled Time</p>
-                  <p className="text-body-sm text-on-surface-variant font-medium">Starts in 25 minutes</p>
+                  <p className="text-body-sm text-on-surface-variant font-medium">{booking ? booking.dateTime : 'N/A'}</p>
                 </div>
               </li>
             </ul>

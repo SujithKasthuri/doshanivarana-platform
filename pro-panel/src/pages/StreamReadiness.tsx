@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
+import { db } from '../lib/db';
 
 interface Stage3Checklist {
   videoClear: boolean;
@@ -14,36 +15,62 @@ interface Stage4Checklist {
   pujariMicSecured: boolean;
 }
 
+const getDaysToGo = (dateTimeStr: string) => {
+  try {
+    const parts = dateTimeStr.split(',');
+    if (parts.length > 0) {
+      const dateVal = new Date(parts[0]);
+      if (!isNaN(dateVal.getTime())) {
+        const diffTime = dateVal.getTime() - new Date().getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Tomorrow';
+        if (diffDays < 0) return `${Math.abs(diffDays)} days ago`;
+        return `${diffDays} days to go`;
+      }
+    }
+  } catch {
+    // Return fallback value if date parsing fails
+  }
+  return 'Scheduled';
+};
+
 export function StreamReadiness() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Unified stage state: 3 (Active, completing test), 4 (Active, final check), 5 (Success)
-  const [currentStage, setCurrentStage] = useState<3 | 4 | 5>(3);
-  
-  const [stage3, setStage3] = useState<Stage3Checklist>({
-    videoClear: false,
-    audioClear: false,
-    streamKeyWorking: false,
-    playbackTested: false
-  });
+  const bookingId = id || 'BK-1001';
+  const booking = db.getBookingById(bookingId) || db.getBookings()[0];
 
-  const [stage4, setStage4] = useState<Stage4Checklist>({
-    finalSignalCheck: false,
-    latencyChecked: false,
-    pujariMicSecured: false
-  });
+  const initialStreamData = db.getStreamReadiness(bookingId);
+
+  const [currentStage, setCurrentStage] = useState<3 | 4 | 5>(initialStreamData.currentStage);
+  
+  const [stage3, setStage3] = useState<Stage3Checklist>(initialStreamData.stage3);
+
+  const [stage4, setStage4] = useState<Stage4Checklist>(initialStreamData.stage4);
 
   const [notification, setNotification] = useState<string | null>(null);
 
+  const saveState = (stage: 3 | 4 | 5, s3: Stage3Checklist, s4: Stage4Checklist) => {
+    setCurrentStage(stage);
+    setStage3(s3);
+    setStage4(s4);
+    db.saveStreamReadiness(bookingId, { currentStage: stage, stage3: s3, stage4: s4 });
+  };
+
   const toggleStage3 = (key: keyof Stage3Checklist) => {
     if (currentStage !== 3) return;
-    setStage3(prev => ({ ...prev, [key]: !prev[key] }));
+    const nextVal = !stage3[key];
+    const newStage3 = { ...stage3, [key]: nextVal };
+    saveState(currentStage, newStage3, stage4);
   };
 
   const toggleStage4 = (key: keyof Stage4Checklist) => {
     if (currentStage !== 4) return;
-    setStage4(prev => ({ ...prev, [key]: !prev[key] }));
+    const nextVal = !stage4[key];
+    const newStage4 = { ...stage4, [key]: nextVal };
+    saveState(currentStage, stage3, newStage4);
   };
 
   const isStage3Complete = stage3.videoClear && stage3.audioClear && stage3.streamKeyWorking && stage3.playbackTested;
@@ -51,14 +78,14 @@ export function StreamReadiness() {
 
   const handleConfirmStage3 = () => {
     if (!isStage3Complete) return;
-    setCurrentStage(4);
+    saveState(4, stage3, stage4);
     setNotification('Stage 3 Complete! Stage 4 is now unlocked.');
     setTimeout(() => setNotification(null), 3000);
   };
 
   const handleConfirmStage4 = () => {
     if (!isStage4Complete) return;
-    setCurrentStage(5);
+    saveState(5, stage3, stage4);
     setNotification('All stages completed! Live stream is now active.');
     setTimeout(() => setNotification(null), 3000);
   };
@@ -68,7 +95,6 @@ export function StreamReadiness() {
     navigate('/live-stream');
   };
 
-  // Calculations based on stage
   let progressPercent = 50;
   if (currentStage === 4) progressPercent = 75;
   if (currentStage === 5) progressPercent = 100;
@@ -128,18 +154,18 @@ export function StreamReadiness() {
                 <span className="material-symbols-outlined text-[32px]">event_available</span>
               </div>
               <div>
-                <h3 className="font-display text-headline-sm text-on-surface font-bold">Satyanarayana Pooja</h3>
-                <p className="text-on-surface-variant font-label-md font-semibold">15 May 2026 at 10:00 AM</p>
+                <h3 className="font-display text-headline-sm text-on-surface font-bold">{booking?.poojaName}</h3>
+                <p className="text-on-surface-variant font-label-md font-semibold">{booking?.dateTime}</p>
               </div>
             </div>
             <div className="flex gap-2 font-bold">
               <div className="px-3 py-1.5 rounded-full bg-error-container text-error text-[12px] flex items-center gap-1.5 border border-red-200">
                 <span className="material-symbols-outlined text-[14px]">timer</span>
-                Starts in 2 hours
+                {booking ? getDaysToGo(booking.dateTime) : ''}
               </div>
               <div className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[12px] flex items-center gap-1.5 border border-primary/20">
                 <span className="material-symbols-outlined text-[14px]">person_celebrate</span>
-                Pt. Sharma Ji
+                {booking?.pujari}
               </div>
               <div className="px-3 py-1.5 rounded-full bg-green-50 text-green-700 text-[12px] flex items-center gap-1.5 border border-green-200">
                 <span className="material-symbols-outlined text-[14px]">check_circle</span>

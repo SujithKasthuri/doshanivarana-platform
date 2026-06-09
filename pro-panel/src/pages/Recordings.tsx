@@ -1,24 +1,8 @@
 import { useState } from 'react';
-
-interface Recording {
-  id: string;
-  poojaName: string;
-  slotDate: string;
-  duration: string;
-  autoSaved: 'Yes' | 'No';
-  status: 'Processing' | 'Ready to Publish' | 'Published' | 'Upload Required';
-  bookingsCount: number;
-}
+import { db, type Recording } from '../lib/db';
 
 export function Recordings() {
-  const [recordings, setRecordings] = useState<Recording[]>([
-    { id: '1', poojaName: 'Ganapathi Homam', slotDate: '10 May 2026', duration: '1h 12m', autoSaved: 'Yes', status: 'Processing', bookingsCount: 15 },
-    { id: '2', poojaName: 'Satyanarayana Pooja', slotDate: '09 May 2026', duration: '45m', autoSaved: 'Yes', status: 'Ready to Publish', bookingsCount: 12 },
-    { id: '3', poojaName: 'Lakshmi Pooja', slotDate: '08 May 2026', duration: '58m', autoSaved: 'Yes', status: 'Ready to Publish', bookingsCount: 8 },
-    { id: '4', poojaName: 'Navagraha Pooja', slotDate: '07 May 2026', duration: '—', autoSaved: 'No', status: 'Upload Required', bookingsCount: 5 },
-    { id: '5', poojaName: 'Satyanarayana Pooja', slotDate: '05 May 2026', duration: '52m', autoSaved: 'Yes', status: 'Published', bookingsCount: 14 },
-    { id: '6', poojaName: 'Ganapathi Homam', slotDate: '03 May 2026', duration: '1h 05m', autoSaved: 'Yes', status: 'Published', bookingsCount: 9 }
-  ]);
+  const [recordings, setRecordings] = useState<Recording[]>(() => db.getRecordings());
 
   const [notification, setNotification] = useState<string | null>(null);
   
@@ -32,7 +16,9 @@ export function Recordings() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePublish = (rec: Recording) => {
-    setRecordings(prev => prev.map(r => r.id === rec.id ? { ...r, status: 'Published' } : r));
+    const updated: Recording = { ...rec, status: 'Published' };
+    db.updateRecording(updated);
+    setRecordings(prev => prev.map(r => r.id === rec.id ? updated : r));
     setNotification(`Recording published! Download links sent to ${rec.bookingsCount} devotees for ${rec.poojaName} — ${rec.slotDate}.`);
     setPreviewingRec(null);
     setIsPlaying(false);
@@ -49,7 +35,9 @@ export function Recordings() {
         if (prev >= 100) {
           clearInterval(interval);
           setTimeout(() => {
-            setRecordings(p => p.map(r => r.id === rec.id ? { ...r, status: 'Ready to Publish', duration: '1h 02m', autoSaved: 'No' } : r));
+            const updated: Recording = { ...rec, status: 'Ready to Publish', duration: '1h 02m', autoSaved: 'No' };
+            db.updateRecording(updated);
+            setRecordings(p => p.map(r => r.id === rec.id ? updated : r));
             setIsUploading(false);
             setUploadingRec(null);
             setNotification(`Recording for ${rec.poojaName} uploaded and is ready to publish.`);

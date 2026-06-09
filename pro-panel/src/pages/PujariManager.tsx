@@ -1,81 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-
-interface Pujari {
-  id: string;
-  name: string;
-  status: 'Active' | 'Inactive';
-  specializations: string[];
-  experience: string;
-  bookingsCount: number;
-  avatarText: string;
-  avatarBg: string;
-}
+import { db, type Pujari } from '../lib/db';
 
 export function PujariManager() {
   const navigate = useNavigate();
-  const [pujaris, setPujaris] = useState<Pujari[]>([
-    {
-      id: 'PJ-001',
-      name: 'Pt. Sharma Ji',
-      status: 'Active',
-      specializations: ['Satyanarayana Pooja', 'Ganapathi Homam'],
-      experience: '15 years',
-      bookingsCount: 24,
-      avatarText: 'SJ',
-      avatarBg: 'bg-primary text-on-primary'
-    },
-    {
-      id: 'PJ-002',
-      name: 'Ravi Pandit',
-      status: 'Active',
-      specializations: ['Lakshmi Pooja', 'Navagraha Pooja'],
-      experience: '8 years',
-      bookingsCount: 18,
-      avatarText: 'RP',
-      avatarBg: 'bg-secondary-container text-on-secondary-container'
-    },
-    {
-      id: 'PJ-003',
-      name: 'Krishna Acharya',
-      status: 'Active',
-      specializations: ['Rudra Abhishekam', 'Satyanarayana Pooja'],
-      experience: '22 years',
-      bookingsCount: 31,
-      avatarText: 'KA',
-      avatarBg: 'bg-tertiary text-on-tertiary'
-    },
-    {
-      id: 'PJ-004',
-      name: 'Venkat Sastry',
-      status: 'Active',
-      specializations: ['Ganapathi Homam'],
-      experience: '5 years',
-      bookingsCount: 9,
-      avatarText: 'VS',
-      avatarBg: 'bg-outline text-white'
-    },
-    {
-      id: 'PJ-005',
-      name: 'Narasimha Bhat',
-      status: 'Active',
-      specializations: ['Navagraha Pooja', 'Lakshmi Pooja'],
-      experience: '12 years',
-      bookingsCount: 15,
-      avatarText: 'NB',
-      avatarBg: 'bg-primary text-on-primary'
-    },
-    {
-      id: 'PJ-006',
-      name: 'Gopal Das',
-      status: 'Inactive',
-      specializations: ['Satyanarayana Pooja'],
-      experience: '3 years',
-      bookingsCount: 0,
-      avatarText: 'GD',
-      avatarBg: 'bg-surface-variant text-on-surface-variant border border-outline-variant'
-    }
-  ]);
+  const [pujaris, setPujaris] = useState<Pujari[]>(() => db.getPujaris());
 
   const [statusFilter, setStatusFilter] = useState('All');
   const [specFilter, setSpecFilter] = useState('All');
@@ -101,17 +30,23 @@ export function PujariManager() {
         setShowWarningModal(true);
       } else {
         // Safe to deactivate immediately
-        setPujaris(prev => prev.map(p => p.id === pujari.id ? { ...p, status: 'Inactive' } : p));
+        const updated = { ...pujari, status: 'Inactive' as const };
+        db.updatePujari(updated);
+        setPujaris(prev => prev.map(p => p.id === pujari.id ? updated : p));
       }
     } else {
       // Reactivate
-      setPujaris(prev => prev.map(p => p.id === pujari.id ? { ...p, status: 'Active' } : p));
+      const updated = { ...pujari, status: 'Active' as const };
+      db.updatePujari(updated);
+      setPujaris(prev => prev.map(p => p.id === pujari.id ? updated : p));
     }
   };
 
   const confirmDeactivate = () => {
     if (deactivatingPujari) {
-      setPujaris(prev => prev.map(p => p.id === deactivatingPujari.id ? { ...p, status: 'Inactive', bookingsCount: 0 } : p));
+      const updated = { ...deactivatingPujari, status: 'Inactive' as const, bookingsCount: 0 };
+      db.updatePujari(updated);
+      setPujaris(prev => prev.map(p => p.id === deactivatingPujari.id ? updated : p));
       setShowWarningModal(false);
       setDeactivatingPujari(null);
     }

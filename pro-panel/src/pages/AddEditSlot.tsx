@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router';
+import { db } from '../lib/db';
 
 interface AddEditSlotProps {
   isEdit: boolean;
@@ -9,28 +10,19 @@ export function AddEditSlot({ isEdit }: AddEditSlotProps) {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [pooja, setPooja] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('10:00');
-  const [ampm, setAmpm] = useState<'AM' | 'PM'>('AM');
-  const [maxBookings, setMaxBookings] = useState(15);
-  const [status, setStatus] = useState(true);
-  
+  const existingSlot = (isEdit && id) ? db.getSlots().find(s => s.id === id) : null;
+  const initialPooja = existingSlot ? (existingSlot.name === 'Satyanarayana Pooja' ? 'satyanarayana' : existingSlot.name === 'Rudra Abhishekam' ? 'rudrabhishekam' : 'archana') : '';
+  const initialTimeParts = existingSlot ? existingSlot.time.split(' ') : [];
+
+  const [pooja, setPooja] = useState(initialPooja);
+  const [date, setDate] = useState(existingSlot?.date || '');
+  const [time, setTime] = useState(initialTimeParts[0] || '10:00');
+  const [ampm, setAmpm] = useState<'AM' | 'PM'>((initialTimeParts[1] as 'AM' | 'PM') || 'AM');
+  const [maxBookings, setMaxBookings] = useState(existingSlot?.maxBookings || 15);
+  const [status, setStatus] = useState(existingSlot ? existingSlot.status : true);
   const [showToast, setShowToast] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [dateError, setDateError] = useState(false);
-
-  useEffect(() => {
-    if (isEdit && id) {
-      // Mock loading existing slot details
-      setPooja('satyanarayana');
-      setDate('2026-05-15');
-      setTime('10:00');
-      setAmpm('AM');
-      setMaxBookings(15);
-      setStatus(true);
-    }
-  }, [isEdit, id]);
 
   const handlePoojaChange = (val: string) => {
     setPooja(val);
@@ -43,7 +35,6 @@ export function AddEditSlot({ isEdit }: AddEditSlotProps) {
 
   const handleDateChange = (val: string) => {
     setDate(val);
-    // Basic past date check
     const selectedDate = new Date(val);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -59,6 +50,24 @@ export function AddEditSlot({ isEdit }: AddEditSlotProps) {
     e.preventDefault();
     if (!pooja || !date || dateError) return;
 
+    const slotName = pooja === 'satyanarayana' ? 'Satyanarayana Pooja' : pooja === 'rudrabhishekam' ? 'Rudra Abhishekam' : 'Special Seva';
+    const slotId = isEdit && id ? id : Date.now().toString();
+    const existingSlot = isEdit && id ? db.getSlots().find(s => s.id === id) : null;
+    const bookingsCount = existingSlot ? existingSlot.bookings : 0;
+
+    const newSlot = {
+      id: slotId,
+      name: slotName,
+      date: date,
+      time: `${time} ${ampm}`,
+      bookings: bookingsCount,
+      maxBookings: maxBookings,
+      availability: bookingsCount >= maxBookings ? 'Full' : 'Open' as 'Open' | 'Full',
+      status: status
+    };
+
+    db.updateSlot(newSlot);
+
     setShowToast(true);
     setTimeout(() => {
       setShowToast(false);
@@ -67,6 +76,7 @@ export function AddEditSlot({ isEdit }: AddEditSlotProps) {
   };
 
   const canSave = pooja && date && !dateError;
+
 
   return (
     <div className="w-full md:w-[calc(100%-240px)] md:ml-[240px] pt-[120px] pb-12 px-4 md:px-xl min-h-screen relative mandala-watermark">

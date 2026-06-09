@@ -1,16 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
-
-interface Booking {
-  id: string;
-  devoteeName: string;
-  poojaName: string;
-  dateTime: string;
-  paymentStatus: 'Confirmed' | 'Pending';
-  pujari: string; // 'Not Assigned' or name
-  delivery: 'Yes' | 'No';
-  tab: 'upcoming' | 'completed';
-}
+import { useNavigate } from 'react-router';
+import { db, type Booking } from '../lib/db';
 
 export function Bookings() {
   const navigate = useNavigate();
@@ -20,15 +10,8 @@ export function Bookings() {
   const [deliveryFilter, setDeliveryFilter] = useState('All');
   const [paymentFilter, setPaymentFilter] = useState('All');
 
-  const [bookings] = useState<Booking[]>([
-    { id: 'BK-1001', devoteeName: 'Rajesh Kumar', poojaName: 'Satyanarayana Pooja', dateTime: '10 May 10:00 AM', paymentStatus: 'Confirmed', pujari: 'Sharma Ji', delivery: 'Yes', tab: 'upcoming' },
-    { id: 'BK-1002', devoteeName: 'Priya Sharma', poojaName: 'Ganapathi Homam', dateTime: '10 May 02:00 PM', paymentStatus: 'Confirmed', pujari: 'Not Assigned', delivery: 'No', tab: 'upcoming' },
-    { id: 'BK-1003', devoteeName: 'Anand Reddy', poojaName: 'Lakshmi Pooja', dateTime: '11 May 09:00 AM', paymentStatus: 'Confirmed', pujari: 'Not Assigned', delivery: 'Yes', tab: 'upcoming' },
-    { id: 'BK-1004', devoteeName: 'Sunita Devi', poojaName: 'Navagraha Pooja', dateTime: '12 May 11:00 AM', paymentStatus: 'Confirmed', pujari: 'Ravi Pandit', delivery: 'No', tab: 'upcoming' },
-    { id: 'BK-1005', devoteeName: 'Kiran Patel', poojaName: 'Satyanarayana Pooja', dateTime: '15 May 10:00 AM', paymentStatus: 'Confirmed', pujari: 'Not Assigned', delivery: 'Yes', tab: 'upcoming' },
-    { id: 'BK-1006', devoteeName: 'Meena Iyer', poojaName: 'Ganapathi Homam', dateTime: '15 May 02:00 PM', paymentStatus: 'Confirmed', pujari: 'Sharma Ji', delivery: 'No', tab: 'upcoming' },
-    { id: 'BK-0990', devoteeName: 'Suresh Raina', poojaName: 'Rudra Abhishekam', dateTime: '05 May 10:00 AM', paymentStatus: 'Confirmed', pujari: 'Sharma Ji', delivery: 'Yes', tab: 'completed' },
-  ]);
+  const [bookings] = useState<Booking[]>(() => db.getBookings());
+
 
   const handleViewDetails = (id: string) => {
     navigate(`/bookings/${id}`);

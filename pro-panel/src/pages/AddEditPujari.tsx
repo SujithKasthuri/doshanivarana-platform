@@ -1,76 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
+import { db, type Pujari } from '../lib/db';
 
 interface AddEditPujariProps {
   isEdit: boolean;
 }
 
-interface PujariData {
-  id: string;
-  name: string;
-  experience: string;
-  contact: string;
-  status: 'Active' | 'Inactive';
-  specializations: string[];
-  bookingsCount: number;
-}
-
-const mockPujaris: Record<string, PujariData> = {
-  'PJ-001': {
-    id: 'PJ-001',
-    name: 'Pt. Sharma Ji',
-    experience: '15',
-    contact: '+91 98765 43210',
-    status: 'Active',
-    specializations: ['Satyanarayana Pooja', 'Ganapathi Homam'],
-    bookingsCount: 24
-  },
-  'PJ-002': {
-    id: 'PJ-002',
-    name: 'Ravi Pandit',
-    experience: '8',
-    contact: '+91 98765 43211',
-    status: 'Active',
-    specializations: ['Lakshmi Pooja', 'Navagraha Pooja'],
-    bookingsCount: 18
-  },
-  'PJ-003': {
-    id: 'PJ-003',
-    name: 'Krishna Acharya',
-    experience: '22',
-    contact: '+91 98765 43212',
-    status: 'Active',
-    specializations: ['Rudra Abhishekam', 'Satyanarayana Pooja'],
-    bookingsCount: 31
-  }
-};
-
 export function AddEditPujari({ isEdit }: AddEditPujariProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
-  const [experience, setExperience] = useState('');
-  const [contact, setContact] = useState('');
-  const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
-  const [specializations, setSpecializations] = useState<string[]>(['Satyanarayana Pooja', 'Ganapathi Homam']);
+  const existingPujari = (isEdit && id) ? db.getPujaris().find(x => x.id === id) : null;
+
+  const [name, setName] = useState(existingPujari?.name || '');
+  const [experience, setExperience] = useState(() => existingPujari?.experience ? existingPujari.experience.replace(/\D/g, '') : '');
+  const [contact, setContact] = useState(existingPujari?.contact || '');
+  const [status, setStatus] = useState<'Active' | 'Inactive'>(existingPujari?.status || 'Active');
+  const [specializations, setSpecializations] = useState<string[]>(existingPujari?.specializations || ['Satyanarayana Pooja', 'Ganapathi Homam']);
   const [newSpec, setNewSpec] = useState('');
-  const [bookingsCount, setBookingsCount] = useState(0);
+  const bookingsCount = existingPujari?.bookingsCount || 0;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isEdit && id && mockPujaris[id]) {
-      const p = mockPujaris[id];
-      setName(p.name);
-      setExperience(p.experience);
-      setContact(p.contact);
-      setStatus(p.status);
-      setSpecializations(p.specializations);
-      setBookingsCount(p.bookingsCount);
-    }
-  }, [isEdit, id]);
 
   const handleAddSpec = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && newSpec.trim()) {
@@ -112,6 +63,37 @@ export function AddEditPujari({ isEdit }: AddEditPujariProps) {
     }
 
     setErrors({});
+
+    const list = db.getPujaris();
+    const existing = isEdit && id ? list.find(x => x.id === id) : null;
+    
+    const nameParts = name.trim().split(/\s+/);
+    const avatarText = nameParts.length >= 2 
+      ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+      : (nameParts[0][0] || '').toUpperCase();
+
+    const avatarBgs = [
+      'bg-primary text-on-primary',
+      'bg-secondary-container text-on-secondary-container',
+      'bg-tertiary text-on-tertiary',
+      'bg-outline text-white'
+    ];
+    const avatarBg = existing?.avatarBg || avatarBgs[Math.floor(Math.random() * avatarBgs.length)];
+
+    const updatedPujari: Pujari = {
+      id: existing?.id || `PJ-${String(list.length + 1).padStart(3, '0')}`,
+      name: name.trim(),
+      experience: `${experience} years`,
+      contact: contact.trim(),
+      status,
+      specializations,
+      bookingsCount: existing?.bookingsCount || 0,
+      avatarText,
+      avatarBg
+    };
+
+    db.updatePujari(updatedPujari);
+
     setSuccessMsg(isEdit ? 'Pujari profile updated successfully!' : 'New Pujari added successfully!');
     
     setTimeout(() => {
