@@ -45,8 +45,56 @@ export function Bookings() {
     }
   ]);
 
+<<<<<<< HEAD
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('doshanivarana_bookings_updated', handleCustomUpdate);
+      window.removeEventListener('focus', handleCustomUpdate);
+    };
+  }, []);
+
+  const getPoojaImage = (poojaName: string) => {
+    const found = POOJAS.find(
+      (p) =>
+        p.title.toLowerCase().includes(poojaName.toLowerCase()) ||
+        poojaName.toLowerCase().includes(p.title.toLowerCase())
+    );
+    return found ? found.imageUrl : 'https://images.unsplash.com/photo-1680342786718-39d1febb5349?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB0ZW1wbGUlMjB3b3JzaGlwJTIwcml0dWFsfGVufDF8fHx8MTc3MzgyNTQ1Mnww&ixlib=rb-4.1.0&q=80&w=1080';
+  };
+
+  const getBookingStage = (b: any) => {
+    let stage = 1; // Seva Offered
+    if (b.paymentStatus === 'Confirmed') stage = 2; // Confirmed
+    if (b.pujari !== 'Not Assigned') stage = 3; // Scheduled
+    if (b.streamStatus === 'In Progress') stage = 4; // Pooja Live
+    if (b.streamStatus === 'Ended') stage = 5; // Completed
+    if (b.recordingStatus === 'Available') stage = 6; // Recording Ready
+    if (b.deliveryStatus === 'Packed') stage = 7; // Prasad Packed
+    if (b.deliveryStatus === 'Dispatched' || b.deliveryStatus === 'In Transit' || b.deliveryStatus === 'Out for Delivery') stage = 8; // Dispatched / In Transit / Out for Delivery
+    if (b.deliveryStatus === 'Delivered') stage = 9; // Delivered
+    return stage;
+  };
+
+  const mappedBookings = allBookings.map((b: any) => {
+    const status = b.tab || (b.streamStatus === 'Ended' ? 'completed' : 'upcoming');
+    return {
+      id: b.id,
+      title: b.poojaName,
+      temple: b.temple,
+      date: b.dateTime,
+      status: status,
+      currentStage: getBookingStage(b),
+      hasRecording: b.recordingStatus === 'Available',
+      imageUrl: getPoojaImage(b.poojaName),
+    };
+  });
+
+  const filteredBookings = mappedBookings.filter((booking) =>
+    activeTab === 'active' ? booking.status === 'upcoming' : booking.status === 'completed'
+=======
   const filteredBookings = bookings.filter(booking => 
     activeTab === 'active' ? booking.status === 'upcoming' : ['completed', 'cancelled'].includes(booking.status)
+>>>>>>> 1fb880da40406bfa87bf3877806242baa16f362a
   );
 
   const handleCancelBooking = (id: string) => {
