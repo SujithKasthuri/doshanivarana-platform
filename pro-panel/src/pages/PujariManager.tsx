@@ -1,10 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { db, type Pujari } from '../lib/db';
+import { db, type Pujari, AVAILABLE_SPECIALIZATIONS } from '../lib/db';
 
 export function PujariManager() {
   const navigate = useNavigate();
   const [pujaris, setPujaris] = useState<Pujari[]>(() => db.getPujaris());
+
+  const bookings = db.getBookings();
+  const getPujariBookingsCount = (name: string) => {
+    return bookings.filter(b => b.pujari === name).length;
+  };
+  const getPujariUpcomingBookingsCount = (name: string) => {
+    return bookings.filter(b => b.pujari === name && b.tab === 'upcoming').length;
+  };
 
   const [statusFilter, setStatusFilter] = useState('All');
   const [specFilter, setSpecFilter] = useState('All');
@@ -24,8 +32,9 @@ export function PujariManager() {
 
   const handleToggleStatus = (pujari: Pujari) => {
     if (pujari.status === 'Active') {
+      const upcomingCount = getPujariUpcomingBookingsCount(pujari.name);
       // If active, show deactivation flow
-      if (pujari.bookingsCount > 0) {
+      if (upcomingCount > 0) {
         setDeactivatingPujari(pujari);
         setShowWarningModal(true);
       } else {
@@ -44,8 +53,18 @@ export function PujariManager() {
 
   const confirmDeactivate = () => {
     if (deactivatingPujari) {
-      const updated = { ...deactivatingPujari, status: 'Inactive' as const, bookingsCount: 0 };
+      const updated = { ...deactivatingPujari, status: 'Inactive' as const };
       db.updatePujari(updated);
+
+      // Dynamic unassignment: set any upcoming bookings assigned to this Pujari back to 'Not Assigned'
+      const updatedBookings = bookings.map(b => {
+        if (b.pujari === deactivatingPujari.name && b.tab === 'upcoming') {
+          return { ...b, pujari: 'Not Assigned' };
+        }
+        return b;
+      });
+      db.saveBookings(updatedBookings);
+
       setPujaris(prev => prev.map(p => p.id === deactivatingPujari.id ? updated : p));
       setShowWarningModal(false);
       setDeactivatingPujari(null);
@@ -104,11 +123,9 @@ export function PujariManager() {
               className="appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold"
             >
               <option value="All">All Specializations</option>
-              <option value="Satyanarayana Pooja">Satyanarayana Pooja</option>
-              <option value="Ganapathi Homam">Ganapathi Homam</option>
-              <option value="Lakshmi Pooja">Lakshmi Pooja</option>
-              <option value="Navagraha Pooja">Navagraha Pooja</option>
-              <option value="Rudra Abhishekam">Rudra Abhishekam</option>
+              {AVAILABLE_SPECIALIZATIONS.map(spec => (
+                <option key={spec} value={spec}>{spec}</option>
+              ))}
             </select>
             <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">arrow_drop_down</span>
           </div>
@@ -157,9 +174,17 @@ export function PujariManager() {
               
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-headline-sm font-bold shadow-sm ${pujari.avatarBg}`}>
-                    {pujari.avatarText}
-                  </div>
+                  {pujari.photoUrl ? (
+                    <img 
+                      src={pujari.photoUrl} 
+                      alt={pujari.name} 
+                      className="w-12 h-12 rounded-full object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-headline-sm font-bold shadow-sm ${pujari.avatarBg}`}>
+                      {pujari.avatarText}
+                    </div>
+                  )}
                   <div>
                     <h3 className={`font-display text-headline-sm font-bold ${isInactive ? 'text-on-surface-variant' : 'text-on-surface'}`}>
                       {pujari.name}
@@ -191,6 +216,12 @@ export function PujariManager() {
                   ))}
                 </div>
               </div>
+ 
+              {/* Languages */}
+              <div className="mb-4 flex items-center gap-1.5 font-sans text-body-sm text-on-surface-variant font-medium">
+                <span className="material-symbols-outlined text-[18px] text-primary">translate</span>
+                <span>{pujari.languages?.join(', ') || 'No languages configured'}</span>
+              </div>
 
               {/* Stats Grid */}
               <div className={`grid grid-cols-2 gap-4 mb-6 p-3 rounded-lg border font-sans ${
@@ -204,7 +235,7 @@ export function PujariManager() {
                 </div>
                 <div>
                   <p className="text-label-md text-on-surface-variant uppercase text-[10px] font-bold tracking-wider">Bookings</p>
-                  <p className="text-body-md text-on-surface font-bold">{pujari.bookingsCount}</p>
+                  <p className="text-body-md text-on-surface font-bold">{getPujariBookingsCount(pujari.name)}</p>
                 </div>
               </div>
 
@@ -246,7 +277,7 @@ export function PujariManager() {
             </div>
             
             <p className="text-body-md text-on-surface-variant font-medium mb-4">
-              <strong className="text-on-surface">{deactivatingPujari.name}</strong> has <strong className="text-on-surface">{deactivatingPujari.bookingsCount} upcoming bookings</strong>. Deactivating this priest requires reassignment of all their bookings.
+              <strong className="text-on-surface">{deactivatingPujari.name}</strong> has <strong className="text-on-surface">{getPujariUpcomingBookingsCount(deactivatingPujari.name)} upcoming bookings</strong>. Deactivating this priest requires reassignment of all their bookings.
             </p>
 
             <div className="bg-error-container text-on-error-container p-3 rounded-lg border border-red-200 mb-6">

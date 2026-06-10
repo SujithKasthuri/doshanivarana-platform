@@ -69,12 +69,14 @@ export function Layout({ unreadNotifications = 3, setUnreadNotifications }: Layo
       </header>
 
       {/* TopAppBar Small (Role Indicator Banner) */}
-      <div className="w-[calc(100%-240px)] fixed top-16 right-0 h-10 z-30 bg-primary-container text-on-primary-container flex items-center px-gutter ml-[240px] shadow-sm cursor-default">
-        <span className="material-symbols-outlined mr-2 text-on-primary-container text-[18px]">account_balance</span>
-        <span className="font-sans text-label-md uppercase tracking-wider font-semibold">
-          You are managing: Sri Venkateswara Temple
-        </span>
-      </div>
+      {location.pathname === '/' && (
+        <div className="w-[calc(100%-240px)] fixed top-16 right-0 h-10 z-30 bg-primary-container text-on-primary-container flex items-center px-gutter ml-[240px] shadow-sm cursor-default">
+          <span className="material-symbols-outlined mr-2 text-on-primary-container text-[18px]">account_balance</span>
+          <span className="font-sans text-label-md uppercase tracking-wider font-semibold">
+            You are managing: Sri Venkateswara Temple
+          </span>
+        </div>
+      )}
 
       {/* SideNavBar */}
       <nav className="w-[240px] h-screen fixed left-0 top-0 overflow-y-auto bg-surface border-r border-outline-variant shadow-sm z-50 flex flex-col justify-between">
@@ -120,9 +122,9 @@ export function Layout({ unreadNotifications = 3, setUnreadNotifications }: Layo
       </nav>
 
       {/* Page Content Viewport */}
-      <div className="ml-[240px] pt-[104px]">
+      <div className={`ml-[240px] ${location.pathname === '/' ? 'pt-[104px]' : 'pt-[64px]'}`}>
         {/* Main Content Render */}
-        <div className="p-xl min-h-[calc(100vh-104px)] relative mandala-watermark">
+        <div className={`p-xl ${location.pathname === '/' ? 'min-h-[calc(100vh-104px)]' : 'min-h-[calc(100vh-64px)]'} relative mandala-watermark`}>
           {/* Children components injected here */}
           <Outlet />
         </div>
