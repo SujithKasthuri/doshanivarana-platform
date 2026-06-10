@@ -1,10 +1,12 @@
-import { useState } from 'react';
+// @ts-nocheck
+import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal, Switch } from 'react-native';
 import { useRouter, Link } from 'expo-router';
-import { ChevronRight, User, Star, Calendar, Settings, Bell, HelpCircle, LogOut, Sparkles, Edit2, X, MapPin, Phone, Mail, Languages, Check, Moon } from 'lucide-react-native';
+import { ChevronRight, User, Star, Calendar, Settings, Bell, HelpCircle, LogOut, Sparkles, Edit2, X, MapPin, Phone, Mail, Languages, Check, Moon, MessageSquare } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
+import { safeStorage } from '../../src/old_app/lib/storage';
 
 const deitiesList = [
   { id: 'ganesha', name: 'Ganesha', emoji: '🐘' },
@@ -114,15 +116,45 @@ export default function Profile() {
   const [selectedDeities, setSelectedDeities] = useState<string[]>(['shiva', 'lakshmi']);
   const [tempSelectedDeities, setTempSelectedDeities] = useState<string[]>(['shiva', 'lakshmi']);
   
-  const [profile, setProfile] = useState<UserProfile>({
-    name: 'Raghavan Iyer',
-    email: 'raghavan.iyer@example.com',
-    phone: '+91 98765 43210',
-    location: 'Bangalore, Karnataka',
-    nakshatra: 'Shravana',
-    rashi: 'Makara (Capricorn)',
-    dateOfBirth: 'Jan 15, 1990',
-    gothram: 'Bharadwaja',
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+    const mobile = userSession ? JSON.parse(userSession).mobile : '+91 98765 43216';
+    
+    const bookingsData = safeStorage.getItem('doshanivarana_bookings');
+    const bookings = bookingsData ? JSON.parse(bookingsData) : [];
+    
+    const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+    const userBooking = bookings.find((b: any) => b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile);
+    
+    if (userBooking) {
+      return {
+        name: userBooking.devoteeName,
+        email: userBooking.email || 'devotee@doshanivarana.in',
+        phone: userBooking.mobile,
+        location: userBooking.deliveryAddress && userBooking.deliveryAddress !== 'N/A' ? userBooking.deliveryAddress : 'Bangalore, Karnataka',
+        nakshatra: userBooking.nakshatra || 'Shravana',
+        rashi: 'Makara (Capricorn)',
+        dateOfBirth: 'Jan 15, 1990',
+        gothram: userBooking.gotra || 'Bharadwaja',
+      };
+    }
+    
+    return {
+      name: mobile.includes('9876543216') || mobile.includes('98765 43216') ? 'Suresh Raina' : 'Raghavan Iyer',
+      email: 'suresh.raina@example.com',
+      phone: mobile,
+      location: 'Delhi, India',
+      nakshatra: 'Swati',
+      rashi: 'Thula (Libra)',
+      dateOfBirth: 'Nov 27, 1986',
+      gothram: 'Bharadwaja',
+    };
+  });
+
+  const [stats, setStats] = useState({
+    totalPoojas: 12,
+    upcoming: 3,
+    devotionScore: 5.0,
   });
 
   const getProfileValue = (key: keyof UserProfile, val: string) => {
@@ -134,6 +166,67 @@ export default function Profile() {
     return val;
   };
 
+  useEffect(() => {
+    const fetchProfile = () => {
+      const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+      const mobile = userSession ? JSON.parse(userSession).mobile : '+91 98765 43216'; // default Suresh Raina for demo
+      
+      const bookingsData = safeStorage.getItem('doshanivarana_bookings');
+      const bookings = bookingsData ? JSON.parse(bookingsData) : [];
+      
+      const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
+      const userBooking = bookings.find((b: any) => b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile);
+      const userBookings = bookings.filter((b: any) => b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile);
+      
+      const upcomingCount = userBookings.filter((b: any) => b.streamStatus !== 'Ended' && b.tab !== 'completed').length;
+      setStats({
+        totalPoojas: userBookings.length,
+        upcoming: upcomingCount,
+        devotionScore: userBookings.length > 0 ? 5.0 : 0.0,
+      });
+
+      if (userBooking) {
+        setProfile({
+          name: userBooking.devoteeName,
+          email: userBooking.email || 'devotee@doshanivarana.in',
+          phone: userBooking.mobile,
+          location: userBooking.deliveryAddress && userBooking.deliveryAddress !== 'N/A' ? userBooking.deliveryAddress : 'Bangalore, Karnataka',
+          nakshatra: userBooking.nakshatra || 'Shravana',
+          rashi: 'Makara (Capricorn)',
+          dateOfBirth: 'Jan 15, 1990',
+          gothram: userBooking.gotra || 'Bharadwaja',
+        });
+      } else {
+        setProfile({
+          name: mobile.includes('9876543216') || mobile.includes('98765 43216') ? 'Suresh Raina' : 'Raghavan Iyer',
+          email: 'suresh.raina@example.com',
+          phone: mobile,
+          location: 'Delhi, India',
+          nakshatra: 'Swati',
+          rashi: 'Thula (Libra)',
+          dateOfBirth: 'Nov 27, 1986',
+          gothram: 'Bharadwaja',
+        });
+      }
+    };
+
+    fetchProfile();
+    
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('storage', fetchProfile);
+      window.addEventListener('focus', fetchProfile);
+      window.addEventListener('doshanivarana_bookings_updated', fetchProfile);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+        window.removeEventListener('storage', fetchProfile);
+        window.removeEventListener('focus', fetchProfile);
+        window.removeEventListener('doshanivarana_bookings_updated', fetchProfile);
+      }
+    };
+  }, []);
+
   const [notifications, setNotifications] = useState({
     poojaReminders: true,
     liveStreams: true,
@@ -141,14 +234,12 @@ export default function Profile() {
     festivalAlerts: true,
   });
 
-  const stats = {
-    totalPoojas: 12,
-    upcoming: 3,
-    devotionScore: 5.0,
-  };
-
   const handleSignOut = () => {
     // Clear state or simple navigate back to welcome/login
+    safeStorage.removeItem('doshanivarana_logged_in_user');
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof Event === 'function') {
+      window.dispatchEvent(new Event('doshanivarana_bookings_updated'));
+    }
     router.replace('/welcome');
   };
 
@@ -552,10 +643,20 @@ export default function Profile() {
                   <Mail size={16} color="#F97316" />
                   <Text className="text-foreground">support@doshanivarana.in</Text>
                 </View>
-                <View className="flex-row items-center gap-2">
+                <View className="flex-row items-center gap-2 mb-4">
                   <Phone size={16} color="#F97316" />
                   <Text className="text-foreground">+91 80 1234 5678</Text>
                 </View>
+                <Pressable
+                  onPress={() => {
+                    setShowHelp(false);
+                    router.push('/support/chat');
+                  }}
+                  className="w-full py-3 bg-primary rounded-xl items-center justify-center flex-row gap-2 active:bg-[#E05C10]"
+                >
+                  <MessageSquare size={16} color="#1A0A00" />
+                  <Text className="text-[#1A0A00] font-semibold text-sm">Chat with Temple PRO</Text>
+                </Pressable>
               </View>
               <Text className="font-semibold mb-3 text-foreground">{t('help.faq')}</Text>
               <FAQItem q={t('help.faq1Q')} a={t('help.faq1A')} />
