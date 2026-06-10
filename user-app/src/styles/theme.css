@@ -76,13 +76,15 @@
   --secondary: #2D0A2E;
   --secondary-foreground: #F5F5F0;
   --muted: #44403C;
-  --muted-foreground: #78716C;
+  --muted-foreground: #A8A29E;
   --accent: #9A1515;
   --accent-foreground: #F5F5F0;
   --destructive: #DC2626;
   --destructive-foreground: #F5F5F0;
   --border: rgba(120, 113, 108, 0.3);
   --input: rgba(120, 113, 108, 0.3);
+  --input-background: #2D0A2E;
+  --switch-background: #44403C;
   --ring: #F97316;
   --font-weight-medium: 500;
   --font-weight-normal: 400;

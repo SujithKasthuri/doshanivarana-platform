@@ -308,15 +308,15 @@ export default function Poojas() {
         {/* Search */}
         <View className="relative mb-4 justify-center">
           <View className="absolute left-4 z-10">
-            <Search size={20} color="#78716C" />
+            <Search size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
           </View>
           <TextInput
             placeholder={t('poojas.searchPlaceholder')}
-            placeholderTextColor="hsl(var(--muted-foreground))"
+            placeholderTextColor={theme === 'dark' ? '#A8A29E' : '#78716C'}
             value={searchQuery}
             onChangeText={setSearchQuery}
             className="w-full pl-12 pr-4 py-3 bg-card border border-border rounded-xl text-foreground"
-            style={{ fontFamily: 'System' }}
+            style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}
           />
         </View>
 
@@ -353,7 +353,7 @@ export default function Poojas() {
 
       {/* Pooja List */}
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }} className="flex-1">
-        <View className="space-y-4">
+        <View className="gap-y-4">
           {filteredPoojas.map((pooja) => (
             <PoojaListCard key={pooja.id} {...pooja} />
           ))}
@@ -383,6 +383,7 @@ function PoojaListCard({
   price: string;
 }) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   return (
     <Link href={`/pooja/${id}`} asChild>
       <Pressable className="bg-card border border-border rounded-2xl overflow-hidden mb-4 active:border-primary/50">
@@ -401,17 +402,17 @@ function PoojaListCard({
                 <Text className="text-accent text-xs font-medium">{getTranslatedDeity(deity, t)}</Text>
               </View>
             </View>
-            <Text className="text-sm text-muted-foreground mb-3" numberOfLines={2} style={{ fontFamily: 'System' }}>
+            <Text className="text-sm mb-3" numberOfLines={2} style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
               {t('poojaDb.' + id + '.purpose')}
             </Text>
             <View className="flex-row items-center gap-3 mb-2">
               <View className="flex-row items-center gap-1">
-                <MapPin size={14} color="#78716C" />
-                <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{getTranslatedTemple(temple, t)}</Text>
+                <MapPin size={14} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
+                <Text className="text-xs" numberOfLines={1} ellipsizeMode="tail" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{getTranslatedTemple(temple, t)}</Text>
               </View>
               <View className="flex-row items-center gap-1">
-                <Clock size={14} color="#78716C" />
-                <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{duration.replace('mins', t('poojas.min'))}</Text>
+                <Clock size={14} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
+                <Text className="text-xs" numberOfLines={1} ellipsizeMode="tail" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{duration.replace('mins', t('poojas.min'))}</Text>
               </View>
             </View>
             <Text className="text-primary font-semibold" style={{ fontFamily: 'System' }}>

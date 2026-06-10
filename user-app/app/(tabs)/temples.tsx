@@ -114,7 +114,7 @@ export default function Temples() {
         <Text className="text-2xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
           {t('temples.title')}
         </Text>
-        <Text className="text-sm text-muted-foreground mt-1" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm mt-1" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
           {t('temples.subtitle')}
         </Text>
       </View>
@@ -146,24 +146,24 @@ export default function Temples() {
                 </Text>
                 <View className="flex-row items-center gap-4 mb-3">
                   <View className="flex-row items-center gap-1">
-                    <MapPin size={16} color="#78716C" />
-                    <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+                    <MapPin size={16} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
+                    <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                       {t('templeDb.' + tKey + '.location')}
                     </Text>
                   </View>
-                  <Text className="text-muted-foreground">•</Text>
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+                  <Text style={{ color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>•</Text>
+                  <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                     {t('templeDb.' + tKey + '.deity')}
                   </Text>
                 </View>
-                <Text className="text-sm text-muted-foreground leading-relaxed mb-4" style={{ fontFamily: 'System' }}>
+                <Text className="text-sm leading-relaxed mb-4" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
                   {t('templeDb.' + tKey + '.description')}
                 </Text>
 
                 <View className="flex-row items-center justify-between pt-4 border-t border-border">
                   <View className="flex-row items-center gap-2">
                     <Flame size={16} color="#F97316" />
-                    <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+                    <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                       {temple.poojas} {t('temples.availablePoojas')}
                     </Text>
                   </View>
@@ -183,7 +183,7 @@ export default function Temples() {
                     <Text className="text-sm font-semibold mb-3 text-foreground" style={{ fontFamily: 'System' }}>
                       {t('temples.availablePoojas')}
                     </Text>
-                    <View className="space-y-2">
+                    <View className="gap-y-2">
                       {temple.availablePoojas.map((pooja) => (
                         <Link key={pooja.id} href={`/pooja/${pooja.id}` as any} asChild>
                           <Pressable className="flex-row items-center justify-between p-3 rounded-xl bg-muted/30 active:bg-muted/50 mb-2">

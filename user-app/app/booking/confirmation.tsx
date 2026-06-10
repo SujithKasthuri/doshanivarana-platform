@@ -4,12 +4,14 @@ import { View, Text, Pressable } from 'react-native';
 import { Link, useLocalSearchParams } from 'expo-router';
 import { Bell, Share2 } from 'lucide-react-native';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
+import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { poojaCatalog, getTempleKey } from '../../src/old_app/constants/catalog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function BookingConfirmation() {
   const { bookingId, poojaId } = useLocalSearchParams();
   const { t, language } = useLanguage();
+  const { theme } = useTheme();
   const displayId = bookingId ? bookingId.toString() : 'DS2026031801';
   const currentPoojaId = poojaId ? poojaId.toString() : '1';
   
@@ -45,7 +47,7 @@ export default function BookingConfirmation() {
     
     const monthMap: Record<string, Record<string, string>> = {
       '03': { en: 'March', te: 'మార్చి', hi: 'मार्च', gu: 'માર્ચ' },
-      '04': { en: 'April', te: 'ఏప్రిల్', hi: 'अप्रैल', gu: 'એપ્રિલ' }
+      '04': { en: 'April', te: 'ఏప్రిల్', hi: 'अप्रैल', gu: 'એప్రిల్' }
     };
     
     const parts = dateVal.split('-');
@@ -59,15 +61,16 @@ export default function BookingConfirmation() {
     return `${dateVal} — ${timeVal}`;
   };
 
+  const primaryForeground = theme === 'dark' ? '#1A0A00' : '#F5F5F0';
+
   return (
-    <View className="flex-1 bg-[#1A0A00] px-6 py-12 flex-col items-center justify-center">
+    <View className="flex-1 bg-background px-6 py-12 flex-col items-center justify-center">
       {/* Diya Animation Placeholder */}
       <View className="mb-8 relative items-center justify-center">
         <Text className="text-8xl">🪔</Text>
         <View
-          className="absolute inset-0 opacity-30 rounded-full"
+          className="absolute inset-0 opacity-30 rounded-full bg-primary"
           style={{
-            backgroundColor: '#F97316',
             transform: [{ scale: 1.5 }],
             zIndex: -1
           }}
@@ -76,7 +79,7 @@ export default function BookingConfirmation() {
 
       {/* Headline */}
       <Text
-        className="text-3xl font-bold text-center mb-4 text-[#F5F5F0]"
+        className="text-3xl font-bold text-center mb-4 text-foreground"
         style={{ fontFamily: 'System' }}
       >
         {t('bookingConfirmation.title')}
@@ -84,23 +87,31 @@ export default function BookingConfirmation() {
 
       {/* Subtitle */}
       <Text
-        className="text-center text-sm mb-8 max-w-md text-[#78716C]"
-        style={{ fontFamily: 'System' }}
+        className="text-center text-sm mb-8 max-w-md"
+        style={{ 
+          color: theme === 'dark' ? '#A8A29E' : '#44403C', 
+          fontFamily: 'System' 
+        }}
       >
         {t('bookingConfirmation.subtitle')}
       </Text>
 
       {/* Booking ID Card */}
       <View
-        className="w-full max-w-md rounded-xl p-5 mb-6"
-        style={{ backgroundColor: '#2D0A2E', borderColor: '#F97316', borderWidth: 1 }}
+        className="w-full max-w-md rounded-xl p-5 mb-6 bg-card border border-primary"
       >
         {/* Top Row */}
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-xs font-bold text-primary" style={{ fontFamily: 'System' }}>
             DOSHANIVARANA
           </Text>
-          <Text className="text-xs text-[#78716C]" style={{ fontFamily: 'System' }}>
+          <Text 
+            className="text-xs" 
+            style={{ 
+              color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+              fontFamily: 'System' 
+            }}
+          >
             {t('bookingConfirmation.bookingConfirmed')}
           </Text>
         </View>
@@ -110,15 +121,27 @@ export default function BookingConfirmation() {
 
         {/* Pooja Details */}
         <Text
-          className="text-xl font-bold mb-2 text-[#F5F5F0]"
+          className="text-xl font-bold mb-2 text-foreground"
           style={{ fontFamily: 'System' }}
         >
           {t('poojaDb.' + pooja.id + '.title')}
         </Text>
-        <Text className="text-xs mb-1 text-[#78716C]" style={{ fontFamily: 'System' }}>
+        <Text 
+          className="text-xs mb-1" 
+          style={{ 
+            color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+            fontFamily: 'System' 
+          }}
+        >
           {t('templeDb.' + templeKey + '.name')}, {t('templeDb.' + templeKey + '.location')}
         </Text>
-        <Text className="text-xs mb-4 text-[#78716C]" style={{ fontFamily: 'System' }}>
+        <Text 
+          className="text-xs mb-4" 
+          style={{ 
+            color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+            fontFamily: 'System' 
+          }}
+        >
           {getDisplayDate()}
         </Text>
 
@@ -127,7 +150,13 @@ export default function BookingConfirmation() {
 
         {/* Booking ID */}
         <View>
-          <Text className="text-xs mb-1 text-[#78716C]" style={{ fontFamily: 'System' }}>
+          <Text 
+            className="text-xs mb-1" 
+            style={{ 
+              color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+              fontFamily: 'System' 
+            }}
+          >
             {t('bookingConfirmation.bookingId')}
           </Text>
           <Text
@@ -140,9 +169,9 @@ export default function BookingConfirmation() {
       </View>
 
       {/* CTAs */}
-      <View className="w-full max-w-md space-y-3 mb-8">
+      <View className="w-full max-w-md gap-y-3 mb-8">
         <Pressable className="w-full py-3 rounded-xl bg-primary items-center justify-center flex-row gap-2 active:bg-[#E05C10] mb-3">
-          <Bell size={20} color="#1A0A00" />
+          <Bell size={20} color={primaryForeground} />
           <Text className="text-primary-foreground font-medium" style={{ fontFamily: 'System' }}>
             {t('bookingConfirmation.setReminder')}
           </Text>
@@ -163,21 +192,39 @@ export default function BookingConfirmation() {
             <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
               <Text className="text-xs text-primary-foreground font-bold">✓</Text>
             </View>
-            <Text className="text-xs text-[#78716C]" style={{ fontFamily: 'System' }}>
+            <Text 
+              className="text-xs" 
+              style={{ 
+                color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+                fontFamily: 'System' 
+              }}
+            >
               {t('journey.sevaOffered')}
             </Text>
           </View>
           <View className="w-8 h-0.5 bg-border" />
           <View className="flex-row items-center gap-2">
             <View className="w-6 h-6 rounded-full border border-border" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+            <Text 
+              className="text-xs" 
+              style={{ 
+                color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+                fontFamily: 'System' 
+              }}
+            >
               {t('journey.pujariAssigned')}
             </Text>
           </View>
           <View className="w-8 h-0.5 bg-border" />
           <View className="flex-row items-center gap-2">
             <View className="w-6 h-6 rounded-full border border-border" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+            <Text 
+              className="text-xs" 
+              style={{ 
+                color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+                fontFamily: 'System' 
+              }}
+            >
               {t('journey.poojaScheduled')}
             </Text>
           </View>
@@ -187,7 +234,7 @@ export default function BookingConfirmation() {
       {/* View Bookings Link */}
       <Link href="/(tabs)/bookings" asChild>
         <Pressable className="p-2">
-          <Text className="text-primary text-sm font-medium" style={{ fontFamily: 'System' }}>
+          <Text className="text-primary text-sm font-medium" style={{ fontFamily: 'System' }} numberOfLines={1}>
             {t('bookingConfirmation.viewJourney')}
           </Text>
         </Pressable>
