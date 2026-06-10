@@ -113,33 +113,8 @@ export default function BookingFlow() {
   
   const poojaId = id?.toString() || '';
 
-<<<<<<< HEAD
   const placeholderColor = theme === 'dark' ? '#A8A29E' : '#78716C';
 
-  // Map search param id to translated pooja info
-  const poojaId = id || '1';
-  const pooja = poojaCatalog.find(p => p.id.toString() === poojaId.toString()) || poojaCatalog[0];
-  const templeKey = getTempleKey(pooja.temple);
-  const poojaData = {
-    title: t('poojaDb.' + pooja.id + '.title'),
-    temple: t('templeDb.' + templeKey + '.name'),
-    deity: getTranslatedDeity(pooja.deity, t),
-    price: pooja.price,
-  };
-
-  const availableDates = [
-    { date: '2026-03-20', label: t('common.tomorrow'), day: t('home.thu') },
-    { date: '2026-03-21', label: 'Mar 21', day: t('home.fri') },
-    { date: '2026-03-22', label: 'Mar 22', day: t('home.sat') },
-    { date: '2026-03-23', label: 'Mar 23', day: t('home.sun') },
-    { date: '2026-03-24', label: 'Mar 24', day: t('home.mon') },
-  ];
-
-  const availableTimes = [
-    '6:00 AM', '7:00 AM', '8:00 AM', '9:00 AM', '10:00 AM',
-    '11:00 AM', '4:00 PM', '5:00 PM', '6:00 PM'
-  ];
-=======
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -182,7 +157,6 @@ export default function BookingFlow() {
     
     if (poojaId) loadData();
   }, [poojaId]);
->>>>>>> 57b6a0930a86993e75fb143f33477e616b2f94f1
 
   const handleContinue = async () => {
     if (step < 3) {

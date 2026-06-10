@@ -204,7 +204,6 @@ export default function Bookings() {
             <View className="w-16 h-16 bg-muted/30 rounded-full items-center justify-center mb-4">
               <Package size={32} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
             </View>
-            </View>
             <Text className="font-semibold text-lg text-foreground mb-1" style={{ fontFamily: 'System' }}>
               {activeTab === 'active' ? t('bookings.noActive') : t('bookings.noCompleted')}
             </Text>
