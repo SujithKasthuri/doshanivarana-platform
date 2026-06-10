@@ -5,17 +5,42 @@ import { db } from '../lib/firebase';
 import type { Slot, Pooja } from '@devaseva/core';
 import { SlotStatus } from '@devaseva/core';
 import { useAuth } from '../contexts/AuthContext';
+import { PageHeader } from '../components/PageHeader';
 
 type UISlot = Slot & {
   poojaName: string;
 };
 
+function parseDateToYYYYMMDD(dateStr: string): string | null {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+  
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  
+  // YYYY/MM/DD
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(clean)) return clean.replace(/\//g, '-');
+  
+  // DD-MM-YYYY
+  if (/^\d{2}-\d{2}-\d{4}$/.test(clean)) {
+    const [d, m, y] = clean.split('-');
+    return `${y}-${m}-${d}`;
+  }
+  
+  // DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(clean)) {
+    const [d, m, y] = clean.split('/');
+    return `${y}-${m}-${d}`;
+  }
+  
+  return null;
+}
+
 export function Schedule() {
   const { templeId } = useAuth();
   const [selectedPooja, setSelectedPooja] = useState('All Poojas');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [dateRange, setDateRange] = useState('');
   const [isPastExpanded, setIsPastExpanded] = useState(false);
   const [deactivatingSlot, setDeactivatingSlot] = useState<UISlot | null>(null);
 
@@ -24,7 +49,10 @@ export function Schedule() {
   const [loading, setLoading] = useState(true);
 
   const fetchScheduleData = async () => {
-    if (!templeId) return;
+    if (!templeId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       // Fetch Poojas for this temple
@@ -116,11 +144,23 @@ export function Schedule() {
       (selectedStatus === 'Inactive' && slot.status !== SlotStatus.AVAILABLE);
     
     let dateMatch = true;
-    if (fromDate) {
-      dateMatch = dateMatch && slot.date >= fromDate;
-    }
-    if (toDate) {
-      dateMatch = dateMatch && slot.date <= toDate;
+    if (dateRange) {
+      const dateRegex = /(\d{4}[-/]\d{2}[-/]\d{2})|(\d{2}[-/]\d{2}[-/]\d{4})/g;
+      const matches = dateRange.match(dateRegex);
+      if (matches && matches.length >= 2) {
+        const from = parseDateToYYYYMMDD(matches[0]);
+        const to = parseDateToYYYYMMDD(matches[1]);
+        if (from) dateMatch = dateMatch && slot.date >= from;
+        if (to) dateMatch = dateMatch && slot.date <= to;
+      } else if (matches && matches.length === 1) {
+        const exact = parseDateToYYYYMMDD(matches[0]);
+        if (exact) dateMatch = dateMatch && slot.date === exact;
+      } else {
+        const cleanQuery = dateRange.trim();
+        if (cleanQuery) {
+          dateMatch = slot.date.includes(cleanQuery);
+        }
+      }
     }
 
     return poojaMatch && statusMatch && dateMatch;
@@ -136,16 +176,21 @@ export function Schedule() {
   };
 
   if (loading) {
-    return <div className="p-10 text-center text-on-surface-variant">Loading Schedule...</div>;
+    return (
+      <>
+        <PageHeader title="Pooja Schedule" />
+        <div className="p-10 text-center text-on-surface-variant">Loading Schedule...</div>
+      </>
+    );
   }
 
   return (
     <div className="max-w-[1440px] mx-auto">
+      <PageHeader title="Pooja Schedule" />
       
       {/* Page Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h2 className="font-display text-headline-lg text-on-surface font-semibold">Pooja Schedule</h2>
           <p className="font-sans text-on-surface-variant mt-1">Manage available dates and time slots for your temple's poojas</p>
         </div>
         <Link 
@@ -172,28 +217,16 @@ export function Schedule() {
             ))}
           </select>
         </div>
-        <div className="flex gap-4 flex-1 min-w-[300px]">
-          <div className="flex-1">
-            <label className="block font-sans text-label-md text-on-surface-variant mb-2 font-semibold">From Date</label>
-            <div className="relative">
-              <input 
-                className="w-full bg-surface border border-outline-variant/30 rounded-lg px-4 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" 
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex-1">
-            <label className="block font-sans text-label-md text-on-surface-variant mb-2 font-semibold">To Date</label>
-            <div className="relative">
-              <input 
-                className="w-full bg-surface border border-outline-variant/30 rounded-lg px-4 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" 
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-              />
-            </div>
+        <div className="flex-1 min-w-[220px]">
+          <label className="block font-sans text-label-md text-on-surface-variant mb-2 font-semibold">Date Range</label>
+          <div className="relative">
+            <input 
+              className="w-full bg-surface border border-outline-variant/30 rounded-lg px-4 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-semibold" 
+              type="text"
+              placeholder="YYYY-MM-DD - YYYY-MM-DD"
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex-1 min-w-[150px]">
@@ -220,8 +253,7 @@ export function Schedule() {
             onClick={() => {
               setSelectedPooja('All Poojas');
               setSelectedStatus('All Status');
-              setFromDate('');
-              setToDate('');
+              setDateRange('');
             }}
           >
             Reset
