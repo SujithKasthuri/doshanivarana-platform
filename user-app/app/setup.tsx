@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Check } from 'lucide-react-native';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useLanguage } from '../src/old_app/context/LanguageContext';
+import { useTheme } from '../src/old_app/context/ThemeContext';
 
 const deities = [
   { id: 'ganesha', emoji: '🐘' },
@@ -19,6 +20,7 @@ export default function ProfileSetup() {
   const [selected, setSelected] = useState<string[]>(['lakshmi', 'shiva']);
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme } = useTheme();
 
   const toggleDeity = (id: string) => {
     setSelected((prev) =>
@@ -30,8 +32,10 @@ export default function ProfileSetup() {
     router.replace('/(tabs)');
   };
 
+  const primaryForeground = theme === 'dark' ? '#1A0A00' : '#F5F5F0';
+
   return (
-    <ScrollView className="flex-1 bg-[#1A0A00]" contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 32 }}>
+    <ScrollView className="flex-1 bg-background" contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 32 }}>
       {/* Progress Indicator */}
       <View className="flex-row items-center justify-center gap-2 mb-8">
         <View className="w-3 h-3 rounded-full bg-primary" />
@@ -40,8 +44,8 @@ export default function ProfileSetup() {
 
       {/* Heading */}
       <Text
-        className="text-2xl font-bold mb-3"
-        style={{ fontFamily: 'System', color: '#F5F5F0' }}
+        className="text-2xl font-bold mb-3 text-foreground"
+        style={{ fontFamily: 'System' }}
       >
         {t('setup.title')}
       </Text>
@@ -49,7 +53,7 @@ export default function ProfileSetup() {
       {/* Subtitle */}
       <Text
         className="text-sm mb-8"
-        style={{ fontFamily: 'System', color: '#78716C' }}
+        style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}
       >
         {t('setup.subtitle')}
       </Text>
@@ -64,14 +68,14 @@ export default function ProfileSetup() {
               onPress={() => toggleDeity(deity.id)}
               className={`relative aspect-square w-[48%] rounded-xl p-6 mb-4 flex-col items-center justify-center ${
                 isSelected
-                  ? 'bg-[#2D0A2E] border-2 border-primary'
-                  : 'bg-[#2D0A2E] border border-border'
+                  ? 'bg-card border-2 border-primary'
+                  : 'bg-card border border-border'
               }`}
             >
               {/* Checkmark */}
               {isSelected && (
                 <View className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                  <Check size={16} color="#1A0A00" />
+                  <Check size={16} color={primaryForeground} />
                 </View>
               )}
 
@@ -80,8 +84,8 @@ export default function ProfileSetup() {
 
               {/* Deity Name */}
               <Text
-                className="text-sm font-medium"
-                style={{ fontFamily: 'System', color: '#F5F5F0' }}
+                className="text-sm font-medium text-foreground"
+                style={{ fontFamily: 'System' }}
               >
                 {t('deity.' + deity.id)}
               </Text>
@@ -91,7 +95,7 @@ export default function ProfileSetup() {
       </View>
 
       {/* CTAs */}
-      <View className="space-y-4 pb-8">
+      <View className="gap-y-4 pb-8">
         <Pressable
           onPress={handleContinue}
           disabled={selected.length === 0}
@@ -103,9 +107,9 @@ export default function ProfileSetup() {
         >
           <Text
             className={`font-medium text-base ${
-              selected.length === 0 ? 'text-muted-foreground' : 'text-[#1A0A00]'
+              selected.length === 0 ? '' : 'text-primary-foreground'
             }`}
-            style={{ fontFamily: 'System' }}
+            style={{ fontFamily: 'System', color: selected.length === 0 ? (theme === 'dark' ? '#A8A29E' : '#78716C') : undefined }}
           >
             {t('common.continue')}
           </Text>
@@ -116,8 +120,8 @@ export default function ProfileSetup() {
           className="w-full py-2 mt-2 items-center justify-center"
         >
           <Text
-            className="text-sm text-muted-foreground"
-            style={{ fontFamily: 'System' }}
+            className="text-sm"
+            style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}
           >
             {t('setup.skip')}
           </Text>

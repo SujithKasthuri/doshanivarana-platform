@@ -39,7 +39,7 @@ export default function SplashScreen() {
         className="text-sm italic"
         style={{ 
           fontFamily: "System",
-          color: '#78716C',
+          color: '#A8A29E',
         }}
       >
         {t('welcome.tagline')}

@@ -87,9 +87,9 @@ export default function PoojaDetail() {
               >
                 <Text
                   className={`text-sm font-medium uppercase ${
-                    activeTab === tab ? 'text-primary' : 'text-muted-foreground'
+                    activeTab === tab ? 'text-primary' : ''
                   }`}
-                  style={{ fontFamily: 'System' }}
+                  style={{ fontFamily: 'System', color: activeTab === tab ? undefined : (theme === 'dark' ? '#A8A29E' : '#78716C') }}
                 >
                   {t('poojaDetail.' + tab)}
                 </Text>
@@ -116,7 +116,7 @@ export default function PoojaDetail() {
           onPress={() => router.push(`/booking/${pooja.id}` as any)}
           className="w-full py-4 rounded-xl bg-primary items-center justify-center active:bg-[#E05C10]"
         >
-          <Text className="text-[#1A0A00] font-semibold text-base" style={{ fontFamily: 'System' }}>
+          <Text className="text-primary-foreground font-semibold text-base" style={{ fontFamily: 'System' }}>
             {t('poojaDetail.offerPooja')} — {pooja.price}
           </Text>
         </Pressable>
@@ -137,7 +137,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
         <Text className="text-3xl font-bold mb-2 text-foreground" style={{ fontFamily: 'System' }}>
           {t('poojaDb.' + poojaId + '.title')}
         </Text>
-        <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
           {t('poojaDb.' + poojaId + '.purpose')}
         </Text>
       </View>
@@ -151,7 +151,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
           <Text className="font-semibold text-foreground" style={{ fontFamily: 'System' }}>
             {t('poojaDetail.pujariName')}
           </Text>
-          <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+          <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
             {t('poojaDetail.pujariInfo')}
           </Text>
         </View>
@@ -164,7 +164,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
           <Text className="font-medium text-sm text-foreground" style={{ fontFamily: 'System' }}>
             {t('templeDb.' + tKey + '.name')}
           </Text>
-          <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+          <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
             {t('templeDb.' + tKey + '.location')}
           </Text>
         </View>
@@ -197,7 +197,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
         <Text className="text-lg font-bold text-foreground mb-2" style={{ fontFamily: 'System' }}>
           {t('poojaDetail.overview')}
         </Text>
-        <Text className="text-sm leading-relaxed text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm leading-relaxed" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
           {t('poojaDb.' + poojaId + '.purpose')}
         </Text>
       </View>
@@ -207,7 +207,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
         <Text className="text-base font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
           {t('poojaDetail.requirementsTitle')}
         </Text>
-        <Text className="text-sm leading-relaxed text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm leading-relaxed" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
           {t('poojaDetail.requirementsDesc')}
         </Text>
       </View>
@@ -217,14 +217,14 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
         <Text className="text-base font-semibold text-primary mb-2" style={{ fontFamily: 'System' }}>
           {t('poojaDetail.notesTitle')}
         </Text>
-        <Text className="text-sm leading-relaxed text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm leading-relaxed" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
           {t('poojaDetail.notesDesc')}
         </Text>
       </View>
 
       {/* Price */}
       <View className="pt-4 border-t border-border">
-        <Text className="text-sm text-muted-foreground mb-1" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm mb-1" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
           {t('poojaDetail.sevaAmount')}
         </Text>
         <Text className="text-3xl font-bold text-primary" style={{ fontFamily: 'System' }}>
@@ -237,6 +237,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
 
 function WhereTab({ pooja }: { pooja: any }) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const tKey = getTempleKey(pooja.temple);
 
   return (
@@ -249,18 +250,18 @@ function WhereTab({ pooja }: { pooja: any }) {
         <Text className="text-2xl font-bold mb-2 text-foreground" style={{ fontFamily: 'System' }}>
           {t('templeDb.' + tKey + '.name')}
         </Text>
-        <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
           {t('templeDb.' + tKey + '.location')}
         </Text>
       </View>
 
       {/* Map Placeholder */}
       <View className="aspect-video bg-card border border-border rounded-xl items-center justify-center mb-4">
-        <MapPin size={48} color="#78716C" />
+        <MapPin size={48} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
       </View>
 
       <View className="mb-6">
-        <Text className="text-sm leading-relaxed text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm leading-relaxed" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
           {t('templeDb.' + tKey + '.description')}
         </Text>
       </View>
@@ -282,6 +283,7 @@ function WhereTab({ pooja }: { pooja: any }) {
 
 function HowTab({ pooja }: { pooja: any }) {
   const { t, language } = useLanguage();
+  const { theme } = useTheme();
   const steps = getCategorySteps(pooja.category);
   const formattedDuration = pooja.duration.replace(' mins', ' ' + t('poojas.min')).replace(' min', ' ' + t('poojas.min'));
 
@@ -302,14 +304,18 @@ function HowTab({ pooja }: { pooja: any }) {
 
       {/* Duration & Language */}
       <View className="flex-row gap-3 mb-6 mt-1">
-        <View className="px-4 py-2 rounded-full bg-[#2A1305] border border-[#52290B] flex-row items-center gap-2">
+        <View className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 flex-row items-center gap-2">
           <Clock size={16} color="#F97316" />
-          <Text className="text-xs font-semibold text-[#F97316]" style={{ fontFamily: 'System' }}>
+          <Text className="text-xs font-semibold text-primary" style={{ fontFamily: 'System' }}>
             {formattedDuration}
           </Text>
         </View>
-        <View className="px-4 py-2 rounded-full bg-[#250F26] border border-[#501F52] flex-row items-center gap-2">
-          <Text className="text-xs font-semibold text-[#D47FF2]" style={{ fontFamily: 'System' }}>
+        <View className={`px-4 py-2 rounded-full border flex-row items-center gap-2 ${
+          theme === 'dark' ? 'bg-[#250F26] border-[#501F52]' : 'bg-purple-500/10 border-purple-200'
+        }`}>
+          <Text className={`text-xs font-semibold ${
+            theme === 'dark' ? 'text-[#D47FF2]' : 'text-purple-700'
+          }`} style={{ fontFamily: 'System' }}>
             {getLanguageText()}
           </Text>
         </View>
@@ -319,14 +325,26 @@ function HowTab({ pooja }: { pooja: any }) {
       <View className="mb-4">
         {steps.map((step, index) => (
           <View key={index} className="flex-row items-start gap-4 mb-6">
-            <View className="w-9 h-9 rounded-full bg-[#2A1305] border border-[#4E260A] items-center justify-center mt-0.5">
-              <Text className="text-[#F97316] font-semibold text-sm">{index + 1}</Text>
+            <View className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 items-center justify-center mt-0.5">
+              <Text className="text-primary font-semibold text-sm">{index + 1}</Text>
             </View>
             <View className="flex-1">
-              <Text className="font-bold text-[#F5F5F0] text-[15px] mb-1" style={{ fontFamily: 'System' }}>
+              <Text 
+                className="font-bold text-[15px] mb-1" 
+                style={{ 
+                  color: theme === 'dark' ? '#F5F5F0' : '#1C1917', 
+                  fontFamily: 'System' 
+                }}
+              >
                 {t(step.nameKey)}
               </Text>
-              <Text className="text-sm text-[#78716C] leading-relaxed" style={{ fontFamily: 'System' }}>
+              <Text 
+                className="text-sm leading-relaxed" 
+                style={{ 
+                  color: theme === 'dark' ? '#A8A29E' : '#44403C', 
+                  fontFamily: 'System' 
+                }}
+              >
                 {t(step.descKey)}
               </Text>
             </View>
@@ -336,24 +354,54 @@ function HowTab({ pooja }: { pooja: any }) {
 
       {/* Instructions: What to do during stream */}
       <View className="bg-card border border-border rounded-xl p-4 mb-6 mt-2">
-        <Text className="font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
+        <Text 
+          className="font-semibold mb-2" 
+          style={{ 
+            color: theme === 'dark' ? '#F5F5F0' : '#1C1917', 
+            fontFamily: 'System' 
+          }}
+        >
           {t('journey.watchBroadcast')}
         </Text>
-        <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+        <Text 
+          className="text-sm" 
+          style={{ 
+            color: theme === 'dark' ? '#A8A29E' : '#44403C', 
+            fontFamily: 'System' 
+          }}
+        >
           {t('live.guidance')}
         </Text>
       </View>
 
       {/* FAQ Section */}
       <View className="bg-card border border-border rounded-xl p-4">
-        <Text className="font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
+        <Text 
+          className="font-semibold mb-3" 
+          style={{ 
+            color: theme === 'dark' ? '#F5F5F0' : '#1C1917', 
+            fontFamily: 'System' 
+          }}
+        >
           {t('poojaDetail.faqTitle')}
         </Text>
-        <View className="space-y-2">
-          <Text className="text-sm font-semibold text-foreground" style={{ fontFamily: 'System' }}>
+        <View className="gap-y-2">
+          <Text 
+            className="text-sm font-semibold" 
+            style={{ 
+              color: theme === 'dark' ? '#F5F5F0' : '#1C1917', 
+              fontFamily: 'System' 
+            }}
+          >
             Q: {t('poojaDetail.faqQ1')}
           </Text>
-          <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
+          <Text 
+            className="text-sm" 
+            style={{ 
+              color: theme === 'dark' ? '#A8A29E' : '#44403C', 
+              fontFamily: 'System' 
+            }}
+          >
             A: {t('poojaDetail.faqA1')}
           </Text>
         </View>
@@ -364,6 +412,7 @@ function HowTab({ pooja }: { pooja: any }) {
 
 function WhyTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
   const { t, language } = useLanguage();
+  const { theme } = useTheme();
   const blessingKeys = getCategoryBlessings(pooja.category);
   const rashis = getCategoryRashis(pooja.category);
 
@@ -379,7 +428,7 @@ function WhyTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
         {t('poojaDetail.whyTitle')}
       </Text>
 
-      <Text className="text-sm leading-relaxed text-muted-foreground mb-6" style={{ fontFamily: 'System' }}>
+      <Text className="text-sm leading-relaxed mb-6" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
         {t('poojaDb.' + poojaId + '.purpose')}
       </Text>
 
@@ -404,7 +453,7 @@ function WhyTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
 
       {/* Suitable for Rashi */}
       <View>
-        <Text className="text-sm font-medium text-muted-foreground mb-3" style={{ fontFamily: 'System' }}>
+        <Text className="text-sm font-medium mb-3" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
           {t('poojaDetail.suitableForRashi')}
         </Text>
         <View className="flex-row flex-wrap gap-2">

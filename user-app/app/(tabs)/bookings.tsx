@@ -134,7 +134,7 @@ export default function Bookings() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100 }} className="flex-1 space-y-6">
+      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 100, gap: 24 }} className="flex-1">
         {/* Tabs */}
         <View className="flex-row gap-2 p-1 bg-card rounded-xl border border-border mb-6">
           <Pressable 
@@ -168,11 +168,11 @@ export default function Bookings() {
         </View>
 
         {/* Bookings */}
-        <View className="space-y-4">
+        <View className="gap-y-4">
           {filteredBookings.length === 0 ? (
             <View className="items-center py-12">
               <View className="w-16 h-16 bg-muted/30 rounded-full items-center justify-center mb-4">
-                <Package size={32} color="#78716C" />
+                <Package size={32} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
               </View>
               <Text className="font-semibold text-lg text-foreground mb-1" style={{ fontFamily: 'System' }}>
                 {activeTab === 'active' ? t('bookings.noActive') : t('bookings.noCompleted')}
@@ -208,7 +208,7 @@ export default function Bookings() {
           <Pressable className="absolute inset-0" onPress={() => paymentStep !== 'processing' && setShowPaymentModal(false)} />
           <View className="bg-card rounded-t-3xl p-6 border-t border-border/40">
             {paymentStep === 'details' && payingBooking && (
-              <View className="space-y-4">
+              <View className="gap-y-4">
                 <View className="flex-row items-center justify-between border-b border-border pb-4">
                   <Text className="font-bold text-lg text-foreground" style={{ fontFamily: 'System' }}>
                     {t('booking.completePayment')}
@@ -218,7 +218,7 @@ export default function Bookings() {
                   </Pressable>
                 </View>
 
-                <View className="bg-muted/30 p-4 rounded-xl space-y-2 mt-2">
+                <View className="bg-muted/30 p-4 rounded-xl gap-y-2 mt-2">
                   <Text className="text-xs text-muted-foreground uppercase tracking-wider font-semibold" style={{ fontFamily: 'System' }}>
                     {t('booking.sevaDetails')}
                   </Text>
@@ -228,20 +228,20 @@ export default function Bookings() {
                   <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
                     {t('templeDb.' + payingBooking.templeKey + '.name')}
                   </Text>
-                  <View className="flex-row justify-between pt-2 border-t border-border/20 text-xs">
-                    <Text className="text-muted-foreground">{t('bookingConfirmation.bookingId')}</Text>
-                    <Text className="font-semibold text-foreground">{payingBooking.id}</Text>
+                  <View className="flex-row justify-between pt-2 border-t border-border/20">
+                    <Text className="text-muted-foreground text-xs">{t('bookingConfirmation.bookingId')}</Text>
+                    <Text className="font-semibold text-foreground text-xs">{payingBooking.id}</Text>
                   </View>
                 </View>
 
-                <View className="space-y-2.5 mt-2">
-                  <View className="flex-row justify-between text-sm">
-                    <Text className="text-muted-foreground">{t('booking.totalPrice')}</Text>
-                    <Text className="text-foreground">₹{payingBooking.totalAmount}</Text>
+                <View className="gap-y-2.5 mt-2">
+                  <View className="flex-row justify-between">
+                    <Text className="text-muted-foreground text-sm">{t('booking.totalPrice')}</Text>
+                    <Text className="text-foreground text-sm">₹{payingBooking.totalAmount}</Text>
                   </View>
-                  <View className="flex-row justify-between text-sm">
-                    <Text className="text-muted-foreground">{t('booking.paidAdvance')}</Text>
-                    <Text className="text-green-500">-₹{payingBooking.paidAmount}</Text>
+                  <View className="flex-row justify-between">
+                    <Text className="text-muted-foreground text-sm">{t('booking.paidAdvance')}</Text>
+                    <Text className="text-green-500 text-sm">-₹{payingBooking.paidAmount}</Text>
                   </View>
                   <View className="flex-row justify-between pt-3 border-t border-border/40">
                     <Text className="font-bold text-base text-foreground">{t('booking.remainingBalanceDue')}</Text>
@@ -261,7 +261,7 @@ export default function Bookings() {
             )}
 
             {paymentStep === 'processing' && (
-              <View className="py-12 items-center justify-center space-y-4">
+              <View className="py-12 items-center justify-center gap-y-4">
                 <ActivityIndicator size="large" color="#F97316" />
                 <Text className="font-bold text-lg text-foreground mt-4" style={{ fontFamily: 'System' }}>
                   {t('booking.processingOffering')}
@@ -273,7 +273,7 @@ export default function Bookings() {
             )}
 
             {paymentStep === 'success' && payingBooking && (
-              <View className="py-8 items-center justify-center space-y-4">
+              <View className="py-8 items-center justify-center gap-y-4">
                 <View className="w-16 h-16 bg-green-500/10 border border-green-500/20 rounded-full items-center justify-center mb-2">
                   <Check size={32} color="#22C55E" />
                 </View>
@@ -290,7 +290,7 @@ export default function Bookings() {
                   onPress={() => setShowPaymentModal(false)}
                   className="w-full mt-6 py-3.5 rounded-xl bg-primary active:bg-[#E05C10] items-center justify-center"
                 >
-                  <Text className="text-[#1A0A00] font-semibold text-sm">{t('common.close')}</Text>
+                  <Text className="text-primary-foreground font-semibold text-sm">{t('common.close')}</Text>
                 </Pressable>
               </View>
             )}
@@ -385,7 +385,7 @@ function BookingCard({
             <Text className="font-semibold text-lg text-foreground mb-1" style={{ fontFamily: 'System' }}>
               {t('poojaDb.' + poojaId + '.title')}
             </Text>
-            <Text className="text-sm text-muted-foreground mb-2" style={{ fontFamily: 'System' }}>
+            <Text className="text-sm text-muted-foreground mb-2" style={{ fontFamily: 'System' }} numberOfLines={1}>
               {t('templeDb.' + templeKey + '.name')}
             </Text>
             <View className="self-start px-2 py-1 bg-muted/50 rounded">
@@ -435,9 +435,9 @@ function BookingCard({
             </Text>
           </View>
           
-          <View className="flex-row justify-between mb-3 text-xs text-muted-foreground">
-            <Text style={{ fontFamily: 'System' }}>{t('booking.totalPrice')}: ₹{totalAmount}</Text>
-            <Text style={{ fontFamily: 'System' }}>{t('booking.paidAdvance')}: ₹{paidAmount}</Text>
+          <View className="flex-row justify-between mb-3">
+            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.totalPrice')}: ₹{totalAmount}</Text>
+            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.paidAdvance')}: ₹{paidAmount}</Text>
           </View>
 
           <Pressable 
@@ -454,10 +454,16 @@ function BookingCard({
 
       {/* Journey Timeline */}
       <View className="p-4">
-        <Text className="text-sm font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
+        <Text 
+          className="text-sm font-semibold mb-3" 
+          style={{ 
+            color: theme === 'dark' ? '#F5F5F0' : '#1C1917', 
+            fontFamily: 'System' 
+          }}
+        >
           {t('bookings.poojaJourney')}
         </Text>
-        <View className="space-y-3 mb-4">
+        <View className="gap-y-3 mb-4">
           {stages.slice(0, 5).map((stage, index) => {
             const Icon = stage.icon;
             const isCompleted = index < currentStage;
@@ -482,16 +488,27 @@ function BookingCard({
                 </View>
                 <View className="flex-1">
                   <Text
-                    className={`text-sm font-medium ${
-                      isCompleted || isCurrent ? 'text-foreground' : 'text-muted-foreground'
-                    }`}
-                    style={{ fontFamily: 'System' }}
+                    className="text-sm font-medium"
+                    style={{
+                      color: isCompleted || isCurrent
+                        ? (theme === 'dark' ? '#F5F5F0' : '#1C1917')
+                        : (theme === 'dark' ? '#78716C' : '#A8A29E'),
+                      fontFamily: 'System'
+                    }}
                   >
                     {t(stage.labelKey)}
                   </Text>
                 </View>
                 {isCompleted && (
-                  <Text className="text-xs text-muted-foreground">✓</Text>
+                  <Text 
+                    className="text-xs" 
+                    style={{ 
+                      color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+                      fontFamily: 'System' 
+                    }}
+                  >
+                    ✓
+                  </Text>
                 )}
               </View>
             );
@@ -500,7 +517,7 @@ function BookingCard({
         
         <Link href={`/journey/${id}`} asChild>
           <Pressable className="w-full mt-4 py-2.5 rounded-xl border-2 border-primary items-center justify-center active:bg-primary/5">
-            <Text className="text-primary font-medium text-sm">
+            <Text className="text-primary font-medium text-sm" style={{ fontFamily: 'System' }} numberOfLines={1}>
               {t('bookings.viewJourney')}
             </Text>
           </Pressable>

@@ -68,9 +68,9 @@ export default function LiveStreamScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#1A0A00] flex-col justify-between">
+    <View className="flex-1 bg-background flex-col justify-between">
       {/* Video Container (occupies majority of screen) */}
-      <View className="flex-1 relative bg-[#2D0A2E] m-2 rounded-3xl overflow-hidden border border-primary/20">
+      <View className="flex-1 relative bg-card m-2 rounded-3xl overflow-hidden border border-primary/20">
         <Image
           source={{ uri: streamInfo.videoUrl }}
           className="w-full h-full"
@@ -79,15 +79,15 @@ export default function LiveStreamScreen() {
 
         {/* Video Overlay Top Controls */}
         <View 
-          className="absolute top-0 left-0 right-0 flex-row items-center justify-between p-4"
+          className="absolute top-0 left-0 right-0 flex-row items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent pb-12"
           style={{ paddingTop: insets.top > 0 ? insets.top + 8 : 16 }}
         >
           {/* Back button */}
           <Pressable
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-[#1A0A00]/80 items-center justify-center border border-border/20 active:bg-[#1A0A00]/95"
+            className="w-10 h-10 rounded-full bg-black/40 items-center justify-center border border-white/10 active:bg-black/60"
           >
-            <ArrowLeft size={20} color="#F5F5F0" />
+            <ArrowLeft size={20} color="#FFFFFF" />
           </Pressable>
 
           {/* Title */}
@@ -95,7 +95,7 @@ export default function LiveStreamScreen() {
             <Text className="text-sm font-bold text-[#F5F5F0] text-center" style={{ fontFamily: 'System' }}>
               {streamInfo.title}
             </Text>
-            <Text className="text-[10px] text-[#78716C] text-center" style={{ fontFamily: 'System' }} numberOfLines={1}>
+            <Text className="text-[10px] text-white/60 text-center" style={{ fontFamily: 'System' }} numberOfLines={1}>
               {streamInfo.temple}
             </Text>
           </View>
@@ -111,7 +111,7 @@ export default function LiveStreamScreen() {
 
         {/* Video Overlay Bottom Caption (Devotee dedication info) */}
         <View className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent pt-12">
-          <Text className="text-center text-xs text-[#78716C] mb-1" style={{ fontFamily: 'System' }}>
+          <Text className="text-center text-xs text-white/60 mb-1" style={{ fontFamily: 'System' }}>
             {t('live.onBehalfOf')}
           </Text>
           <Text className="text-center text-sm font-bold text-primary" style={{ fontFamily: 'System' }}>
@@ -122,18 +122,18 @@ export default function LiveStreamScreen() {
 
       {/* Control Area & Instructions */}
       <View 
-        className="px-6 pb-6 pt-3 space-y-4"
+        className="px-6 pb-6 pt-3 gap-y-4"
         style={{ paddingBottom: insets.bottom > 0 ? insets.bottom + 8 : 24 }}
       >
         {/* Stream Metrics Info */}
         <View className="flex-row items-center justify-between text-xs mb-3">
           <View className="flex-row items-center gap-1.5">
             <View className="w-2 h-2 rounded-full bg-green-500" />
-            <Text className="text-[#78716C] text-xs" style={{ fontFamily: 'System' }}>720p HD • {t('live.smooth')}</Text>
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>720p HD • {t('live.smooth')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
-            <Eye size={14} color="#78716C" />
-            <Text className="text-[#78716C] text-xs" style={{ fontFamily: 'System' }}>
+            <Eye size={14} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
               {t('live.devoteesJoined').replace('{count}', streamInfo.viewerCount.toString())}
             </Text>
           </View>
@@ -143,7 +143,7 @@ export default function LiveStreamScreen() {
         <View className="flex-row items-center justify-center gap-6 mb-4">
           <Pressable 
             onPress={() => setIsMuted(!isMuted)}
-            className="w-12 h-12 rounded-full bg-[#2D0A2E] border border-border/40 items-center justify-center active:bg-muted/40"
+            className="w-12 h-12 rounded-full bg-card border border-border items-center justify-center active:bg-muted/40"
           >
             {isMuted ? (
               <VolumeX size={20} color="#F97316" />
@@ -152,15 +152,15 @@ export default function LiveStreamScreen() {
             )}
           </Pressable>
           <Pressable 
-            className="w-12 h-12 rounded-full bg-[#2D0A2E] border border-border/40 items-center justify-center active:bg-muted/40"
+            className="w-12 h-12 rounded-full bg-card border border-border items-center justify-center active:bg-muted/40"
           >
-            <Maximize2 size={20} color="#F5F5F0" />
+            <Maximize2 size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
           </Pressable>
         </View>
 
         {/* Brand/Devotional warning guidance */}
-        <View className="bg-card border border-border/20 rounded-2xl p-4 items-center">
-          <Text className="text-center text-xs text-muted-foreground leading-relaxed" style={{ fontFamily: 'System' }}>
+        <View className="bg-card border border-border rounded-2xl p-4 items-center">
+          <Text className="text-center text-xs leading-relaxed" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
             {t('live.guidance')}
           </Text>
         </View>

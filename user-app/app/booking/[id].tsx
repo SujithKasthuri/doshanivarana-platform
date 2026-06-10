@@ -105,6 +105,8 @@ export default function BookingFlow() {
   });
   const [showNakshatraModal, setShowNakshatraModal] = useState(false);
 
+  const placeholderColor = theme === 'dark' ? '#A8A29E' : '#78716C';
+
   // Map search param id to translated pooja info
   const poojaId = id || '1';
   const pooja = poojaCatalog.find(p => p.id.toString() === poojaId.toString()) || poojaCatalog[0];
@@ -198,7 +200,7 @@ export default function BookingFlow() {
               {step === 2 && t('booking.yourDetails')}
               {step === 3 && t('booking.reviewConfirm')}
             </Text>
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
               {t('booking.stepInfo').replace('{step}', step.toString())}
             </Text>
           </View>
@@ -223,7 +225,7 @@ export default function BookingFlow() {
             <Text className="font-semibold text-foreground mb-1" style={{ fontFamily: 'System' }}>
               {poojaData.title}
             </Text>
-            <Text className="text-sm text-muted-foreground mb-2" style={{ fontFamily: 'System' }}>
+            <Text className="text-sm mb-2" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
               {poojaData.temple} • {poojaData.deity}
             </Text>
             <Text className="text-primary font-semibold" style={{ fontFamily: 'System' }}>
@@ -234,7 +236,7 @@ export default function BookingFlow() {
 
         {/* Step Content */}
         {step === 1 && (
-          <View className="space-y-6">
+          <View className="gap-y-6">
             {/* Date Selection */}
             <View>
               <Text className="text-sm font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
@@ -257,7 +259,7 @@ export default function BookingFlow() {
                         {dateOption.label}
                       </Text>
                     </View>
-                    <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+                    <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                       {dateOption.day}
                     </Text>
                   </Pressable>
@@ -301,26 +303,26 @@ export default function BookingFlow() {
         )}
 
         {step === 2 && (
-          <View className="space-y-6">
+          <View className="gap-y-6">
             <View>
-              <Text className="text-sm font-semibold text-foreground mb-1" style={{ fontFamily: 'System' }}>
+              <Text className="text-sm font-semibold mb-1" style={{ fontFamily: 'System', color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}>
                 {t('booking.devoteeNames')}
               </Text>
-              <Text className="text-xs text-muted-foreground mb-3" style={{ fontFamily: 'System' }}>
+              <Text className="text-xs mb-3" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                 {t('booking.devoteeNamesDesc')}
               </Text>
               <TextInput
                 value={formData.devoteeNames}
                 onChangeText={(text) => setFormData({ ...formData, devoteeNames: text })}
                 placeholder={t('booking.devoteeNamesPlaceholder')}
-                placeholderTextColor="hsl(var(--muted-foreground))"
+                placeholderTextColor={placeholderColor}
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
-                style={{ fontFamily: 'System' }}
+                style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}
               />
             </View>
 
             <View className="mt-4">
-              <Text className="text-sm font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
+              <Text className="text-sm font-semibold mb-2" style={{ fontFamily: 'System', color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}>
                 {t('booking.gothram')}
               </Text>
               <TextInput
@@ -337,48 +339,48 @@ export default function BookingFlow() {
                   setFormData({ ...formData, gothram: canonicalGothram });
                 }}
                 placeholder={t('booking.gothramPlaceholder')}
-                placeholderTextColor="hsl(var(--muted-foreground))"
+                placeholderTextColor={placeholderColor}
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
-                style={{ fontFamily: 'System' }}
+                style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}
               />
             </View>
 
             <View className="mt-4">
-              <Text className="text-sm font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
+              <Text className="text-sm font-semibold mb-2" style={{ fontFamily: 'System', color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}>
                 {t('booking.nakshatra')} ({t('common.optional')})
               </Text>
               <Pressable
                 onPress={() => setShowNakshatraModal(true)}
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl flex-row items-center justify-between"
               >
-                <Text className={formData.nakshatra ? 'text-foreground' : 'text-muted-foreground'} style={{ fontFamily: 'System' }}>
+                <Text style={{ fontFamily: 'System', color: !formData.nakshatra ? (theme === 'dark' ? '#A8A29E' : '#78716C') : (theme === 'dark' ? '#F5F5F0' : '#1C1917') }}>
                   {formData.nakshatra ? translateNakshatra(formData.nakshatra, language) : t('booking.nakshatraPlaceholder')}
                 </Text>
-                <ChevronRight size={16} color="#78716C" />
+                <ChevronRight size={16} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
               </Pressable>
             </View>
 
             <View className="mt-4">
-              <Text className="text-sm font-semibold text-foreground mb-2" style={{ fontFamily: 'System' }}>
+              <Text className="text-sm font-semibold mb-2" style={{ fontFamily: 'System', color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}>
                 {t('booking.specialRequests')} ({t('common.optional')})
               </Text>
               <TextInput
                 value={formData.specialRequests}
                 onChangeText={(text) => setFormData({ ...formData, specialRequests: text })}
                 placeholder={t('booking.specialRequestsPlaceholder')}
-                placeholderTextColor="hsl(var(--muted-foreground))"
+                placeholderTextColor={placeholderColor}
                 multiline={true}
                 numberOfLines={4}
                 textAlignVertical="top"
                 className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground min-h-[100px]"
-                style={{ fontFamily: 'System' }}
+                style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}
               />
             </View>
           </View>
         )}
 
         {step === 3 && (
-          <View className="space-y-6">
+          <View className="gap-y-6">
             <View className="bg-card border border-border rounded-2xl overflow-hidden">
               <View className="p-4 border-b border-border">
                 <Text className="font-semibold text-foreground" style={{ fontFamily: 'System' }}>
@@ -396,17 +398,17 @@ export default function BookingFlow() {
               <Text className="font-semibold text-foreground mb-3" style={{ fontFamily: 'System' }}>
                 {t('booking.paymentSummary')}
               </Text>
-              <View className="space-y-2">
+              <View className="gap-y-2">
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.poojaAmount')}</Text>
+                  <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('booking.poojaAmount')}</Text>
                   <Text className="text-sm text-foreground" style={{ fontFamily: 'System' }}>{poojaData.price}</Text>
                 </View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.prasadDelivery')}</Text>
+                  <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('booking.prasadDelivery')}</Text>
                   <Text className="text-sm text-primary font-semibold" style={{ fontFamily: 'System' }}>{t('common.free')}</Text>
                 </View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>{t('booking.liveStream')}</Text>
+                  <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('booking.liveStream')}</Text>
                   <Text className="text-sm text-primary font-semibold" style={{ fontFamily: 'System' }}>{t('common.included')}</Text>
                 </View>
                 <View className="border-t border-border pt-3 mt-3">
@@ -440,9 +442,9 @@ export default function BookingFlow() {
         >
           <Text
             className={`font-semibold text-base ${
-              canContinue() ? 'text-[#1A0A00]' : 'text-muted-foreground'
+              canContinue() ? 'text-primary-foreground' : ''
             }`}
-            style={{ fontFamily: 'System' }}
+            style={{ fontFamily: 'System', color: !canContinue() ? (theme === 'dark' ? '#A8A29E' : '#78716C') : undefined }}
           >
             {step === 3 ? t('booking.proceedToPayment') : t('common.continue')}
           </Text>
@@ -484,9 +486,10 @@ export default function BookingFlow() {
 }
 
 function ReviewItem({ label, value }: { label: string; value: string }) {
+  const { theme } = useTheme();
   return (
     <View className="p-4 border-b border-border">
-      <Text className="text-xs text-muted-foreground mb-1" style={{ fontFamily: 'System' }}>
+      <Text className="text-xs mb-1" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
         {label}
       </Text>
       <Text className="font-medium text-foreground" style={{ fontFamily: 'System' }}>

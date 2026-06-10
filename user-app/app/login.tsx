@@ -3,10 +3,12 @@ import { View, Text, Pressable, TextInput, KeyboardAvoidingView, Platform, Scrol
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Phone, Lock } from 'lucide-react-native';
 import { useLanguage } from '../src/old_app/context/LanguageContext';
+import { useTheme } from '../src/old_app/context/ThemeContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const [step, setStep] = useState(1); // 1: Mobile Number, 2: OTP
   const [mobileNumber, setMobileNumber] = useState('');
   const [otp, setOtp] = useState('');
@@ -46,17 +48,19 @@ export default function LoginScreen() {
     }, 1000);
   };
 
+  const placeholderColor = theme === 'dark' ? '#A8A29E' : '#78716C';
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-[#1A0A00]"
+      className="flex-1 bg-background"
     >
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 48, paddingBottom: 24 }}>
         {/* Header */}
         <View className="flex-row items-center mb-8">
           <Pressable
             onPress={() => step === 2 ? setStep(1) : router.back()}
-            className="w-10 h-10 rounded-xl items-center justify-center bg-[#2D0A2E] border border-primary/20"
+            className="w-10 h-10 rounded-xl items-center justify-center bg-card border border-primary/20"
           >
             <ArrowLeft size={20} color="#F97316" />
           </Pressable>
@@ -67,41 +71,41 @@ export default function LoginScreen() {
           <Text className="text-3xl font-bold text-primary mb-2" style={{ fontFamily: 'System' }}>
             DOSHANIVARANA
           </Text>
-          <Text className="text-sm text-center text-[#78716C]" style={{ fontFamily: 'System' }}>
+          <Text className="text-sm text-center" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
             {t('login.brandSubtitle')}
           </Text>
         </View>
 
         {step === 1 ? (
           <View className="flex-1 justify-between">
-            <View className="space-y-6">
+            <View className="gap-y-6">
               <View className="mb-6">
-                <Text className="text-2xl font-bold mb-2 text-[#F5F5F0]" style={{ fontFamily: 'System' }}>
+                <Text className="text-2xl font-bold mb-2 text-foreground" style={{ fontFamily: 'System' }}>
                   {t('login.signInMobile')}
                 </Text>
-                <Text className="text-sm text-[#78716C]" style={{ fontFamily: 'System' }}>
+                <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                   {t('login.enterPhoneDesc')}
                 </Text>
               </View>
 
               {/* Mobile Input */}
-              <View className="bg-[#2D0A2E] border border-primary/20 rounded-xl flex-row items-center px-4 py-3 mb-4">
+              <View className="bg-card border border-primary/20 rounded-xl flex-row items-center px-4 py-3 mb-4">
                 <Phone size={20} color="#F97316" className="mr-3" />
-                <Text className="text-base text-[#F5F5F0] mr-2" style={{ fontFamily: 'System' }}>
+                <Text className="text-base text-foreground mr-2" style={{ fontFamily: 'System' }}>
                   +91
                 </Text>
                 <TextInput
                   keyboardType="phone-pad"
                   maxLength={10}
                   placeholder={t('login.enterPhonePlaceholder')}
-                  placeholderTextColor="#78716C"
+                  placeholderTextColor={placeholderColor}
                   value={mobileNumber}
                   onChangeText={(text) => {
                     setMobileNumber(text.replace(/[^0-9]/g, ''));
                     if (error) setError('');
                   }}
-                  className="flex-1 text-base text-[#F5F5F0]"
-                  style={{ fontFamily: 'System' }}
+                  className="flex-1 text-base text-foreground"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}
                 />
               </View>
 
@@ -124,9 +128,9 @@ export default function LoginScreen() {
             >
               <Text
                 className={`font-semibold text-base ${
-                  mobileNumber.length === 10 && !loading ? 'text-[#1A0A00]' : 'text-muted-foreground'
+                  mobileNumber.length === 10 && !loading ? 'text-primary-foreground' : ''
                 }`}
-                style={{ fontFamily: 'System' }}
+                style={{ fontFamily: 'System', color: mobileNumber.length === 10 && !loading ? undefined : (theme === 'dark' ? '#A8A29E' : '#78716C') }}
               >
                 {loading ? t('login.sendingOtp') : t('login.sendOtp')}
               </Text>
@@ -134,32 +138,32 @@ export default function LoginScreen() {
           </View>
         ) : (
           <View className="flex-1 justify-between">
-            <View className="space-y-6">
+            <View className="gap-y-6">
               <View className="mb-6">
-                <Text className="text-2xl font-bold mb-2 text-[#F5F5F0]" style={{ fontFamily: 'System' }}>
+                <Text className="text-2xl font-bold mb-2 text-foreground" style={{ fontFamily: 'System' }}>
                   {t('login.verifyOtp')}
                 </Text>
-                <Text className="text-sm text-[#78716C]" style={{ fontFamily: 'System' }}>
+                <Text className="text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                   {t('login.otpSentDesc').replace('{number}', mobileNumber)}
                 </Text>
               </View>
 
               {/* OTP Input */}
-              <View className="bg-[#2D0A2E] border border-primary/20 rounded-xl flex-row items-center px-4 py-3 mb-4">
+              <View className="bg-card border border-primary/20 rounded-xl flex-row items-center px-4 py-3 mb-4">
                 <Lock size={20} color="#F97316" className="mr-3" />
                 <TextInput
                   ref={otpInputRef}
                   keyboardType="number-pad"
                   maxLength={6}
                   placeholder={t('login.enterOtpPlaceholder')}
-                  placeholderTextColor="#78716C"
+                  placeholderTextColor={placeholderColor}
                   value={otp}
                   onChangeText={(text) => {
                     setOtp(text.replace(/[^0-9]/g, ''));
                     if (error) setError('');
                   }}
-                  className="flex-1 text-base text-[#F5F5F0] tracking-[4px]"
-                  style={{ fontFamily: 'System' }}
+                  className="flex-1 text-base text-foreground tracking-[4px]"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}
                 />
               </View>
 
@@ -194,9 +198,9 @@ export default function LoginScreen() {
             >
               <Text
                 className={`font-semibold text-base ${
-                  otp.length === 6 && !loading ? 'text-[#1A0A00]' : 'text-muted-foreground'
+                  otp.length === 6 && !loading ? 'text-primary-foreground' : ''
                 }`}
-                style={{ fontFamily: 'System' }}
+                style={{ fontFamily: 'System', color: otp.length === 6 && !loading ? undefined : (theme === 'dark' ? '#A8A29E' : '#78716C') }}
               >
                 {loading ? t('login.verifying') : t('login.verifyLogin')}
               </Text>

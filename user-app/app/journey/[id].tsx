@@ -210,7 +210,7 @@ export default function PoojaJourneyScreen() {
   const getIcon = (idx: number, isCompleted: boolean, isCurrent: boolean) => {
     const size = 18;
     const color = isCompleted
-      ? '#1A0A00'
+      ? (theme === 'dark' ? '#1A0A00' : '#F5F5F0')
       : isCurrent
       ? '#F97316'
       : '#78716C';
@@ -244,7 +244,13 @@ export default function PoojaJourneyScreen() {
             <Text className="text-xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
               {t('journey.title')}
             </Text>
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+            <Text 
+              className="text-xs" 
+              style={{ 
+                color: theme === 'dark' ? '#A8A29E' : '#78716C', 
+                fontFamily: 'System' 
+              }}
+            >
               {t('bookingConfirmation.bookingId')}: {displayId}
             </Text>
           </View>
@@ -254,23 +260,39 @@ export default function PoojaJourneyScreen() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 20, paddingBottom: 120 }} className="flex-1">
         {/* Devotee Details Summary Card */}
         <View className="bg-card border border-border rounded-2xl p-5 mb-8">
-          <Text className="font-bold text-primary text-xs uppercase tracking-wider mb-3">{t('journey.sankalpamDetails')}</Text>
-          <View className="space-y-2.5">
+          <Text className="font-bold text-primary text-xs uppercase tracking-wider mb-3" style={{ fontFamily: 'System' }}>{t('journey.sankalpamDetails')}</Text>
+          <View className="gap-y-2.5">
             <View className="flex-row justify-between mb-1.5">
-              <Text className="text-xs text-muted-foreground">{t('journey.poojaSeva')}</Text>
-              <Text className="text-xs font-semibold text-foreground">{devoteeInfo.poojaName}</Text>
+              <Text className="text-xs" style={{ color: theme === 'dark' ? '#A8A29E' : '#78716C', fontFamily: 'System' }}>
+                {t('journey.poojaSeva')}
+              </Text>
+              <Text className="text-xs font-semibold" style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}>
+                {devoteeInfo.poojaName}
+              </Text>
             </View>
             <View className="flex-row justify-between mb-1.5">
-              <Text className="text-xs text-muted-foreground">{t('journey.templeLocation')}</Text>
-              <Text className="text-xs font-semibold text-foreground text-right max-w-[180px]">{devoteeInfo.temple}</Text>
+              <Text className="text-xs" style={{ color: theme === 'dark' ? '#A8A29E' : '#78716C', fontFamily: 'System' }}>
+                {t('journey.templeLocation')}
+              </Text>
+              <Text className="text-xs font-semibold text-right max-w-[180px]" style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}>
+                {devoteeInfo.temple}
+              </Text>
             </View>
             <View className="flex-row justify-between mb-1.5">
-              <Text className="text-xs text-muted-foreground">{t('journey.devoteeName')}</Text>
-              <Text className="text-xs font-semibold text-foreground">{devoteeInfo.name}</Text>
+              <Text className="text-xs" style={{ color: theme === 'dark' ? '#A8A29E' : '#78716C', fontFamily: 'System' }}>
+                {t('journey.devoteeName')}
+              </Text>
+              <Text className="text-xs font-semibold" style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}>
+                {devoteeInfo.name}
+              </Text>
             </View>
             <View className="flex-row justify-between mb-1.5">
-              <Text className="text-xs text-muted-foreground">{t('journey.gothramNakshatra')}</Text>
-              <Text className="text-xs font-semibold text-foreground">{devoteeInfo.gothram} / {devoteeInfo.nakshatra}</Text>
+              <Text className="text-xs" style={{ color: theme === 'dark' ? '#A8A29E' : '#78716C', fontFamily: 'System' }}>
+                {t('journey.gothramNakshatra')}
+              </Text>
+              <Text className="text-xs font-semibold" style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917', fontFamily: 'System' }}>
+                {devoteeInfo.gothram} / {devoteeInfo.nakshatra}
+              </Text>
             </View>
           </View>
         </View>
@@ -308,10 +330,16 @@ export default function PoojaJourneyScreen() {
                 <View className="flex-1 pt-1">
                   <View className="flex-row items-center justify-between mb-1">
                     <Text 
-                      className={`font-bold text-sm ${
-                        isCompleted || isCurrent ? 'text-foreground font-semibold' : 'text-muted-foreground'
-                      } ${isCurrent ? 'text-primary' : ''}`}
-                      style={{ fontFamily: 'System' }}
+                      className="font-bold text-sm"
+                      style={{ 
+                        color: isCurrent 
+                          ? '#F97316' 
+                          : isCompleted 
+                          ? (theme === 'dark' ? '#F5F5F0' : '#1C1917') 
+                          : (theme === 'dark' ? '#A8A29E' : '#78716C'),
+                        fontFamily: 'System',
+                        fontWeight: isCompleted || isCurrent ? '600' : 'normal'
+                      }}
                     >
                       {t(stage.nameKey)}
                     </Text>
@@ -319,11 +347,27 @@ export default function PoojaJourneyScreen() {
                       <Text className="text-xs text-primary font-bold">✓</Text>
                     )}
                   </View>
-                  <Text className="text-xs text-muted-foreground leading-relaxed mb-2" style={{ fontFamily: 'System' }}>
+                  <Text 
+                    className="text-xs leading-relaxed mb-2" 
+                    style={{ 
+                      color: isCompleted || isCurrent
+                        ? (theme === 'dark' ? '#F5F5F0' : '#44403C')
+                        : (theme === 'dark' ? '#A8A29E' : '#78716C'),
+                      fontFamily: 'System' 
+                    }}
+                  >
                     {t(stage.descKey)}
                   </Text>
                   {stage.timestamp && (
-                    <Text className="text-[10px] text-muted-foreground/60" style={{ fontFamily: 'System' }}>
+                    <Text 
+                      className="text-[10px]" 
+                      style={{ 
+                        color: isCompleted || isCurrent 
+                          ? (theme === 'dark' ? '#A8A29E' : '#78716C') 
+                          : (theme === 'dark' ? '#57524E' : '#CBD5E1'),
+                        fontFamily: 'System' 
+                      }}
+                    >
                       {stage.timestamp}
                     </Text>
                   )}
@@ -338,7 +382,7 @@ export default function PoojaJourneyScreen() {
                       }}
                       className="mt-2.5 px-4 py-2 bg-primary/10 border border-primary/30 rounded-lg self-start active:bg-primary/20"
                     >
-                      <Text className="text-primary font-semibold text-xs">{t(stage.ctaKey)}</Text>
+                      <Text className="text-primary font-semibold text-xs" style={{ fontFamily: 'System' }} numberOfLines={1}>{t(stage.ctaKey)}</Text>
                     </Pressable>
                   )}
                 </View>
@@ -354,13 +398,13 @@ export default function PoojaJourneyScreen() {
           onPress={() => router.push(`/live/${displayId.replace('DS', '')}?poojaId=${pooja.id}` as any)}
           className="flex-1 py-3.5 rounded-xl bg-primary items-center justify-center active:bg-[#E05C10]"
         >
-          <Text className="text-[#1A0A00] font-semibold text-sm">{t('journey.watchBroadcast')}</Text>
+          <Text className="text-primary-foreground font-semibold text-sm" style={{ fontFamily: 'System' }} numberOfLines={1}>{t('journey.watchBroadcast')}</Text>
         </Pressable>
         <Pressable 
           disabled
           className="flex-1 py-3.5 rounded-xl border border-border bg-card items-center justify-center opacity-50"
         >
-          <Text className="text-muted-foreground font-semibold text-sm">{t('journey.trackPrasad')}</Text>
+          <Text className="font-semibold text-sm" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }} numberOfLines={1}>{t('journey.trackPrasad')}</Text>
         </Pressable>
       </View>
     </View>
