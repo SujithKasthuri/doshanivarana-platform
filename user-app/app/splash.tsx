@@ -4,10 +4,12 @@ import { useRouter } from 'expo-router';
 import { View, Text } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useLanguage } from '../src/old_app/context/LanguageContext';
+import { useTheme } from '../src/old_app/context/ThemeContext';
 
 export default function SplashScreen() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Navigate to welcome screen after 2.5 seconds
@@ -19,7 +21,7 @@ export default function SplashScreen() {
   }, [router]);
 
   return (
-    <View className="flex-1 flex-col items-center justify-center bg-[#1A0A00] px-6">
+    <View className="flex-1 flex-col items-center justify-center bg-background px-6">
       {/* DOSHANIVARANA Wordmark */}
       <Animated.Text
         entering={FadeIn.duration(2500)}
@@ -40,7 +42,7 @@ export default function SplashScreen() {
         className="text-sm italic"
         style={{ 
           fontFamily: "System",
-          color: '#A8A29E',
+          color: theme === 'dark' ? '#A8A29E' : '#78716C',
         }}
       >
         {t('welcome.tagline')}

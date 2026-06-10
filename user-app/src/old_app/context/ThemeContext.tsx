@@ -16,17 +16,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useSystemColorScheme();
   const { colorScheme, setColorScheme } = useWindColorScheme();
   
-  // Initialize theme based on current system scheme or nativewind colorScheme, default to 'dark'
-  const [theme, setThemeState] = useState<Theme>(
-    () => (colorScheme as Theme) || (systemScheme as Theme) || 'dark'
-  );
+  // Initialize theme, default to 'light' for demo preference
+  const [theme, setThemeState] = useState<Theme>('light');
 
-  // Sync with React Native system scheme changes (e.g. system dark mode changes)
+  // Sync with React Native system scheme changes disabled for demo preference
+  /*
   useEffect(() => {
     if (systemScheme) {
       setThemeState(systemScheme as Theme);
     }
   }, [systemScheme]);
+  */
 
   // Sync React theme state to NativeWind
   useEffect(() => {
