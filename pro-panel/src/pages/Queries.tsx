@@ -12,9 +12,11 @@ export function Queries() {
 
   const activeQuery = queries.find(q => q.id === selectedQueryId) || queries[0];
 
+  const assignedTemple = 'Sri Venkateswara Temple';
+
   const fetchQueries = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/queries');
+      const res = await fetch(`http://localhost:3001/api/queries?temple=${encodeURIComponent(assignedTemple)}`);
       if (res.ok) {
         const data = await res.json();
         setQueries(data);

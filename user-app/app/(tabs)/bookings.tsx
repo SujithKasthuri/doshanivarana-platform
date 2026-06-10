@@ -139,6 +139,20 @@ export default function Bookings() {
           deliveryStatus: 'Delivered',
           streamStatus: 'Ended',
           recordingStatus: 'Available'
+        },
+        {
+          id: 'BK-2001',
+          devoteeName: 'Suresh Raina',
+          mobile: '+91 98765 43216',
+          poojaName: 'Ganapathi Homam',
+          temple: 'Kashi Vishwanath Temple',
+          dateTime: '15 Jun 2026, 09:00 AM',
+          paymentStatus: 'Confirmed',
+          amount: '₹2,500',
+          pujari: 'Venkat Sastry',
+          deliveryStatus: 'Booked',
+          streamStatus: 'Not Started',
+          recordingStatus: 'Not Available'
         }
       ];
       safeStorage.setItem('doshanivarana_bookings', JSON.stringify(initialBookings));

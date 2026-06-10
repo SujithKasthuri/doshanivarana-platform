@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Send, AlertCircle, MessageSquare, Check, User } from 'lucide-react-native';
+import { ArrowLeft, Send, AlertCircle, MessageSquare, Check, User, ChevronRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
@@ -29,6 +29,7 @@ interface ChatMessage {
 interface DevoteeQuery {
   id: string;
   bookingId: string;
+  temple: string;
   devoteeName: string;
   timeAgo: string;
   subject: string;
@@ -43,6 +44,10 @@ export default function SupportChatScreen() {
   const { theme } = useTheme();
   const { t, language } = useLanguage();
   const { bookingId } = useLocalSearchParams();
+
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
+    bookingId ? bookingId.toString() : null
+  );
 
   const [loading, setLoading] = useState(true);
   const [activeQuery, setActiveQuery] = useState<DevoteeQuery | null>(null);
@@ -60,14 +65,23 @@ export default function SupportChatScreen() {
   const bookingsData = safeStorage.getItem('doshanivarana_bookings');
   const bookings = bookingsData ? JSON.parse(bookingsData) : [];
   const cleanMobile = userMobile.replace(/[^0-9]/g, '').slice(-10);
-  const userBooking = bookings.find((b: any) => b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile);
+  
+  // Filter bookings belonging to this devotee
+  const userBookings = bookings.filter((b: any) => 
+    b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile
+  );
+  
+  const userBooking = userBookings[0];
   const devoteeName = userBooking ? userBooking.devoteeName : 'Suresh Raina';
 
   // Fetch or locate the query thread
   const fetchThread = async (silent = false) => {
     try {
-      const targetBooking = bookingId ? bookingId.toString() : 'BK-General';
-      const res = await fetch(`${apiBaseUrl}/api/queries?devoteeName=${encodeURIComponent(devoteeName)}&bookingId=${targetBooking}`);
+      const targetBooking = selectedBookingId || 'BK-General';
+      const activeBooking = userBookings.find((b: any) => b.id === targetBooking);
+      const resolvedTemple = activeBooking ? activeBooking.temple : 'General Support';
+
+      const res = await fetch(`${apiBaseUrl}/api/queries?devoteeName=${encodeURIComponent(devoteeName)}&bookingId=${targetBooking}&temple=${encodeURIComponent(resolvedTemple)}`);
       
       if (res.ok) {
         const list: DevoteeQuery[] = await res.json();
@@ -75,7 +89,7 @@ export default function SupportChatScreen() {
           // If a thread exists for this booking / user, set it as the active thread
           setActiveQuery(list[0]);
           setErrorMsg(null);
-        } else if (!activeQuery) {
+        } else {
           // No thread exists yet for this specific booking
           setActiveQuery(null);
         }
@@ -89,12 +103,19 @@ export default function SupportChatScreen() {
   };
 
   useEffect(() => {
+    if (selectedBookingId === null) {
+      setLoading(false);
+      setActiveQuery(null);
+      return;
+    }
+
+    setLoading(true);
     fetchThread();
     const interval = setInterval(() => {
       fetchThread(true);
     }, 3000);
     return () => clearInterval(interval);
-  }, [bookingId]);
+  }, [selectedBookingId]);
 
   // Scroll to bottom on thread updates
   useEffect(() => {
@@ -111,12 +132,16 @@ export default function SupportChatScreen() {
     setLoading(true);
 
     try {
-      const targetBooking = bookingId ? bookingId.toString() : 'BK-General';
+      const targetBooking = selectedBookingId || 'BK-General';
+      const activeBooking = userBookings.find((b: any) => b.id === targetBooking);
+      const resolvedTemple = activeBooking ? activeBooking.temple : 'General Support';
+
       const res = await fetch(`${apiBaseUrl}/api/queries`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: targetBooking,
+          temple: resolvedTemple,
           devoteeName: devoteeName,
           subject: newSubject.trim(),
           text: inputText.trim(),
@@ -186,7 +211,13 @@ export default function SupportChatScreen() {
         style={{ paddingTop: insets.top > 0 ? insets.top + 8 : 16 }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            if (!bookingId && selectedBookingId !== null) {
+              setSelectedBookingId(null);
+            } else {
+              router.back();
+            }
+          }}
           className="w-10 h-10 rounded-xl items-center justify-center bg-card/40 border border-border/40 active:bg-muted/40 mr-4"
         >
           <ArrowLeft size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
@@ -196,9 +227,17 @@ export default function SupportChatScreen() {
             {t('help.contactSupport')}
           </Text>
           <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
-            {bookingId ? `Booking ID: ${bookingId}` : 'General Inquiry'}
+            {selectedBookingId && selectedBookingId !== 'BK-General' ? `Booking ID: ${selectedBookingId}` : 'General Inquiry'}
           </Text>
         </View>
+        {!bookingId && selectedBookingId !== null && (
+          <Pressable
+            onPress={() => setSelectedBookingId(null)}
+            className="px-3 py-1.5 rounded-xl border border-border bg-card active:bg-muted/40 mr-2"
+          >
+            <Text className="text-xs font-semibold text-foreground">Change Topic</Text>
+          </Pressable>
+        )}
         {activeQuery && (
           <View className={`px-2.5 py-1 rounded-full ${
             activeQuery.status === 'Closed' ? 'bg-muted' : 'bg-green-500/10'
@@ -229,6 +268,62 @@ export default function SupportChatScreen() {
               <Text className="text-primary-foreground font-semibold">Retry Connection</Text>
             </Pressable>
           </View>
+        ) : selectedBookingId === null ? (
+          /* BOOKING SELECTION LIST VIEW */
+          <ScrollView contentContainerStyle={{ padding: 24 }} className="flex-1 space-y-4">
+            <View className="items-center py-4 mb-2">
+              <View className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center mb-3">
+                <MessageSquare size={30} color="#F97316" />
+              </View>
+              <Text className="font-bold text-xl text-foreground text-center" style={{ fontFamily: 'System' }}>
+                Contact Support
+              </Text>
+              <Text className="text-sm text-muted-foreground text-center mt-1 px-4" style={{ fontFamily: 'System' }}>
+                Select a booking to connect directly with the assigned Temple representative, or start a general inquiry.
+              </Text>
+            </View>
+
+            <View className="space-y-3">
+              {userBookings.map((b: any) => (
+                <Pressable
+                  key={b.id}
+                  onPress={() => setSelectedBookingId(b.id)}
+                  className="bg-card border border-border rounded-xl p-4 flex-row justify-between items-center active:bg-muted/45 mb-3"
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="font-bold text-base text-foreground mb-1" style={{ fontFamily: 'System' }}>
+                      {b.poojaName}
+                    </Text>
+                    <Text className="text-xs text-muted-foreground mb-2" style={{ fontFamily: 'System' }}>
+                      {b.temple}
+                    </Text>
+                    <View className="flex-row items-center gap-2">
+                      <View className="bg-muted px-2 py-0.5 rounded">
+                        <Text className="text-[10px] text-muted-foreground font-bold">{b.id}</Text>
+                      </View>
+                      <Text className="text-[11px] text-muted-foreground font-medium">{b.dateTime}</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={18} color="#F97316" />
+                </Pressable>
+              ))}
+
+              <Pressable
+                onPress={() => setSelectedBookingId('BK-General')}
+                className="bg-card border border-dashed border-primary/40 rounded-xl p-4 flex-row justify-between items-center active:bg-primary/5 mt-2"
+              >
+                <View className="flex-1">
+                  <Text className="font-bold text-base text-primary mb-1" style={{ fontFamily: 'System' }}>
+                    General Inquiry
+                  </Text>
+                  <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+                    Not related to a specific Pooja booking
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#F97316" />
+              </Pressable>
+            </View>
+          </ScrollView>
         ) : !activeQuery ? (
           /* NO THREAD YET - START A NEW QUERY FORM */
           <ScrollView contentContainerStyle={{ padding: 24 }} className="flex-1 space-y-6">
@@ -254,7 +349,7 @@ export default function SupportChatScreen() {
                   onChangeText={setNewSubject}
                   placeholder="e.g. Schedule delay, Rescheduling, Prasad package info"
                   placeholderTextColor="hsl(var(--muted-foreground))"
-                  className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
+                  className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground font-semibold"
                   style={{ fontFamily: 'System' }}
                 />
               </View>
@@ -271,7 +366,7 @@ export default function SupportChatScreen() {
                   multiline
                   numberOfLines={5}
                   textAlignVertical="top"
-                  className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground min-h-[120px]"
+                  className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground min-h-[120px] font-semibold"
                   style={{ fontFamily: 'System' }}
                 />
               </View>
@@ -307,6 +402,11 @@ export default function SupportChatScreen() {
                 <Text className="text-base font-bold text-foreground text-center" style={{ fontFamily: 'System' }}>
                   {activeQuery.subject}
                 </Text>
+                {activeQuery.temple && (
+                  <Text className="text-xs text-muted-foreground/75 mt-1 font-semibold">
+                    Temple: {activeQuery.temple}
+                  </Text>
+                )}
               </View>
 
               {/* Chat Thread Bubbles */}
@@ -334,7 +434,7 @@ export default function SupportChatScreen() {
                         isDevotee 
                           ? 'bg-primary text-primary-foreground rounded-tr-none' 
                           : 'bg-card border border-border text-foreground rounded-tl-none'
-                      }`}>
+                       }`}>
                         <Text 
                           className={`text-sm leading-relaxed font-semibold ${
                             isDevotee ? 'text-[#1A0A00]' : 'text-foreground'
@@ -366,7 +466,7 @@ export default function SupportChatScreen() {
                   onChangeText={setInputText}
                   placeholder="Type message..."
                   placeholderTextColor="hsl(var(--muted-foreground))"
-                  className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                  className="flex-1 bg-background border border-border rounded-xl px-4 py-3 text-foreground font-semibold"
                   style={{ fontFamily: 'System' }}
                   maxLength={500}
                 />

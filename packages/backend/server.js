@@ -131,14 +131,29 @@ const readQueries = () => {
   try {
     if (fs.existsSync(DB_PATH)) {
       const rawData = fs.readFileSync(DB_PATH, 'utf8');
-      return JSON.parse(rawData);
+      const parsed = JSON.parse(rawData);
+      let updated = false;
+      parsed.forEach(q => {
+        if (!q.temple) {
+          q.temple = 'Sri Venkateswara Temple';
+          updated = true;
+        }
+      });
+      if (updated) {
+        writeQueries(parsed);
+      }
+      return parsed;
     }
   } catch (e) {
     console.error('Error reading queries database, returning seeded data:', e);
   }
   // Seeding initial database
-  writeQueries(defaultQueries);
-  return defaultQueries;
+  const seeded = defaultQueries.map(q => ({
+    ...q,
+    temple: q.temple || 'Sri Venkateswara Temple'
+  }));
+  writeQueries(seeded);
+  return seeded;
 };
 
 // Write to JSON DB
@@ -155,7 +170,7 @@ const writeQueries = (queries) => {
 // 1. Get all queries
 app.get('/api/queries', (req, res) => {
   const queries = readQueries();
-  const { devoteeName, bookingId } = req.query;
+  const { devoteeName, bookingId, temple } = req.query;
 
   let filtered = queries;
   if (devoteeName) {
@@ -163,6 +178,9 @@ app.get('/api/queries', (req, res) => {
   }
   if (bookingId) {
     filtered = filtered.filter(q => q.bookingId === bookingId);
+  }
+  if (temple) {
+    filtered = filtered.filter(q => q.temple && q.temple.toLowerCase() === temple.toLowerCase());
   }
   res.json(filtered);
 });
@@ -179,7 +197,7 @@ app.get('/api/queries/:id', (req, res) => {
 
 // 3. Create a new query (devotee starts a query)
 app.post('/api/queries', (req, res) => {
-  const { bookingId, devoteeName, subject, text, avatarText } = req.body;
+  const { bookingId, devoteeName, subject, text, avatarText, temple } = req.body;
   if (!devoteeName || !subject || !text) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -193,6 +211,7 @@ app.post('/api/queries', (req, res) => {
   const newQuery = {
     id: queryId,
     bookingId: bookingId || 'BK-General',
+    temple: temple || 'General Support',
     devoteeName,
     timeAgo: 'Just now',
     subject,
