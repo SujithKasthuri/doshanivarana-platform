@@ -5,9 +5,11 @@ import { Home, Flame, Calendar, Building2, User } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useLanguage } from "../../src/old_app/context/LanguageContext";
+import { useTheme } from "../../src/old_app/context/ThemeContext";
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   const getIcon = (name: string, color: string) => {
     const size = 20;
@@ -52,7 +54,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         styles.tabBarContainer, 
         { 
           height: 68 + insets.bottom, 
-          paddingBottom: insets.bottom 
+          paddingBottom: insets.bottom,
+          backgroundColor: theme === 'dark' ? '#2D0A2E' : '#FFFFFF',
+          borderTopWidth: theme === 'dark' ? 0 : 1,
+          borderTopColor: theme === 'dark' ? 'transparent' : '#E7E5E4',
         }
       ]}
     >

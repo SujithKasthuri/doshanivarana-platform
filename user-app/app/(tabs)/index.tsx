@@ -5,6 +5,7 @@ import { Link } from 'expo-router';
 import { User, Bell, X, Languages, Check } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
+import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { safeStorage } from '../../src/old_app/lib/storage';
 import { firestore } from '../../src/lib/firebase';
 import { PoojaCard } from '../../components/PoojaCard';
@@ -14,6 +15,7 @@ import { CategoryCard } from '../../components/CategoryCard';
 export default function Home() {
   const insets = useSafeAreaInsets();
   const { language, setLanguage, t } = useLanguage();
+  const { theme } = useTheme();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -92,7 +94,7 @@ export default function Home() {
             className="w-10 h-10 rounded-xl flex items-center justify-center active:bg-muted/40"
             accessibilityLabel="Change Language"
           >
-            <Languages size={20} color="#F5F5F0" />
+            <Languages size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
           </Pressable>
  
           {/* Notification Button */}
@@ -101,7 +103,7 @@ export default function Home() {
             className="w-10 h-10 rounded-xl flex items-center justify-center relative active:bg-muted/40"
             accessibilityLabel="Notifications"
           >
-            <Bell size={20} color="#F5F5F0" />
+            <Bell size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
             {unreadCount > 0 && (
               <View className="absolute top-1 right-1 w-4 h-4 bg-red-600 rounded-full items-center justify-center border border-background">
                 <Text className="text-[10px] text-white font-bold">{unreadCount}</Text>
@@ -118,13 +120,13 @@ export default function Home() {
             <View className="flex-row items-center justify-between border-b border-border pb-4 mb-4">
               <Text className="font-semibold text-lg text-foreground">{t('home.notifications')}</Text>
               <Pressable onPress={() => setShowNotifications(false)}>
-                <X size={24} color="#F5F5F0" />
+                <X size={24} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
               </Pressable>
             </View>
             <ScrollView>
               {notifications.length === 0 ? (
                 <View className="p-8 items-center justify-center">
-                  <Bell size={48} color="#78716C" className="opacity-30 mb-2" />
+                  <Bell size={48} color={theme === 'dark' ? '#A8A29E' : '#78716C'} className="opacity-30 mb-2" />
                   <Text className="text-sm text-muted-foreground">{t('home.noNotifications')}</Text>
                 </View>
               ) : (
@@ -136,7 +138,7 @@ export default function Home() {
                       <Text className="text-xs text-muted-foreground">{new Date(n.createdAt?.toDate() || Date.now()).toLocaleTimeString()}</Text>
                     </Pressable>
                     <Pressable onPress={() => clearNotification(n.id)} className="p-1">
-                      <X size={16} color="#78716C" />
+                      <X size={16} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
                     </Pressable>
                   </View>
                 ))
@@ -164,10 +166,10 @@ export default function Home() {
             <View className="flex-row items-center justify-between border-b border-border pb-4 mb-4">
               <Text className="font-semibold text-lg text-foreground">Select Language / భాష / भाषा / ભાષા</Text>
               <Pressable onPress={() => setShowLanguageModal(false)} className="p-1">
-                <X size={24} color="#F5F5F0" />
+                <X size={24} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
               </Pressable>
             </View>
-            <View className="space-y-3 text-foreground">
+            <View className="gap-y-3 text-foreground">
               {[
                 { code: 'en', name: 'English', nativeName: 'English' },
                 { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
@@ -218,17 +220,17 @@ export default function Home() {
 
         {/* Live Pooja Countdown Card */}
         <Link href="/pooja/1" asChild>
-          <Pressable className="rounded-2xl p-5 border-l-4 border-primary mb-8 relative overflow-hidden" style={{ backgroundColor: '#2D0A2E' }}>
+          <Pressable className="rounded-2xl p-5 border-l-4 border-primary mb-8 bg-card border border-border/50 relative overflow-hidden">
             <View className="absolute top-3 right-3">
               <View className="px-3 py-1 rounded-full bg-red-600">
                 <Text className="text-white text-[10px] font-bold">{t('home.upcoming')}</Text>
               </View>
             </View>
             
-            <Text className="text-base font-semibold mb-1 text-[#F5F5F0]" style={{ fontFamily: 'System' }}>
+            <Text className="text-base font-semibold mb-1 text-foreground" style={{ fontFamily: 'System' }}>
               {t('home.nextLivePooja')}
             </Text>
-            <Text className="text-xl font-bold mb-3 text-[#F5F5F0]" style={{ fontFamily: 'System' }}>
+            <Text className="text-xl font-bold mb-3 text-foreground" style={{ fontFamily: 'System' }}>
               {t('home.nextLivePoojaName')}
             </Text>
             

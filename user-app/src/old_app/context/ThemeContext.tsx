@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useColorScheme as useWindColorScheme } from 'nativewind';
+import { useColorScheme as useSystemColorScheme } from 'react-native';
 
 type Theme = 'light' | 'dark';
 
@@ -11,12 +13,27 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark');
+  const systemScheme = useSystemColorScheme();
+  const { colorScheme, setColorScheme } = useWindColorScheme();
+  
+  // Initialize theme, default to 'light' for demo preference
+  const [theme, setThemeState] = useState<Theme>('light');
 
+  // Sync with React Native system scheme changes disabled for demo preference
+  /*
   useEffect(() => {
-    // In React Native, we can use Appearance module or Async Storage
-    // For now, we will just keep it simple in state
-  }, [theme]);
+    if (systemScheme) {
+      setThemeState(systemScheme as Theme);
+    }
+  }, [systemScheme]);
+  */
+
+  // Sync React theme state to NativeWind
+  useEffect(() => {
+    if (colorScheme !== theme) {
+      setColorScheme(theme);
+    }
+  }, [theme, colorScheme, setColorScheme]);
 
   const toggleTheme = () => {
     setThemeState(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
@@ -40,5 +57,7 @@ export function useTheme() {
   }
   return context;
 }
+
+
 
 

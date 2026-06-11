@@ -170,7 +170,7 @@ export default function HinduCalendarScreen() {
         >
           <ArrowLeft size={20} color={theme === 'dark' ? '#F5F5F0' : '#1C1917'} />
         </Pressable>
-        <Text className="text-xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
+        <Text className="text-2xl font-bold text-foreground" style={{ fontFamily: 'System' }}>
           {t('calendar.title')}
         </Text>
       </View>
@@ -194,19 +194,19 @@ export default function HinduCalendarScreen() {
         <View className="flex-row flex-wrap gap-x-4 gap-y-2 mb-6 justify-center">
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-primary" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendFestival')}</Text>
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('calendar.legendFestival')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendEkadashi')}</Text>
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('calendar.legendEkadashi')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-accent" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendAmavasya')}</Text>
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('calendar.legendAmavasya')}</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
             <View className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-            <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>{t('calendar.legendPournami')}</Text>
+            <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>{t('calendar.legendPournami')}</Text>
           </View>
         </View>
 
@@ -215,7 +215,7 @@ export default function HinduCalendarScreen() {
           {/* Weekday Headers */}
           <View className="flex-row justify-between mb-4 px-1">
             {[0, 1, 2, 3, 4, 5, 6].map((idx) => (
-              <Text key={idx} className="w-[12%] text-center text-xs font-semibold text-muted-foreground" style={{ fontFamily: 'System' }}>
+              <Text key={idx} className="w-[12%] text-center text-xs font-semibold" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                 {t(`calendar.weekday${idx}`)}
               </Text>
             ))}
@@ -247,21 +247,22 @@ export default function HinduCalendarScreen() {
                   disabled={!isCurrentMonth}
                 >
                   <Text
-                    className={`text-sm font-semibold ${
-                      isSelected
-                        ? 'text-[#1A0A00]'
+                    className="text-sm font-semibold"
+                    style={{ 
+                      fontFamily: 'System', 
+                      color: isSelected
+                        ? (theme === 'dark' ? '#1A0A00' : '#F5F5F0')
                         : isCurrentMonth
-                        ? 'text-foreground'
-                        : 'text-muted-foreground/30'
-                    }`}
-                    style={{ fontFamily: 'System' }}
+                        ? (theme === 'dark' ? '#F5F5F0' : '#1C1917')
+                        : (theme === 'dark' ? '#57524E' : '#CBD5E1')
+                    }}
                   >
                     {day.dayNum}
                   </Text>
                   {day.type && isCurrentMonth && (
                     <View 
                       className={`w-1.5 h-1.5 rounded-full absolute bottom-1 ${
-                        isSelected ? 'bg-[#1A0A00]' : dotColorClass
+                        isSelected ? 'bg-primary-foreground' : dotColorClass
                       }`} 
                     />
                   )}
@@ -276,7 +277,7 @@ export default function HinduCalendarScreen() {
           <Text className="text-xl font-bold text-foreground mb-2" style={{ fontFamily: 'System' }}>
             {details.title}
           </Text>
-          <Text className="text-sm text-muted-foreground leading-relaxed mb-6" style={{ fontFamily: 'System' }}>
+          <Text className="text-sm leading-relaxed mb-6" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#44403C' }}>
             {details.significance}
           </Text>
 
@@ -285,7 +286,7 @@ export default function HinduCalendarScreen() {
           </Text>
 
           {/* Recommended Pooja Cards */}
-          <View className="space-y-4">
+          <View className="gap-y-4">
             {details.poojas.map((pooja) => (
               <View key={pooja.id} className="bg-background border border-border/30 rounded-2xl overflow-hidden flex-row">
                 <Image 
@@ -299,8 +300,8 @@ export default function HinduCalendarScreen() {
                       {t('poojaDb.' + pooja.id + '.title')}
                     </Text>
                     <View className="flex-row items-center gap-1">
-                      <MapPin size={12} color="#78716C" />
-                      <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
+                      <MapPin size={12} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
+                      <Text className="text-xs" style={{ fontFamily: 'System', color: theme === 'dark' ? '#A8A29E' : '#78716C' }}>
                         {t('templeDb.' + pooja.templeKey + '.name')}
                       </Text>
                     </View>
@@ -311,7 +312,7 @@ export default function HinduCalendarScreen() {
                     </Text>
                     <Link href={`/pooja/${pooja.id}` as any} asChild>
                       <Pressable className="px-3 py-1.5 rounded-lg bg-primary active:bg-[#E05C10]">
-                        <Text className="text-[#1A0A00] font-semibold text-[10px]" style={{ fontFamily: 'System' }}>
+                        <Text className="text-primary-foreground font-semibold text-[10px]" style={{ fontFamily: 'System' }}>
                           {t('calendar.offerSeva')}
                         </Text>
                       </Pressable>

@@ -2,9 +2,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Modal, Switch } from 'react-native';
 import { useRouter, Link } from 'expo-router';
-import { ChevronRight, User, Star, Calendar, Settings, Bell, HelpCircle, LogOut, Sparkles, Edit2, X, MapPin, Phone, Mail, Languages, Check, MessageSquare } from 'lucide-react-native';
+import { ChevronRight, User, Star, Calendar, Settings, Bell, HelpCircle, LogOut, Sparkles, Edit2, X, MapPin, Phone, Mail, Languages, Check, Moon, MessageSquare } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
+import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { safeStorage } from '../../src/old_app/lib/storage';
 
 const deitiesList = [
@@ -28,14 +29,14 @@ const termTranslations: Record<string, Record<string, string>> = {
   ardra: { en: 'Ardra', te: 'ఆర్ద్ర', hi: 'आर्द्रा', gu: 'આદ્રા' },
   punarvasu: { en: 'Punarvasu', te: 'పునర్వసు', hi: 'पुनर्वसु', gu: 'પુનર્વસુ' },
   pushya: { en: 'Pushya', te: 'పుష్యమి', hi: 'पुष्य', gu: 'પુષ્ય' },
-  ashlesha: { en: 'Ashlesha', te: 'ఆశ్లేష', hi: 'श्लेषा', gu: 'આશ્લેષા' },
+  ashlesha: { en: 'Ashlesha', te: 'ఆశ్లేష', hi: 'श्लेषा', gu: 'આશ્లేષા' },
   magha: { en: 'Magha', te: 'మఖ', hi: 'मघा', gu: 'મઘા' },
   'purva phalguni': { en: 'Purva Phalguni', te: 'పూర్వ ఫల్గుణి', hi: 'पूर्वाफाल्गुनी', gu: 'પૂર્વા ફાલ્ગુની' },
   'uttara phalguni': { en: 'Uttara Phalguni', te: 'ఉత్తర ఫల్గుణి', hi: 'उत्तराफाल्गुनी', gu: 'ઉત્તરા ફાલ્ગુની' },
   hasta: { en: 'Hasta', te: 'హస్త', hi: 'हस्त', gu: 'હસ્ત' },
   chitra: { en: 'Chitra', te: 'చిత్ర', hi: 'चित્રા', gu: 'ચિત્રા' },
   swati: { en: 'Swati', te: 'స్వాతి', hi: 'स्वाति', gu: 'સ્વાતિ' },
-  vishakha: { en: 'Vishakha', te: 'విశాఖ', hi: 'विशाखा', gu: 'વિశాखा' },
+  vishakha: { en: 'Vishakha', te: 'విశాఖ', hi: 'विशाखा', gu: 'વિశాખા' },
   anuradha: { en: 'Anuradha', te: 'అనూరాధ', hi: 'अनुराधा', gu: 'અનુરાધા' },
   jyeshtha: { en: 'Jyeshtha', te: 'జ్యేష్ఠ', hi: 'ज्येष्ठा', gu: 'જ્યેષ્ઠા' },
   mula: { en: 'Mula', te: 'మూల', hi: 'मूल', gu: 'મૂળ' },
@@ -45,7 +46,7 @@ const termTranslations: Record<string, Record<string, string>> = {
   dhanishta: { en: 'Dhanishta', te: 'ధనిష్ఠ', hi: 'धनिष्ठा', gu: 'ધનિષ્ઠા' },
   shatabhisha: { en: 'Shatabhisha', te: 'శతభిషం', hi: 'शतभिषा', gu: 'શતભિષા' },
   'purva bhadrapada': { en: 'Purva Bhadrapada', te: 'పూర్వాభాద్ర', hi: 'पूर्वाभाद्रपद', gu: 'પૂર્વાભાદ્રપદ' },
-  'uttara bhadrapada': { en: 'Uttara Bhadrapada', te: 'ఉత్తరాభాద్ర', hi: 'उत्तराभाद्रपद', gu: 'ઉત્તરાભાદ્રપદ' },
+  'uttara bhadrapada': { en: 'Uttara Bhadrapada', te: 'ఉత్తరాభాద్ర', hi: 'उत्तराभाद्रपद', gu: 'ઉત્તરાભાદ్రપદ' },
   revati: { en: 'Revati', te: 'రేవతి', hi: 'रेवती', gu: 'રેવતી' },
   mohini: { en: 'Mohini', te: 'మోహిని', hi: 'मोहिनी', gu: 'મોહિની' },
 
@@ -60,19 +61,19 @@ const termTranslations: Record<string, Record<string, string>> = {
   'tula (libra)': { en: 'Tula (Libra)', te: 'తులా (Tula)', hi: 'तुला (Libra)', gu: 'તુલા (Libra)' },
   'vrishchika (scorpio)': { en: 'Vrishchika (Scorpio)', te: 'వృశ్చికం (Vrishchika)', hi: 'वृश्चिक (Scorpio)', gu: 'વૃશ્ચિક (Scorpio)' },
   'dhanu (sagittarius)': { en: 'Dhanu (Sagittarius)', te: 'ధనుస్సు (Dhanu)', hi: 'धनु (Sagittarius)', gu: 'ધનુ (Sagittarius)' },
-  'makara (capricorn)': { en: 'Makara (Capricorn)', te: 'మకరం (మకర రాశి)', hi: 'मकर राशि (मकर)', gu: 'મકર (મકર રાશિ)' },
+  'makara (capricorn)': { en: 'Makara (Capricorn)', te: 'మకరం (మకర రాశి)', hi: 'मकर राशि (मकर)', gu: 'મકર (મકર राशि)' },
   'kumbha (aquarius)': { en: 'Kumbha (Aquarius)', te: 'కుంభం (Kumbha)', hi: 'कुंभ (Aquarius)', gu: 'કુંભ (Aquarius)' },
   'meena (pisces)': { en: 'Meena (Pisces)', te: 'మీనం (Meena)', hi: 'मीन (Pisces)', gu: 'મીન (Pisces)' },
 
   // Gothrams
   bharadwaja: { en: 'Bharadwaja', te: 'భరద్వాజ', hi: 'भारद्वाज', gu: 'ભારદ્વાજ' },
-  kashyapa: { en: 'Kashyapa', te: 'కశ్యప', hi: 'कश्यप', gu: 'కશ્યપ' },
+  kashyapa: { en: 'Kashyapa', te: 'కశ్యప', hi: 'कश्यप', gu: 'કશ્યપ' },
   vashishta: { en: 'Vashishta', te: 'వశిష్ట', hi: 'वशिष्ठ', gu: 'વસિષ્ઠ' },
   gautama: { en: 'Gautama', te: 'గౌతమ', hi: 'गौतम', gu: 'ગૌતમ' },
   vishwamitra: { en: 'Vishwamitra', te: 'విశ్వామిత్ర', hi: 'विश्वामित्र', gu: 'વિશ્વામિત્ર' },
   jamadagni: { en: 'Jamadagni', te: 'జమదగ్ని', hi: 'जमदग्नि', gu: 'જમદગ્નિ' },
   atri: { en: 'Atri', te: 'అత్రి', hi: 'अत्रि', gu: 'અત્રિ' },
-  agastya: { en: 'Agastya', te: 'అగస్త్య', hi: 'अगस्त्य', gu: 'અગસ્ત્ય' },
+  agastya: { en: 'Agastya', te: 'అగస్త్య', hi: 'अगस्त्य', gu: 'અઅગસ્ત્ય' },
   angirasa: { en: 'Angirasa', te: 'ఆంగీరస', hi: 'अंगिरस', gu: 'અંગિરસ' },
   haritasa: { en: 'Haritasa', te: 'హరితస', hi: 'हारितस', gu: 'હારિતસ' },
   srivatsa: { en: 'Srivatsa', te: 'శ్రీవత్స', hi: 'श्रीवत्स', gu: 'શ્રીવત્સ' },
@@ -102,6 +103,7 @@ export default function Profile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
@@ -269,7 +271,7 @@ export default function Profile() {
                 {profile.email}
               </Text>
               <View className="flex-row items-center gap-1">
-                <MapPin size={12} color="#78716C" />
+                <MapPin size={12} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
                 <Text className="text-xs text-muted-foreground" style={{ fontFamily: 'System' }}>
                   {getProfileValue('location', profile.location)}
                 </Text>
@@ -285,7 +287,7 @@ export default function Profile() {
           </View>
         </View>
 
-        <View className="px-6 py-6 space-y-6">
+        <View className="px-6 py-6 gap-y-6">
           {/* Personalization Section */}
           <View className="mb-6">
             <View className="flex-row items-center justify-between mb-3 px-2">
@@ -302,22 +304,22 @@ export default function Profile() {
             </View>
             <View className="bg-card border border-border rounded-2xl overflow-hidden">
               <ProfileItem
-                icon={<Star size={20} color="#78716C" />}
+                icon={<Star size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />}
                 label={t('profile.nakshatra')}
                 value={getProfileValue('nakshatra', profile.nakshatra)}
               />
               <ProfileItem
-                icon={<Star size={20} color="#78716C" />}
+                icon={<Star size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />}
                 label={t('profile.rashi')}
                 value={getProfileValue('rashi', profile.rashi)}
               />
               <ProfileItem
-                icon={<Calendar size={20} color="#78716C" />}
+                icon={<Calendar size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />}
                 label={t('profile.dateOfBirth')}
                 value={getProfileValue('dateOfBirth', profile.dateOfBirth)}
               />
               <ProfileItem
-                icon={<User size={20} color="#78716C" />}
+                icon={<User size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />}
                 label={t('profile.gothram')}
                 value={getProfileValue('gothram', profile.gothram)}
               />
@@ -379,7 +381,7 @@ export default function Profile() {
                   </View>
                 </View>
                 <View className="w-full py-2.5 rounded-xl bg-primary/10 items-center justify-center">
-                  <Text className="text-primary font-medium text-sm">{t('profile.viewRecommendations')}</Text>
+                  <Text className="text-primary font-medium text-sm" numberOfLines={1} style={{ fontFamily: 'System' }}>{t('profile.viewRecommendations')}</Text>
                 </View>
               </Pressable>
             </Link>
@@ -391,25 +393,51 @@ export default function Profile() {
               {t('profile.settings')}
             </Text>
             <View className="bg-card border border-border rounded-2xl overflow-hidden">
-
-
+              {/* Custom Theme toggle row matching Figma */}
+              <View className="flex-row items-center justify-between p-4 border-b border-border">
+                <View className="flex-row items-center gap-4 flex-1">
+                  <Moon size={20} color={theme === 'dark' ? '#F97316' : '#78716C'} />
+                  <View>
+                    <Text className="font-semibold text-foreground text-sm" style={{ fontFamily: 'System' }}>
+                      {t('profile.theme')}
+                    </Text>
+                    <Text className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: 'System' }}>
+                      {t('profile.' + (theme === 'dark' ? 'darkMode' : 'lightMode'))}
+                    </Text>
+                  </View>
+                </View>
+                <Pressable 
+                  onPress={toggleTheme}
+                  className={`w-14 h-8 rounded-full justify-center px-1 ${
+                    theme === 'dark' ? 'bg-primary' : 'bg-muted'
+                  }`}
+                >
+                  <View 
+                    className={`w-6 h-6 rounded-full bg-white items-center justify-center ${
+                      theme === 'dark' ? 'self-end' : 'self-start'
+                    }`}
+                  >
+                    <Moon size={12} color={theme === 'dark' ? '#F97316' : '#78716C'} fill={theme === 'dark' ? '#F97316' : 'transparent'} />
+                  </View>
+                </Pressable>
+              </View>
               <SettingsItem 
-                icon={<Bell size={20} color="#78716C" />} 
+                icon={<Bell size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />} 
                 label={t('profile.notifications')} 
                 onClick={() => setShowNotifications(true)}
               />
               <SettingsItem 
-                icon={<Calendar size={20} color="#78716C" />} 
+                icon={<Calendar size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />} 
                 label={t('profile.hinduCalendar')} 
                 onClick={() => router.push('/calendar')}
               />
               <SettingsItem 
-                icon={<HelpCircle size={20} color="#78716C" />} 
+                icon={<HelpCircle size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />} 
                 label={t('profile.helpSupport')} 
                 onClick={() => setShowHelp(true)}
               />
               <SettingsItem
-                icon={<Languages size={20} color="#78716C" />}
+                icon={<Languages size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />}
                 label={`${t('language.label')} (${language.toUpperCase()})`}
                 onClick={() => setShowLanguageModal(true)}
               />
@@ -442,13 +470,14 @@ export default function Profile() {
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
-            <View className="space-y-4">
+            <View className="gap-y-4">
               <View>
                 <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.fullName')}</Text>
                 <TextInput
                   value={getProfileValue('name', profile.name)}
                   onChangeText={(text) => setProfile({ ...profile, name: text })}
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}
                 />
               </View>
               <View className="mt-3">
@@ -458,6 +487,7 @@ export default function Profile() {
                   onChangeText={(text) => setProfile({ ...profile, email: text })}
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
                   keyboardType="email-address"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}
                 />
               </View>
               <View className="mt-3">
@@ -466,6 +496,7 @@ export default function Profile() {
                   value={getProfileValue('location', profile.location)}
                   onChangeText={(text) => setProfile({ ...profile, location: text })}
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}
                 />
               </View>
               <Pressable
@@ -489,13 +520,14 @@ export default function Profile() {
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
-            <View className="space-y-4">
+            <View className="gap-y-4">
               <View>
                 <Text className="text-sm font-medium mb-2 text-foreground">{t('profile.nakshatra')}</Text>
                 <TextInput
                   value={getProfileValue('nakshatra', profile.nakshatra)}
                   onChangeText={(text) => setProfile({ ...profile, nakshatra: text })}
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}
                 />
               </View>
               <View className="mt-3">
@@ -504,6 +536,7 @@ export default function Profile() {
                   value={getProfileValue('gothram', profile.gothram)}
                   onChangeText={(text) => setProfile({ ...profile, gothram: text })}
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}
                 />
               </View>
               <View className="mt-3">
@@ -512,6 +545,7 @@ export default function Profile() {
                   value={getProfileValue('dateOfBirth', profile.dateOfBirth)}
                   onChangeText={(text) => setProfile({ ...profile, dateOfBirth: text })}
                   className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground"
+                  style={{ color: theme === 'dark' ? '#F5F5F0' : '#1C1917' }}
                 />
               </View>
               <Pressable
@@ -535,7 +569,7 @@ export default function Profile() {
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
-            <View className="space-y-4">
+            <View className="gap-y-4">
               <NotificationToggleItem
                 label={t('notifications.poojaReminders')}
                 value={notifications.poojaReminders}
@@ -702,7 +736,7 @@ export default function Profile() {
                 <X size={24} color="#F5F5F0" />
               </Pressable>
             </View>
-            <View className="space-y-3">
+            <View className="gap-y-3">
               {[
                 { code: 'en', name: 'English', nativeName: 'English' },
                 { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
@@ -774,6 +808,7 @@ function ProfileItem({ icon, label, value }: { icon: React.ReactNode; label: str
 }
 
 function SettingsItem({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+  const { theme } = useTheme();
   return (
     <Pressable 
       onPress={onClick}
@@ -783,7 +818,7 @@ function SettingsItem({ icon, label, onClick }: { icon: React.ReactNode; label: 
       <Text className="flex-1 font-medium text-foreground text-sm" style={{ fontFamily: 'System' }}>
         {label}
       </Text>
-      <ChevronRight size={20} color="#78716C" />
+      <ChevronRight size={20} color={theme === 'dark' ? '#A8A29E' : '#78716C'} />
     </Pressable>
   );
 }
