@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db, type Review } from '../lib/db';
 import { PageHeader } from '../components/PageHeader';
+import { CustomSelect } from '../components/CustomSelect';
 
 export function Feedback() {
   const [reviews, setReviews] = useState<Review[]>(() => db.getFeedback());
@@ -154,14 +155,15 @@ export function Feedback() {
 
       {/* Filter Bar */}
       <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-[#F0E6D2] p-4 mb-6 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
-        <div className="flex flex-wrap items-center gap-4">
-          <select 
-            value={poojaFilter}
-            onChange={(e) => setPoojaFilter(e.target.value)}
-            className="rounded-full border border-outline-variant bg-transparent py-2 pl-4 pr-10 font-button text-button text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none cursor-pointer font-bold"
-          >
-            {uniquePoojas.map((p, i) => <option key={i} value={p}>{p}</option>)}
-          </select>
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          <div className="w-full md:w-64">
+            <CustomSelect 
+              value={poojaFilter}
+              onChange={(val) => setPoojaFilter(val)}
+              options={uniquePoojas.map((p) => ({ value: p, label: p }))}
+              className=""
+            />
+          </div>
           
           <div className="flex items-center border border-outline-variant rounded-full overflow-hidden h-[38px] font-bold text-xs">
             {[1, 2, 3, 4, 5].map(star => (

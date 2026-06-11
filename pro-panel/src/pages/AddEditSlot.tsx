@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { Pooja, Slot } from '@devaseva/core';
 import { SlotStatus } from '@devaseva/core';
 import { PageHeader } from '../components/PageHeader';
+import { CustomSelect } from '../components/CustomSelect';
 
 interface AddEditSlotProps {
   isEdit: boolean;
@@ -213,21 +214,14 @@ export function AddEditSlot({ isEdit }: AddEditSlotProps) {
             <label className="text-label-md text-on-surface block font-semibold">
               Select Pooja <span className="text-error">*</span>
             </label>
-            <div className="relative">
-              <select 
-                className="w-full bg-surface border border-[#D4A017]/30 rounded-lg px-4 py-3 text-body-sm text-on-surface appearance-none focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors pr-10 font-semibold cursor-pointer"
+            <div className="w-full relative">
+              <CustomSelect 
                 value={pooja}
-                onChange={(e) => handlePoojaChange(e.target.value)}
-                required
-              >
-                <option value="" disabled>Choose a pooja from your temple</option>
-                {poojas.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none flex items-center justify-center">
-                expand_more
-              </span>
+                onChange={(val) => handlePoojaChange(val)}
+                options={poojas.map(p => ({ value: p.id, label: p.name }))}
+                placeholder="Choose a pooja from your temple"
+                className=""
+              />
             </div>
             <p className="text-[12px] text-on-surface-variant">Only active poojas from your assigned temple are shown</p>
           </div>

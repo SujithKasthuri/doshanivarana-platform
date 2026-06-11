@@ -5,6 +5,7 @@ import { doc, getDoc, updateDoc, setDoc, collection, serverTimestamp } from 'fir
 import { db } from '../lib/firebase';
 import type { Booking } from '@devaseva/core';
 import { PageHeader } from '../components/PageHeader';
+import { CustomSelect } from '../components/CustomSelect';
 
 export function BookingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -297,15 +298,16 @@ export function BookingDetail() {
             
             <div className="mb-4">
               <label className="text-label-md text-on-surface-variant block mb-2 font-bold uppercase tracking-wider">Select Pujari</label>
-              <select 
-                className="w-full border border-outline-variant rounded-lg p-3 text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface-bright font-semibold"
+              <CustomSelect 
                 value={selectedPujari}
-                onChange={(e) => setSelectedPujari(e.target.value)}
-              >
-                <option value="Not Assigned">Select Pujari</option>
-                <option value="Pandit Ramachandra">Pandit Ramachandra</option>
-                <option value="Pandit Shivakumara">Pandit Shivakumara</option>
-              </select>
+                onChange={(val) => setSelectedPujari(val)}
+                options={[
+                  { value: 'Not Assigned', label: 'Select Pujari' },
+                  { value: 'Pandit Ramachandra', label: 'Pandit Ramachandra' },
+                  { value: 'Pandit Shivakumara', label: 'Pandit Shivakumara' }
+                ]}
+                className=""
+              />
             </div>
             
             <button 

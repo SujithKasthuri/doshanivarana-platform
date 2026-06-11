@@ -5,6 +5,7 @@ import { doc, getDoc, updateDoc, setDoc, serverTimestamp, onSnapshot, collection
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/PageHeader';
+import { CustomSelect } from '../components/CustomSelect';
 
 interface DeliveryDetailData {
   id: string;
@@ -402,19 +403,19 @@ export function DeliveryDetail() {
             <form onSubmit={handleConfirmDispatch} className="flex flex-col gap-5 font-semibold text-on-surface">
               <div>
                 <label className="block text-label-md text-on-surface-variant uppercase tracking-wider text-[10px] mb-1">Courier Partner</label>
-                <div className="relative">
-                  <select 
+                <div className="w-full relative">
+                  <CustomSelect 
                     value={courier}
-                    onChange={(e) => setCourier(e.target.value)}
-                    className="w-full bg-surface border border-outline-variant rounded-lg p-3 pr-10 text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all shadow-sm appearance-none cursor-pointer font-semibold"
-                  >
-                    <option value="BlueDart">BlueDart</option>
-                    <option value="Delhivery">Delhivery</option>
-                    <option value="India Post">India Post</option>
-                    <option value="DTDC">DTDC</option>
-                    <option value="Ekart">Ekart</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+                    onChange={(val) => setCourier(val)}
+                    options={[
+                      { value: 'BlueDart', label: 'BlueDart' },
+                      { value: 'Delhivery', label: 'Delhivery' },
+                      { value: 'India Post', label: 'India Post' },
+                      { value: 'DTDC', label: 'DTDC' },
+                      { value: 'Ekart', label: 'Ekart' }
+                    ]}
+                    className=""
+                  />
                 </div>
               </div>
 

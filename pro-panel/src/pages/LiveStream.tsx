@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot, doc, getDoc, setDoc, updateDoc, s
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/PageHeader';
+import { CustomSelect } from '../components/CustomSelect';
 
 export function LiveStream() {
   const { templeId } = useAuth();
@@ -252,23 +253,17 @@ export function LiveStream() {
           Select Pooja Slot to Stream
         </label>
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-          <div className="relative flex-1 w-full">
-            <select 
+          <div className="w-full lg:w-1/2">
+            <CustomSelect 
               value={selectedSlot}
-              onChange={(e) => setSelectedSlot(e.target.value)}
+              onChange={(val) => setSelectedSlot(val)}
               disabled={streamState !== 'idle'}
-              className="w-full appearance-none bg-surface border border-primary/30 rounded-lg px-4 py-3 text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary pr-10 font-semibold cursor-pointer disabled:opacity-50"
-            >
-              {upcomingBookings.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.poojaName} — {b.id} at {b.scheduledDate} ({b.currentBookings || 1} Bookings)
-                </option>
-              ))}
-              {upcomingBookings.length === 0 && (
-                <option value="">No upcoming pooja bookings</option>
-              )}
-            </select>
-            <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+              options={upcomingBookings.length > 0 ? upcomingBookings.map(b => ({
+                value: b.id,
+                label: `${b.poojaName} — ${b.id} at ${b.scheduledDate} (${b.currentBookings || 1} Bookings)`
+              })) : [{ value: '', label: 'No upcoming pooja bookings' }]}
+              className=""
+            />
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { db, type Pujari, AVAILABLE_SPECIALIZATIONS } from '../lib/db';
 import { PageHeader } from '../components/PageHeader';
@@ -18,6 +18,21 @@ export function PujariManager() {
 
   const [statusFilter, setStatusFilter] = useState('All');
   const [specFilter, setSpecFilter] = useState('All');
+  
+  // Custom dropdown states
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isSpecOpen, setIsSpecOpen] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const specRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusRef.current && !statusRef.current.contains(event.target as Node)) setIsStatusOpen(false);
+      if (specRef.current && !specRef.current.contains(event.target as Node)) setIsSpecOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   // Deactivation Modal State
   const [deactivatingPujari, setDeactivatingPujari] = useState<Pujari | null>(null);
@@ -103,47 +118,76 @@ export function PujariManager() {
       </div>
 
       {/* Filter & Summary Bar */}
-      <div className="bg-surface-container-lowest rounded-xl p-4 mb-8 soft-shadow border border-outline-variant/30 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="relative">
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold"
+      <div className="bg-surface-container-lowest rounded-xl p-4 mb-8 soft-shadow border border-outline-variant/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-auto min-w-[150px]" ref={statusRef}>
+            <div 
+              className="w-full sm:w-auto appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold cursor-pointer flex items-center justify-between truncate transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              onClick={() => { setIsStatusOpen(!isStatusOpen); setIsSpecOpen(false); }}
+              tabIndex={0}
             >
-              <option value="All">Status: All</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">arrow_drop_down</span>
+              <span className="truncate">{statusFilter === 'All' ? 'Status: All' : statusFilter}</span>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isStatusOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+            </div>
+            {isStatusOpen && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-hidden font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                {['All', 'Active', 'Inactive'].map(opt => (
+                  <div 
+                    key={opt}
+                    className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${statusFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                    onClick={() => { setStatusFilter(opt); setIsStatusOpen(false); }}
+                  >
+                    {opt === 'All' ? 'Status: All' : opt}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="relative">
-            <select 
-              value={specFilter}
-              onChange={(e) => setSpecFilter(e.target.value)}
-              className="appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold"
+          <div className="relative w-full sm:w-auto min-w-[200px]" ref={specRef}>
+            <div 
+              className="w-full sm:w-auto appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold cursor-pointer flex items-center justify-between truncate transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              onClick={() => { setIsSpecOpen(!isSpecOpen); setIsStatusOpen(false); }}
+              tabIndex={0}
             >
-              <option value="All">All Specializations</option>
-              {AVAILABLE_SPECIALIZATIONS.map(spec => (
-                <option key={spec} value={spec}>{spec}</option>
-              ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">arrow_drop_down</span>
+              <span className="truncate">{specFilter === 'All' ? 'All Specializations' : specFilter}</span>
+              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isSpecOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+            </div>
+            {isSpecOpen && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                <div 
+                  className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${specFilter === 'All' ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                  onClick={() => { setSpecFilter('All'); setIsSpecOpen(false); }}
+                >
+                  All Specializations
+                </div>
+                {AVAILABLE_SPECIALIZATIONS.map(opt => (
+                  <div 
+                    key={opt}
+                    className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${specFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                    onClick={() => { setSpecFilter(opt); setIsSpecOpen(false); }}
+                  >
+                    {opt}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <button 
-            onClick={handleApplyFilters}
-            className="bg-primary text-on-primary font-button text-button px-4 py-2 rounded-lg hover:bg-[#b04b00] transition-colors h-[40px] font-bold cursor-pointer"
-          >
-            Apply
-          </button>
-          <button 
-            onClick={handleResetFilters}
-            className="text-on-surface-variant font-button text-button px-4 py-2 rounded-lg hover:bg-surface-variant transition-colors h-[40px] font-bold cursor-pointer"
-          >
-            Reset
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+            <button 
+              onClick={handleApplyFilters}
+              className="w-full sm:w-auto bg-primary text-on-primary font-button text-button px-4 py-2 rounded-lg hover:bg-[#b04b00] transition-colors h-[40px] font-bold cursor-pointer"
+            >
+              Apply
+            </button>
+            <button 
+              onClick={handleResetFilters}
+              className="w-full sm:w-auto text-on-surface-variant font-button text-button px-4 py-2 rounded-lg hover:bg-surface-variant transition-colors h-[40px] font-bold cursor-pointer border border-outline-variant/50 sm:border-none"
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap font-semibold">

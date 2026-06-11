@@ -7,6 +7,7 @@ export function Queries() {
   const [queries, setQueries] = useState<DevoteeQuery[]>(() => db.getQueries());
 
   const [selectedQueryId, setSelectedQueryId] = useState('Q-101');
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   const [activeTab, setActiveTab] = useState<'All' | 'Open' | 'Replied' | 'Closed'>('All');
   const [searchText, setSearchText] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -88,10 +89,12 @@ export function Queries() {
       </div>
 
       {/* Two Panel Split Layout */}
-      <div className="flex gap-6 h-[calc(100vh-220px)] min-h-[580px]">
+      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-220px)] lg:min-h-[580px]">
         
-        {/* Left Panel: Inbox List (35%) */}
-        <div className="w-[35%] bg-surface-container-lowest rounded-xl soft-shadow border border-[#F0E6D2] flex flex-col overflow-hidden">
+        {/* Left Panel: Inbox List (35% on desktop, hidden on mobile if detail is open) */}
+        <div className={`w-full lg:w-[35%] bg-surface-container-lowest rounded-xl soft-shadow border border-[#F0E6D2] flex flex-col overflow-hidden h-[calc(100vh-200px)] lg:h-auto ${
+          mobileView === 'detail' ? 'hidden lg:flex' : 'flex'
+        }`}>
           
           {/* Inbox Header & Filters */}
           <div className="p-4 border-b border-outline-variant/30 bg-surface/50">
@@ -154,7 +157,10 @@ export function Queries() {
               return (
                 <div 
                   key={item.id} 
-                  onClick={() => setSelectedQueryId(item.id)}
+                  onClick={() => {
+                    setSelectedQueryId(item.id);
+                    setMobileView('detail');
+                  }}
                   className={`p-4 cursor-pointer hover:bg-surface-container-low/40 transition-colors relative font-sans ${
                     isSelected 
                       ? 'bg-surface-container-low border-l-4 border-l-primary' 
@@ -203,34 +209,46 @@ export function Queries() {
           </div>
         </div>
 
-        {/* Right Panel: Message Detail & Thread (65%) */}
-        <div className="w-[65%] bg-surface-container-lowest rounded-xl soft-shadow border border-[#F0E6D2] flex flex-col overflow-hidden">
+        {/* Right Panel: Message Detail & Thread (65% on desktop, full screen overlay on mobile) */}
+        <div className={`w-full lg:w-[65%] bg-surface-container-lowest lg:rounded-xl lg:soft-shadow lg:border border-[#F0E6D2] flex flex-col overflow-hidden ${
+          mobileView === 'list' ? 'hidden lg:flex' : 'fixed inset-0 z-[100] lg:relative lg:inset-auto lg:z-auto'
+        }`}>
           {activeQuery ? (
             <>
               {/* Detail Header */}
-              <div className="p-6 border-b border-outline-variant/30 bg-surface/50 font-sans">
+              <div className="p-4 pt-6 sm:pt-6 sm:p-6 border-b border-outline-variant/30 bg-surface/90 backdrop-blur-sm sticky top-0 z-10 font-sans shadow-sm lg:shadow-none">
                 <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h2 className="font-display text-headline-sm font-bold text-on-surface">
-                        Devotee: {activeQuery.devoteeName}
-                      </h2>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-surface-variant text-on-surface-variant border border-outline-variant/50">
-                        {activeQuery.bookingId}
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                        activeQuery.status === 'Open' 
-                          ? 'bg-error-container text-on-error-container' 
-                          : activeQuery.status === 'Replied' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-surface-variant text-on-surface-variant'
-                      }`}>
-                        {activeQuery.status}
-                      </span>
+                  <div className="flex items-start gap-1">
+                    {/* Back Button on Mobile */}
+                    <button
+                      onClick={() => setMobileView('list')}
+                      className="lg:hidden p-2 -ml-2 rounded-full hover:bg-surface-container transition-colors text-on-surface flex items-center justify-center cursor-pointer mr-2 mt-0.5"
+                      aria-label="Back to Inbox"
+                    >
+                      <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+                    </button>
+                    <div>
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <h2 className="font-display text-headline-sm font-bold text-on-surface">
+                          {activeQuery.devoteeName}
+                        </h2>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-surface-variant text-on-surface-variant border border-outline-variant/50">
+                          {activeQuery.bookingId}
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
+                          activeQuery.status === 'Open' 
+                            ? 'bg-error-container text-on-error-container' 
+                            : activeQuery.status === 'Replied' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-surface-variant text-on-surface-variant'
+                        }`}>
+                          {activeQuery.status}
+                        </span>
+                      </div>
+                      <h3 className="text-body-md text-on-surface font-semibold">
+                        Subject: {activeQuery.subject}
+                      </h3>
                     </div>
-                    <h3 className="text-body-md text-on-surface font-semibold">
-                      Subject: {activeQuery.subject}
-                    </h3>
                   </div>
                   
                   {activeQuery.status !== 'Closed' ? (
@@ -289,29 +307,46 @@ export function Queries() {
 
               {/* Reply Area */}
               {activeQuery.status !== 'Closed' ? (
-                <div className="p-6 border-t border-outline-variant/30 bg-surface/50 font-sans">
+                <div className="p-4 sm:p-6 border-t border-outline-variant/30 bg-surface/50 font-sans">
                   <form onSubmit={handleSendReply}>
                     <div className="relative">
                       <textarea 
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        className="w-full min-h-[100px] p-4 bg-surface border border-outline-variant rounded-xl text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none mb-2 shadow-inner font-semibold"
+                        className="w-full min-h-[100px] p-4 pr-12 sm:pr-4 bg-surface border border-outline-variant rounded-xl text-on-surface font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none mb-2 shadow-inner font-semibold"
                         placeholder={`Reply to ${activeQuery.devoteeName}...`}
                         maxLength={500}
                       />
-                      <div className="absolute bottom-4 right-4 text-xs text-on-surface-variant font-bold">
+                      <div className="hidden sm:block absolute bottom-4 right-4 text-xs text-on-surface-variant font-bold">
                         {replyText.length} / 500
                       </div>
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <div className="flex items-center gap-1.5 text-on-surface-variant text-xs font-semibold">
-                        <span className="material-symbols-outlined text-[16px]">info</span>
-                        <span>Devotee will be notified via Email and App</span>
-                      </div>
+
+                      {/* Mobile Send Icon (Inside Textarea) */}
                       <button 
                         type="submit"
                         disabled={!replyText.trim()}
-                        className={`px-6 py-2.5 rounded-full font-button text-button shadow-soft flex items-center gap-2 transition-all font-bold ${
+                        className={`sm:hidden absolute bottom-4 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                          replyText.trim()
+                            ? 'bg-primary text-on-primary hover:bg-[#b04b00] cursor-pointer'
+                            : 'bg-surface-variant text-on-surface-variant/40 cursor-not-allowed border border-outline-variant/30'
+                        }`}
+                        aria-label="Send Reply"
+                      >
+                        <span className="material-symbols-outlined text-[18px] ml-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-between items-center mt-1 sm:mt-2 gap-3">
+                      <div className="hidden sm:flex items-center gap-1.5 text-on-surface-variant text-xs font-semibold mr-auto">
+                        <span className="material-symbols-outlined text-[16px]">info</span>
+                        <span>Devotee will be notified via Email and App</span>
+                      </div>
+                      
+                      {/* Desktop Send Button */}
+                      <button 
+                        type="submit"
+                        disabled={!replyText.trim()}
+                        className={`hidden sm:flex px-6 py-2.5 rounded-full font-button text-button shadow-soft items-center justify-center gap-2 transition-all font-bold ${
                           replyText.trim()
                             ? 'bg-primary text-on-primary hover:bg-[#b04b00] cursor-pointer'
                             : 'bg-outline-variant/30 text-on-surface-variant/40 cursor-not-allowed'

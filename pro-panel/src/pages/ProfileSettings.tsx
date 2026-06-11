@@ -270,7 +270,7 @@ export function ProfileSettings() {
                 <label className="text-label-md text-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Mobile *</label>
                 <input 
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
+                  onChange={(e) => setMobile(e.target.value.replace(/[^0-9+\s-]/g, ''))}
                   className="w-full bg-surface border border-outline-variant rounded-lg px-4 py-2.5 font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                   type="tel" 
                 />

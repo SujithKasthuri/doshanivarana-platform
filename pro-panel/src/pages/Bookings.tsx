@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -16,6 +16,28 @@ export function Bookings() {
   const [paymentFilter, setPaymentFilter] = useState('All');
 
   const [bookings, setBookings] = useState<Booking[]>([]);
+
+  // Custom Dropdown states
+  const [isPoojaOpen, setIsPoojaOpen] = useState(false);
+  const [isPujariOpen, setIsPujariOpen] = useState(false);
+  const [isDeliveryOpen, setIsDeliveryOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+
+  const poojaRef = useRef<HTMLDivElement>(null);
+  const pujariRef = useRef<HTMLDivElement>(null);
+  const deliveryRef = useRef<HTMLDivElement>(null);
+  const paymentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (poojaRef.current && !poojaRef.current.contains(event.target as Node)) setIsPoojaOpen(false);
+      if (pujariRef.current && !pujariRef.current.contains(event.target as Node)) setIsPujariOpen(false);
+      if (deliveryRef.current && !deliveryRef.current.contains(event.target as Node)) setIsDeliveryOpen(false);
+      if (paymentRef.current && !paymentRef.current.contains(event.target as Node)) setIsPaymentOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -110,64 +132,129 @@ export function Bookings() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-surface-container-lowest rounded-xl soft-shadow p-6 mb-8 border border-outline-variant/30 font-sans flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap gap-4 items-end flex-1 min-w-[280px]">
-          <div className="flex flex-col gap-1.5 min-w-[180px] flex-1">
+      <div className="bg-surface-container-lowest rounded-xl soft-shadow p-4 sm:p-6 mb-8 border border-outline-variant/30 font-sans flex flex-col xl:flex-row items-start xl:items-end justify-between gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full xl:flex-1">
+          <div className="flex flex-col gap-1.5 w-full">
             <label className="text-label-md text-on-surface-variant font-semibold">Pooja Type</label>
-            <select 
-              className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-semibold"
-              value={poojaType}
-              onChange={(e) => setPoojaType(e.target.value)}
-            >
-              <option>All Poojas</option>
-              <option>Satyanarayana Pooja</option>
-              <option>Ganapathi Homam</option>
-              <option>Lakshmi Pooja</option>
-              <option>Navagraha Pooja</option>
-              <option>Rudra Abhishekam</option>
-            </select>
+            <div className="w-full relative" ref={poojaRef}>
+              <div 
+                className="w-full bg-surface border border-outline-variant rounded-lg pl-3 pr-8 py-2 text-body-sm text-on-surface cursor-pointer flex items-center justify-between transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary font-semibold"
+                onClick={() => {
+                  setIsPoojaOpen(!isPoojaOpen);
+                  setIsPujariOpen(false); setIsDeliveryOpen(false); setIsPaymentOpen(false);
+                }}
+                tabIndex={0}
+              >
+                <span className="truncate">{poojaType}</span>
+                <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isPoojaOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+              </div>
+              {isPoojaOpen && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                  {['All Poojas', 'Satyanarayana Pooja', 'Ganapathi Homam', 'Lakshmi Pooja', 'Navagraha Pooja', 'Rudra Abhishekam'].map(opt => (
+                    <div 
+                      key={opt}
+                      className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${poojaType === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                      onClick={() => { setPoojaType(opt); setIsPoojaOpen(false); }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[130px] flex-1">
+          <div className="flex flex-col gap-1.5 w-full">
             <label className="text-label-md text-on-surface-variant font-semibold">Pujari Assigned</label>
-            <select 
-              className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-semibold"
-              value={pujariFilter}
-              onChange={(e) => setPujariFilter(e.target.value)}
-            >
-              <option>All</option>
-              <option>Yes</option>
-              <option>No</option>
-            </select>
+            <div className="w-full relative" ref={pujariRef}>
+              <div 
+                className="w-full bg-surface border border-outline-variant rounded-lg pl-3 pr-8 py-2 text-body-sm text-on-surface cursor-pointer flex items-center justify-between transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary font-semibold"
+                onClick={() => {
+                  setIsPujariOpen(!isPujariOpen);
+                  setIsPoojaOpen(false); setIsDeliveryOpen(false); setIsPaymentOpen(false);
+                }}
+                tabIndex={0}
+              >
+                <span className="truncate">{pujariFilter}</span>
+                <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isPujariOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+              </div>
+              {isPujariOpen && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                  {['All', 'Yes', 'No'].map(opt => (
+                    <div 
+                      key={opt}
+                      className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${pujariFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                      onClick={() => { setPujariFilter(opt); setIsPujariOpen(false); }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[100px] flex-1">
+          <div className="flex flex-col gap-1.5 w-full">
             <label className="text-label-md text-on-surface-variant font-semibold">Delivery</label>
-            <select 
-              className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-semibold"
-              value={deliveryFilter}
-              onChange={(e) => setDeliveryFilter(e.target.value as 'All' | 'Yes' | 'No')}
-            >
-              <option>All</option>
-              <option>Yes</option>
-              <option>No</option>
-            </select>
+            <div className="w-full relative" ref={deliveryRef}>
+              <div 
+                className="w-full bg-surface border border-outline-variant rounded-lg pl-3 pr-8 py-2 text-body-sm text-on-surface cursor-pointer flex items-center justify-between transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary font-semibold"
+                onClick={() => {
+                  setIsDeliveryOpen(!isDeliveryOpen);
+                  setIsPoojaOpen(false); setIsPujariOpen(false); setIsPaymentOpen(false);
+                }}
+                tabIndex={0}
+              >
+                <span className="truncate">{deliveryFilter}</span>
+                <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isDeliveryOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+              </div>
+              {isDeliveryOpen && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                  {['All', 'Yes', 'No'].map(opt => (
+                    <div 
+                      key={opt}
+                      className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${deliveryFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                      onClick={() => { setDeliveryFilter(opt as 'All' | 'Yes' | 'No'); setIsDeliveryOpen(false); }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[140px] flex-1">
+          <div className="flex flex-col gap-1.5 w-full">
             <label className="text-label-md text-on-surface-variant font-semibold">Payment Status</label>
-            <select 
-              className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors font-semibold"
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value)}
-            >
-              <option>All</option>
-              <option>PAID</option>
-              <option>PENDING</option>
-            </select>
+            <div className="w-full relative" ref={paymentRef}>
+              <div 
+                className="w-full bg-surface border border-outline-variant rounded-lg pl-3 pr-8 py-2 text-body-sm text-on-surface cursor-pointer flex items-center justify-between transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary font-semibold"
+                onClick={() => {
+                  setIsPaymentOpen(!isPaymentOpen);
+                  setIsPoojaOpen(false); setIsPujariOpen(false); setIsDeliveryOpen(false);
+                }}
+                tabIndex={0}
+              >
+                <span className="truncate">{paymentFilter}</span>
+                <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isPaymentOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+              </div>
+              {isPaymentOpen && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                  {['All', 'PAID', 'PENDING'].map(opt => (
+                    <div 
+                      key={opt}
+                      className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${paymentFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                      onClick={() => { setPaymentFilter(opt); setIsPaymentOpen(false); }}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         
-        <div className="flex gap-3 items-center shrink-0">
+        <div className="flex flex-col sm:flex-row gap-3 items-center shrink-0 w-full xl:w-auto mt-2 xl:mt-0">
           <button 
-            className="px-6 py-2 rounded-full font-button text-button text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer font-bold"
+            className="w-full sm:w-auto px-6 py-2 rounded-full font-button text-button text-on-surface-variant hover:bg-surface-container-low transition-colors cursor-pointer font-bold border border-outline-variant/50"
             onClick={() => {
               setPoojaType('All Poojas');
               setPujariFilter('All');
@@ -177,7 +264,7 @@ export function Bookings() {
           >
             Reset
           </button>
-          <button className="px-6 py-2 rounded-full font-button text-button text-primary border-2 border-primary hover:bg-primary-container/20 transition-colors cursor-pointer font-bold whitespace-nowrap">
+          <button className="w-full sm:w-auto px-6 py-2 rounded-full font-button text-button text-primary border-2 border-primary hover:bg-primary-container/20 transition-colors cursor-pointer font-bold whitespace-nowrap">
             Apply Filters
           </button>
         </div>

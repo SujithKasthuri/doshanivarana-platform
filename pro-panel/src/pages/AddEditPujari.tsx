@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
 import { db, type Pujari, AVAILABLE_SPECIALIZATIONS, AVAILABLE_LANGUAGES } from '../lib/db';
+import { CustomSelect } from '../components/CustomSelect';
 import { PageHeader } from '../components/PageHeader';
 
 interface AddEditPujariProps {
@@ -279,15 +280,17 @@ export function AddEditPujari({ isEdit }: AddEditPujariProps) {
             <div className="md:col-span-2">
               <label className="block font-display text-button text-on-surface mb-2 font-bold">Contact Number *</label>
               <div className="flex gap-2">
-                <select
+                <CustomSelect
                   value={contactCode}
-                  onChange={(e) => setContactCode(e.target.value)}
-                  className="w-28 h-12 px-3 py-2 bg-surface border border-outline-variant rounded-lg font-body-md text-on-surface outline-none focus:border-primary transition-colors font-semibold"
-                >
-                  <option value="+91">+91 (IN)</option>
-                  <option value="+1">+1 (US)</option>
-                  <option value="+44">+44 (UK)</option>
-                </select>
+                  onChange={(val) => setContactCode(val)}
+                  options={[
+                    { value: '+91', label: '+91 (IN)' },
+                    { value: '+1', label: '+1 (US)' },
+                    { value: '+44', label: '+44 (UK)' }
+                  ]}
+                  triggerClassName="w-28 h-12 pl-3 pr-8 py-2 bg-surface border border-outline-variant rounded-lg font-body-md text-on-surface outline-none focus-within:border-primary transition-colors font-semibold flex items-center justify-between"
+                  className=""
+                />
                 <input
                   value={contactNumber}
                   onChange={(e) => setContactNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
@@ -321,9 +324,10 @@ export function AddEditPujari({ isEdit }: AddEditPujariProps) {
                 </div>
               ))}
               <div className="flex-grow flex items-center min-w-[200px]">
-                <select
-                  onChange={(e) => {
-                    const val = e.target.value;
+                <CustomSelect
+                  value=""
+                  placeholder="Select Specialization..."
+                  onChange={(val) => {
                     if (val === 'ALL') {
                       setSpecializations(AVAILABLE_SPECIALIZATIONS);
                       setErrors(prev => {
@@ -342,19 +346,14 @@ export function AddEditPujari({ isEdit }: AddEditPujariProps) {
                         });
                       }
                     }
-                    e.target.value = ''; // Reset select
                   }}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 p-1 font-body-md font-semibold text-on-surface-variant cursor-pointer"
-                  defaultValue=""
-                >
-                  <option value="" disabled>Select Specialization...</option>
-                  {AVAILABLE_SPECIALIZATIONS.filter(s => !specializations.includes(s)).length > 0 && (
-                    <option value="ALL">Select All</option>
-                  )}
-                  {AVAILABLE_SPECIALIZATIONS.filter(s => !specializations.includes(s)).map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                  options={[
+                    ...(AVAILABLE_SPECIALIZATIONS.filter(s => !specializations.includes(s)).length > 0 ? [{ value: 'ALL', label: 'Select All' }] : []),
+                    ...AVAILABLE_SPECIALIZATIONS.filter(s => !specializations.includes(s)).map(s => ({ value: s, label: s }))
+                  ]}
+                  triggerClassName="w-full bg-transparent border-none p-1 font-body-md font-semibold text-on-surface-variant flex items-center justify-between"
+                  className="w-full min-w-[200px]"
+                />
               </div>
             </div>
             {errors.specializations && <p className="text-error text-xs mt-1 font-semibold">{errors.specializations}</p>}
@@ -379,9 +378,10 @@ export function AddEditPujari({ isEdit }: AddEditPujariProps) {
                 </div>
               ))}
               <div className="flex-grow flex items-center min-w-[200px]">
-                <select
-                  onChange={(e) => {
-                    const val = e.target.value;
+                <CustomSelect
+                  value=""
+                  placeholder="Select Languages..."
+                  onChange={(val) => {
                     if (val === 'ALL') {
                       setLanguages(AVAILABLE_LANGUAGES);
                       setErrors(prev => {
@@ -400,19 +400,14 @@ export function AddEditPujari({ isEdit }: AddEditPujariProps) {
                         });
                       }
                     }
-                    e.target.value = ''; // Reset select
                   }}
-                  className="w-full bg-transparent border-none focus:outline-none focus:ring-0 p-1 font-body-md font-semibold text-on-surface-variant cursor-pointer"
-                  defaultValue=""
-                >
-                  <option value="" disabled>Select Languages...</option>
-                  {AVAILABLE_LANGUAGES.filter(l => !languages.includes(l)).length > 0 && (
-                    <option value="ALL">Select All</option>
-                  )}
-                  {AVAILABLE_LANGUAGES.filter(l => !languages.includes(l)).map(l => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
+                  options={[
+                    ...(AVAILABLE_LANGUAGES.filter(l => !languages.includes(l)).length > 0 ? [{ value: 'ALL', label: 'Select All' }] : []),
+                    ...AVAILABLE_LANGUAGES.filter(l => !languages.includes(l)).map(l => ({ value: l, label: l }))
+                  ]}
+                  triggerClassName="w-full bg-transparent border-none p-1 font-body-md font-semibold text-on-surface-variant flex items-center justify-between"
+                  className="w-full min-w-[200px]"
+                />
               </div>
             </div>
             {errors.languages && <p className="text-error text-xs mt-1 font-semibold">{errors.languages}</p>}

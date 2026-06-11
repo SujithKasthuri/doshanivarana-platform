@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -20,6 +20,25 @@ export function Schedule() {
   const [endDate, setEndDate] = useState('');
   const [isPastExpanded, setIsPastExpanded] = useState(false);
   const [deactivatingSlot, setDeactivatingSlot] = useState<UISlot | null>(null);
+  
+  // Custom Dropdown states
+  const [isPoojaOpen, setIsPoojaOpen] = useState(false);
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const poojaRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (poojaRef.current && !poojaRef.current.contains(event.target as Node)) {
+        setIsPoojaOpen(false);
+      }
+      if (statusRef.current && !statusRef.current.contains(event.target as Node)) {
+        setIsStatusOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const CACHE_KEY = `schedule_cache_${templeId}`;
   const POOJA_CACHE_KEY = `pooja_cache_${templeId}`;
@@ -216,13 +235,13 @@ export function Schedule() {
       <PageHeader title="Pooja Schedule" />
       
       {/* Page Header */}
-      <div className="flex justify-between items-start mb-8 mt-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 mt-4">
         <div>
           <p className="font-sans text-on-surface-variant mt-1">Manage available dates and time slots for your temple's poojas</p>
         </div>
         <Link 
           to="/schedule/add"
-          className="bg-primary text-on-primary font-sans text-button px-6 py-3 rounded-full hover:bg-primary/90 transition-colors flex items-center gap-2 font-bold cursor-pointer"
+          className="bg-primary text-on-primary font-sans text-button px-6 py-3 rounded-full hover:bg-primary/90 transition-colors flex items-center gap-2 font-bold cursor-pointer w-full sm:w-auto justify-center"
         >
           <span className="material-symbols-outlined flex items-center justify-center">add</span>
           Add New Slot
@@ -230,32 +249,57 @@ export function Schedule() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-surface-container-lowest soft-shadow rounded-xl p-6 mb-8 border border-outline-variant/30 flex flex-wrap items-end gap-6">
-        <div className="flex-1 min-w-[200px]">
+      <div className="bg-surface-container-lowest soft-shadow rounded-xl p-4 sm:p-6 mb-8 border border-outline-variant/30 flex flex-col md:flex-row flex-wrap items-start md:items-end gap-4 sm:gap-6">
+        <div className="w-full md:flex-1 md:min-w-[200px]" ref={poojaRef}>
           <label className="block font-sans text-label-md text-on-surface-variant mb-2 font-semibold">Pooja Type</label>
-          <select 
-            className="w-full bg-surface border border-outline-variant/30 rounded-lg px-4 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-            value={selectedPooja}
-            onChange={(e) => setSelectedPooja(e.target.value)}
-          >
-            <option value="All Poojas">All Poojas</option>
-            {Object.values(poojas).map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <div 
+              className="w-full bg-surface border border-outline-variant/30 rounded-lg pl-4 pr-10 py-2 text-on-surface cursor-pointer flex items-center justify-between transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              onClick={() => {
+                setIsPoojaOpen(!isPoojaOpen);
+                setIsStatusOpen(false);
+              }}
+              tabIndex={0}
+            >
+              <span className="truncate">
+                {selectedPooja === 'All Poojas' ? 'All Poojas' : (poojas[selectedPooja]?.name || 'Unknown Pooja')}
+              </span>
+              <span className="material-symbols-outlined text-on-surface-variant pointer-events-none transition-transform" style={{ transform: isPoojaOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+            </div>
+            
+            {isPoojaOpen && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                <div 
+                  className={`px-4 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors ${selectedPooja === 'All Poojas' ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                  onClick={() => { setSelectedPooja('All Poojas'); setIsPoojaOpen(false); }}
+                >
+                  All Poojas
+                </div>
+                {Object.values(poojas).map(p => (
+                  <div 
+                    key={p.id}
+                    className={`px-4 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${selectedPooja === p.id ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                    onClick={() => { setSelectedPooja(p.id); setIsPoojaOpen(false); }}
+                  >
+                    {p.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex-1 min-w-[320px]">
+        <div className="w-full md:flex-1 md:min-w-[320px]">
           <label className="block font-sans text-label-md text-on-surface-variant mb-2 font-semibold">Date Range</label>
-          <div className="flex items-center bg-surface border border-outline-variant/30 rounded-lg focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors px-2 h-[42px]">
+          <div className="flex items-center bg-surface border border-outline-variant/30 rounded-lg focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-colors px-1 sm:px-2 h-[42px] overflow-hidden">
             <input 
-              className="w-full bg-transparent px-2 py-1 text-on-surface outline-none font-semibold text-sm" 
+              className="w-full min-w-0 bg-transparent px-1 py-1 text-on-surface outline-none font-semibold text-xs sm:text-sm" 
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
-            <span className="text-on-surface-variant mx-1 font-semibold text-sm">to</span>
+            <span className="text-on-surface-variant mx-1 font-semibold text-xs sm:text-sm flex-shrink-0">to</span>
             <input 
-              className="w-full bg-transparent px-2 py-1 text-on-surface outline-none font-semibold text-sm" 
+              className="w-full min-w-0 bg-transparent px-1 py-1 text-on-surface outline-none font-semibold text-xs sm:text-sm" 
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -263,7 +307,7 @@ export function Schedule() {
             {(startDate || endDate) && (
               <button 
                 onClick={() => { setStartDate(''); setEndDate(''); }}
-                className="material-symbols-outlined text-on-surface-variant hover:text-on-surface ml-1 p-1 rounded-full hover:bg-surface-variant/20 text-[18px] cursor-pointer"
+                className="material-symbols-outlined text-on-surface-variant hover:text-on-surface ml-1 p-1 rounded-full hover:bg-surface-variant/20 text-[18px] cursor-pointer flex-shrink-0"
                 title="Clear dates"
               >
                 close
@@ -271,22 +315,40 @@ export function Schedule() {
             )}
           </div>
         </div>
-        <div className="flex-1 min-w-[150px]">
+        <div className="w-full md:flex-1 md:min-w-[150px]" ref={statusRef}>
           <label className="block font-sans text-label-md text-on-surface-variant mb-2 font-semibold">Status</label>
-          <select 
-            className="w-full bg-surface border border-outline-variant/30 rounded-lg px-4 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-          >
-            <option>All Status</option>
-            <option>Active</option>
-            <option>Inactive</option>
-          </select>
+          <div className="relative">
+            <div 
+              className="w-full bg-surface border border-outline-variant/30 rounded-lg pl-4 pr-10 py-2 text-on-surface cursor-pointer flex items-center justify-between transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              onClick={() => {
+                setIsStatusOpen(!isStatusOpen);
+                setIsPoojaOpen(false);
+              }}
+              tabIndex={0}
+            >
+              <span className="truncate">{selectedStatus}</span>
+              <span className="material-symbols-outlined text-on-surface-variant pointer-events-none transition-transform" style={{ transform: isStatusOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
+            </div>
+            
+            {isStatusOpen && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-hidden font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                {['All Status', 'Active', 'Inactive'].map(statusOption => (
+                  <div 
+                    key={statusOption}
+                    className={`px-4 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors ${selectedStatus === statusOption ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
+                    onClick={() => { setSelectedStatus(statusOption); setIsStatusOpen(false); }}
+                  >
+                    {statusOption}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex gap-3 h-[42px]">
+        <div className="flex gap-3 w-full md:w-auto mt-2 md:mt-0">
           <button 
             className="border-2 border-primary text-primary font-sans text-button px-6 rounded-full hover:bg-primary/5 transition-colors font-bold cursor-pointer"
-            onClick={fetchScheduleData}
+            onClick={() => fetchScheduleData(false)}
           >
             Refresh
           </button>
@@ -305,8 +367,8 @@ export function Schedule() {
       </div>
 
       {/* Summary Chips */}
-      <div className="flex gap-4 mb-6">
-        <div className="bg-surface-container px-4 py-2 rounded-full border border-outline-variant/50 text-on-surface-variant font-sans text-label-md flex items-center gap-2 font-semibold">
+      <div className="flex flex-wrap gap-3 sm:gap-4 mb-6">
+        <div className="bg-surface-container px-3 sm:px-4 py-2 rounded-full border border-outline-variant/50 text-on-surface-variant font-sans text-xs sm:text-label-md flex items-center gap-2 font-semibold">
           <span className="w-2 h-2 rounded-full bg-on-surface-variant"></span> 
           Total Upcoming Slots: {filteredSlots.length}
         </div>
@@ -490,7 +552,7 @@ export function Schedule() {
             <p className="font-sans text-on-surface-variant mb-6 text-sm leading-relaxed">
               Are you sure you want to deactivate <span className="font-semibold text-on-surface">{deactivatingSlot.poojaName}</span> on <span className="font-semibold text-on-surface">{formatDateString(deactivatingSlot.date)}</span> at <span className="font-semibold text-on-surface">{deactivatingSlot.startTime}</span>? No new bookings will be accepted.
             </p>
-            <div className="flex justify-end gap-3 font-sans">
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 font-sans">
               <button 
                 onClick={() => setDeactivatingSlot(null)}
                 className="px-5 py-2 rounded-full font-button text-button text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer font-semibold"
