@@ -20,6 +20,37 @@ export default function Home() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  const [categoriesList, setCategoriesList] = useState<any[]>([
+    {
+      id: 'abhishekam',
+      titleKey: 'categories.abhishekam',
+      countKey: '12',
+      icon: require('../../assets/categories/abhishekam.png'),
+      color: '#F97316'
+    },
+    {
+      id: 'homam',
+      titleKey: 'categories.homam',
+      countKey: '8',
+      icon: require('../../assets/categories/homam.png'),
+      color: '#EF4444'
+    },
+    {
+      id: 'archana',
+      titleKey: 'categories.archana',
+      countKey: '15',
+      icon: require('../../assets/categories/archana.png'),
+      color: '#EC4899'
+    },
+    {
+      id: 'specialPoojas',
+      titleKey: 'categories.specialPoojas',
+      countKey: '10',
+      icon: require('../../assets/categories/special.png'),
+      color: '#8B5CF6'
+    }
+  ]);
+
   useEffect(() => {
     let unsubscribe: () => void = () => {};
     const fetchNotifications = async () => {
@@ -50,6 +81,33 @@ export default function Home() {
     };
     fetchNotifications();
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const snap = await firestore()
+          .collection('categories')
+          .orderBy('sortOrder', 'asc')
+          .get();
+        if (snap && !snap.empty) {
+          const list = snap.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              titleKey: data.titleKey || `categories.${doc.id}`,
+              countKey: data.countKey || data.count || '0',
+              icon: data.icon || '🪔',
+              color: data.color || '#F97316'
+            };
+          });
+          setCategoriesList(list);
+        }
+      } catch (e) {
+        // Fallback silently to static list
+      }
+    };
+    fetchCategories();
   }, []);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
@@ -332,30 +390,15 @@ export default function Home() {
           </View>
           
           <View className="flex-row flex-wrap justify-between">
-            <CategoryCard
-              title={t('categories.abhishekam')}
-              count={t('home.poojasCount').replace('{count}', '12')}
-              icon="🪔"
-              color="#F97316"
-            />
-            <CategoryCard
-              title={t('categories.homam')}
-              count={t('home.poojasCount').replace('{count}', '8')}
-              icon="🔥"
-              color="#EF4444"
-            />
-            <CategoryCard
-              title={t('categories.archana')}
-              count={t('home.poojasCount').replace('{count}', '15')}
-              icon="🌺"
-              color="#EC4899"
-            />
-            <CategoryCard
-              title={t('categories.specialPoojas')}
-              count={t('home.poojasCount').replace('{count}', '10')}
-              icon="✨"
-              color="#8B5CF6"
-            />
+            {categoriesList.map((item) => (
+              <CategoryCard
+                key={item.id}
+                title={t(item.titleKey)}
+                count={t('home.poojasCount').replace('{count}', item.countKey)}
+                icon={item.icon}
+                color={item.color}
+              />
+            ))}
           </View>
         </View>
 

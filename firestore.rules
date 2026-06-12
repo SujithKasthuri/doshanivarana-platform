@@ -165,6 +165,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     match /auditLogs/{logId} {
       allow read: if isSuperAdmin();
       allow write: if false; // Strictly CF generated
