@@ -4,6 +4,7 @@ import { db } from '../lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { db as localDb } from '../lib/db';
 
 export function Recordings() {
   const { templeId } = useAuth();
@@ -146,6 +147,12 @@ export function Recordings() {
 
       await generateAuditLog('PUBLISH_RECORDING', rec.id, `Published recording for booking ${rec.bookingId}`);
 
+      localDb.addNotification(
+        'Recording Published',
+        `Pooja recording for ${rec.poojaName} has been published. Download link sent to devotees.`,
+        '/recordings'
+      );
+
       setNotification(`Recording published! Devotees for ${rec.poojaName} have been notified.`);
       setPreviewingRec(null);
       setIsPlaying(false);
@@ -180,6 +187,12 @@ export function Recordings() {
       });
 
       await generateAuditLog('UNPUBLISH_RECORDING', rec.id, `Unpublished recording for booking ${rec.bookingId}`);
+
+      localDb.addNotification(
+        'Recording Unpublished',
+        `Pooja recording for ${rec.poojaName} has been unpublished.`,
+        '/recordings'
+      );
 
       setNotification(`Recording unpublished for ${rec.poojaName}.`);
       setPreviewingRec(null);
@@ -219,6 +232,12 @@ export function Recordings() {
               });
 
               await generateAuditLog('UPLOAD_RECORDING', rec.id, `Uploaded recording for booking ${rec.bookingId}`);
+
+              localDb.addNotification(
+                'Recording Uploaded',
+                `Manual recording upload complete for ${rec.poojaName}. Ready to publish.`,
+                '/recordings'
+              );
 
               setIsUploading(false);
               setUploadingRec(null);

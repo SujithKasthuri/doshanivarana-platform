@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useHeaderContext } from './PageHeader';
+import { db } from '../lib/db';
 
 interface LayoutProps {
   unreadNotifications?: number;
@@ -19,16 +20,51 @@ export function Layout({ unreadNotifications: legacyUnread, setUnreadNotificatio
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
+
+  const [profile, setProfile] = useState(() => db.getProfile());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setProfile(db.getProfile());
+    };
+    window.addEventListener('focus', handleUpdate);
+    window.addEventListener('doshanivarana_profile_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('focus', handleUpdate);
+      window.removeEventListener('doshanivarana_profile_updated', handleUpdate);
+    };
+  }, []);
   
-  // Demo static notifications
-  const [notifications] = useState([
-    { id: '1', title: 'New booking confirmed', message: 'Abhishek Pooja booked for tomorrow 6:00 AM.', isRead: false },
-    { id: '2', title: 'Pujari assigned', message: 'Pt. Ramesh Kumar assigned to Sahasranama at 8:00 AM.', isRead: false },
-    { id: '3', title: 'Delivery dispatched', message: '12 prasad packages dispatched to devotees.', isRead: true },
-  ]);
+  const [notifications, setNotifications] = useState(() => db.getNotifications());
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setNotifications(db.getNotifications());
+    };
+    window.addEventListener('doshanivarana_notifications_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('doshanivarana_notifications_updated', handleUpdate);
+    };
+  }, []);
+
+  const formatNotificationTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
 
   // Close mobile nav on route change
   useEffect(() => {
@@ -204,21 +240,81 @@ export function Layout({ unreadNotifications: legacyUnread, setUnreadNotificatio
             </button>
 
             {isDropdownOpen && (
-              <div className="absolute top-12 right-0 w-80 max-w-[calc(100vw-1rem)] bg-surface border border-outline-variant rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto">
-                <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low sticky top-0">
-                  <h3 className="font-bold text-on-surface">Notifications</h3>
+              <div className="absolute top-12 right-0 w-80 max-w-[calc(100vw-1rem)] bg-surface border border-outline-variant rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto flex flex-col">
+                <div className="p-3 border-b border-outline-variant flex justify-between items-center bg-surface-container-low sticky top-0 z-10">
+                  <h3 className="font-bold text-sm text-on-surface flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px] text-primary">notifications</span>
+                    Notifications
+                  </h3>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={() => db.markAllNotificationsAsRead()}
+                      className="text-[11px] text-primary hover:text-[#b04b00] font-bold hover:underline cursor-pointer"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
                 {notifications.length === 0 ? (
-                  <div className="p-4 text-center text-on-surface-variant text-sm">No notifications</div>
+                  <div className="p-8 text-center text-on-surface-variant text-xs flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-[36px] opacity-40">notifications_off</span>
+                    <span className="font-semibold">No notifications yet</span>
+                  </div>
                 ) : (
-                  <div className="divide-y divide-outline-variant/30">
+                  <div className="divide-y divide-outline-variant/30 flex-1 overflow-y-auto">
                     {notifications.map(n => (
                       <div 
                         key={n.id} 
-                        className={`p-4 hover:bg-surface-container-lowest cursor-pointer transition-colors ${!n.isRead ? 'bg-primary/5' : ''}`}
+                        onClick={() => {
+                          if (!n.isRead) {
+                            db.markNotificationAsRead(n.id);
+                          }
+                          if (n.redirectTo) {
+                            navigate(n.redirectTo);
+                            setIsDropdownOpen(false);
+                          }
+                        }}
+                        className={`p-3 relative group hover:bg-surface-container-low/40 cursor-pointer transition-colors flex gap-2.5 items-start ${!n.isRead ? 'bg-primary/5 border-l-2 border-primary' : 'pl-[14px]'}`}
                       >
-                        <p className={`text-sm ${!n.isRead ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}>{n.title}</p>
-                        <p className="text-xs text-on-surface-variant mt-1">{n.message}</p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <p className={`text-xs leading-snug break-words ${!n.isRead ? 'font-bold text-on-surface' : 'font-medium text-on-surface-variant'}`}>
+                              {n.title}
+                            </p>
+                            <span className="text-[9px] text-on-surface-variant font-semibold shrink-0 whitespace-nowrap">
+                              {formatNotificationTime(n.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-on-surface-variant mt-1 leading-normal break-words font-medium">
+                            {n.message}
+                          </p>
+                        </div>
+                        
+                        {/* Hover Actions */}
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {!n.isRead && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                db.markNotificationAsRead(n.id);
+                              }}
+                              className="p-0.5 text-on-surface-variant hover:text-green-600 hover:bg-surface-container rounded-full transition-colors flex items-center justify-center cursor-pointer"
+                              title="Mark as read"
+                            >
+                              <span className="material-symbols-outlined text-[15px]">done</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              db.clearNotification(n.id);
+                            }}
+                            className="p-0.5 text-on-surface-variant hover:text-red-600 hover:bg-surface-container rounded-full transition-colors flex items-center justify-center cursor-pointer"
+                            title="Dismiss"
+                          >
+                            <span className="material-symbols-outlined text-[15px]">close</span>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -226,13 +322,25 @@ export function Layout({ unreadNotifications: legacyUnread, setUnreadNotificatio
               </div>
             )}
             
-            <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold overflow-hidden border border-outline-variant">
-              <img 
-                alt="Ravi" 
-                className="w-full h-full object-cover" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQt4Zty_Yhgfp3V5PbaeQu19XiDkNsQjIkHmoV-eLOMipGZMy9N798LURF6hkO4wvoi842jdTzA5DGidB45engunywTEi5FStUUMn7P3PgTlI1jcMZacpQCM4JNoGX5B2fHk9TsT861sLv-3xO0ipE23BRHi1nXnGakpKnx8KcfhuKxhynE2XC_wLXdaXAEYngPO_BMcbs6XS_6inJNpIvkHcuZXgEVbCtpz49t38Iih2_GKkzwfArnlk-YILE6AjqPokbj_wdLe9s"
-              />
-            </div>
+            <Link 
+              to="/profile" 
+              className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold overflow-hidden border border-outline-variant transition-transform hover:scale-105"
+            >
+              {profile.photoUrl ? (
+                <img 
+                  alt={profile.fullName} 
+                  className="w-full h-full object-cover" 
+                  src={profile.photoUrl}
+                />
+              ) : (
+                (() => {
+                  const nameParts = (profile.fullName || '').trim().split(/\s+/);
+                  return nameParts.length >= 2 
+                    ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+                    : (nameParts[0][0] || 'RK').toUpperCase();
+                })()
+              )}
+            </Link>
             <button 
               onClick={handleLogout}
               className="p-2 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-full cursor-pointer"

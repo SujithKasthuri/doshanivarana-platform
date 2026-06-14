@@ -32,6 +32,7 @@ export function PoojaReadiness() {
   const booking = db.getBookingById(bookingId) || db.getBookings()[0];
 
   const [items, setItems] = useState<ChecklistItem[]>(() => db.getReadinessChecklist(bookingId));
+  const [listSubmitted, setListSubmitted] = useState(() => db.getPujariListSubmitted(bookingId));
 
   const saveItems = (updated: ChecklistItem[]) => {
     setItems(updated);
@@ -41,6 +42,28 @@ export function PoojaReadiness() {
   const [customItemName, setCustomItemName] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+
+  const handleSendReminder = () => {
+    db.addNotification(
+      'Pujari Reminder Sent',
+      `Reminder SMS dispatched to Pt. ${booking?.pujari || 'assigned Pujari'} for materials list submission.`,
+      `/pooja-readiness/${bookingId}`
+    );
+    setNotification('Reminder sent to Pujari!');
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const handleUploadListSimulate = () => {
+    db.savePujariListSubmitted(bookingId, true);
+    setListSubmitted(true);
+    db.addNotification(
+      'Materials List Submitted',
+      `Pt. ${booking?.pujari || 'assigned Pujari'} submitted the materials list for booking ${bookingId}.`,
+      `/pooja-readiness/${bookingId}`
+    );
+    setNotification('Materials list uploaded successfully!');
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   const toggleItem = (itemId: string) => {
     const updated = items.map(item => 
@@ -82,6 +105,11 @@ export function PoojaReadiness() {
   };
 
   const handleConfirmReady = () => {
+    db.addNotification(
+      'Pooja Readiness Confirmed',
+      `All materials for ${booking?.poojaName || 'Pooja'} slot (${booking?.dateTime}) have been physically verified.`,
+      `/pooja-readiness/${bookingId}`
+    );
     setNotification('Pooja readiness confirmed!');
     setTimeout(() => {
       navigate(`/stream-readiness/${bookingId}`);
@@ -89,6 +117,11 @@ export function PoojaReadiness() {
   };
 
   const handleFlagNotReady = () => {
+    db.addNotification(
+      'Pooja Flagged Not Ready',
+      `⚠️ Alert: Pooja readiness flagged as NOT ready for slot (${booking?.dateTime}).`,
+      `/pooja-readiness/${bookingId}`
+    );
     setNotification('Pooja flagged as NOT ready.');
     setTimeout(() => setNotification(null), 3000);
   };
@@ -165,27 +198,57 @@ export function PoojaReadiness() {
               </h4>
               <div className="flex items-center gap-2 font-bold">
                 <span className="text-label-md text-on-surface-variant uppercase tracking-wider">Status:</span>
-                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs uppercase flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">check_circle</span>
-                  Yes, Submitted
-                </div>
+                {listSubmitted ? (
+                  <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs uppercase flex items-center gap-1 font-bold">
+                    <span className="material-symbols-outlined text-xs">check_circle</span>
+                    Yes, Submitted
+                  </div>
+                ) : (
+                  <div className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs uppercase flex items-center gap-1 font-bold border border-amber-200">
+                    <span className="material-symbols-outlined text-xs">warning</span>
+                    Pending
+                  </div>
+                )}
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/30 gap-4">
-              <div>
-                <p className="text-body-sm text-on-surface-variant font-medium">Submission Timestamp</p>
-                <p className="text-body-md font-bold text-on-surface">12 May 2026 at 4:30 PM</p>
+            {listSubmitted ? (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-surface-container-low rounded-lg border border-outline-variant/30 gap-4">
+                <div>
+                  <p className="text-body-sm text-on-surface-variant font-medium">Submission Timestamp</p>
+                  <p className="text-body-md font-bold text-on-surface">12 May 2026 at 4:30 PM</p>
+                </div>
+                <a 
+                  href="#" 
+                  onClick={(e) => { e.preventDefault(); setNotification('Opening materials checklist PDF...'); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest border border-primary text-primary rounded-full hover:bg-primary/5 transition-colors font-button text-button font-bold"
+                >
+                  <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                  View PDF List
+                </a>
               </div>
-              <a 
-                href="#" 
-                onClick={(e) => { e.preventDefault(); setNotification('Opening materials checklist PDF...'); }}
-                className="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest border border-primary text-primary rounded-full hover:bg-primary/5 transition-colors font-button text-button font-bold"
-              >
-                <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                View PDF List
-              </a>
-            </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-amber-50/50 rounded-lg border border-amber-200/50 gap-4 font-semibold text-body-sm">
+                <div className="text-on-surface-variant leading-relaxed">
+                  <p className="font-bold text-amber-800">Materials list has not been submitted yet.</p>
+                  <p className="text-xs font-medium">Send a reminder to Pujari or upload the list on their behalf.</p>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto font-bold shrink-0">
+                  <button 
+                    onClick={handleSendReminder}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-[#ea5c00] hover:bg-[#b04b00] text-white rounded-full transition-colors font-button text-button shadow-sm cursor-pointer"
+                  >
+                    Send Reminder
+                  </button>
+                  <button 
+                    onClick={handleUploadListSimulate}
+                    className="flex-1 sm:flex-none px-4 py-2 border-2 border-primary text-primary hover:bg-primary/5 rounded-full transition-colors font-button text-button cursor-pointer"
+                  >
+                    Upload List
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Materials Readiness Checklist Card */}

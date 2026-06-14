@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/PageHeader';
 import { CustomSelect } from '../components/CustomSelect';
+import { db as localDb } from '../lib/db';
 
 export function LiveStream() {
   const { templeId } = useAuth();
@@ -131,6 +132,11 @@ export function LiveStream() {
       setViewers(12);
       setStreamHealth('Excellent');
       setStreamState('live');
+      localDb.addNotification(
+        'Live Stream Started',
+        `Live broadcast started for ${booking.poojaName} (${booking.id}). Devotees have been notified.`,
+        '/live-stream'
+      );
       setNotification('Live broadcast started successfully!');
       setTimeout(() => setNotification(null), 3000);
     } catch (e) {
@@ -214,6 +220,11 @@ export function LiveStream() {
         details: `Stream ${activeStreamId} ended for booking ${booking.id}`
       });
 
+      localDb.addNotification(
+        'Live Stream Ended',
+        `Live broadcast ended for ${booking.poojaName} (${booking.id}). Recording saved.`,
+        '/recordings'
+      );
       if (notify) {
         setNotification('Devotees notified with the recording link!');
       } else {

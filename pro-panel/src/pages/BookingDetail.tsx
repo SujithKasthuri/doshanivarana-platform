@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import type { Booking } from '@devaseva/core';
 import { PageHeader } from '../components/PageHeader';
 import { CustomSelect } from '../components/CustomSelect';
+import { db as localDb } from '../lib/db';
 
 export function BookingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -68,6 +69,11 @@ export function BookingDetail() {
         });
 
         setBooking({ ...booking, scheduledDate: updatedDate, scheduledTime: updatedTime, rescheduleRequest: null });
+        localDb.addNotification(
+          'Reschedule Approved',
+          `Reschedule request approved for booking ${booking.id}. New slot: ${updatedDate} at ${updatedTime}.`,
+          `/bookings/${booking.id}`
+        );
         setNotification('Reschedule request approved!');
         setTimeout(() => setNotification(null), 3000);
       } catch (e) {
@@ -99,6 +105,11 @@ export function BookingDetail() {
         });
 
         setBooking({ ...booking, rescheduleRequest: null });
+        localDb.addNotification(
+          'Reschedule Rejected',
+          `Reschedule request rejected for booking ${booking.id}.`,
+          `/bookings/${booking.id}`
+        );
         setNotification('Reschedule request rejected.');
         setTimeout(() => setNotification(null), 3000);
       } catch (e) {
@@ -115,6 +126,11 @@ export function BookingDetail() {
           updatedAt: serverTimestamp()
         });
         setBooking({ ...booking, priestName: selectedPujari });
+        localDb.addNotification(
+          'Pujari Assigned',
+          `Pt. ${selectedPujari} has been assigned to booking ${booking.id} (${booking.poojaId || 'Pooja'}).`,
+          `/bookings/${booking.id}`
+        );
         setNotification('Pujari assigned successfully!');
         setTimeout(() => setNotification(null), 3000);
       } catch (e) {

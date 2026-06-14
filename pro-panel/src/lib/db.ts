@@ -134,6 +134,51 @@ export interface ProProfile {
   prefPush2?: boolean;
 }
 
+export interface ProNotification {
+  id: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  redirectTo?: string;
+}
+
+const LOCAL_STORAGE_KEY = 'doshanivarana_pro_notifications';
+const pujariListSubmittedMap: Record<string, boolean> = {};
+
+let notifications: ProNotification[] = [];
+
+// Helper to load notifications
+const loadNotifications = (): ProNotification[] => {
+  if (typeof window === 'undefined') return [];
+  const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      // Ignore parsing errors
+    }
+  }
+  // Default initial notifications if none saved
+  const initial = [
+    { id: '1', title: 'New booking confirmed', message: 'Abhishek Pooja booked for tomorrow 6:00 AM.', isRead: false, createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), redirectTo: '/bookings/BK-1001' },
+    { id: '2', title: 'Pujari assigned', message: 'Pt. Ramesh Kumar assigned to Sahasranama at 8:00 AM.', isRead: false, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), redirectTo: '/bookings/BK-1002' },
+    { id: '3', title: 'Delivery dispatched', message: '12 prasad packages dispatched to devotees.', isRead: true, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), redirectTo: '/deliveries' },
+  ];
+  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initial));
+  return initial;
+};
+
+notifications = loadNotifications();
+
+const saveNotifications = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(notifications));
+    window.dispatchEvent(new Event('doshanivarana_notifications_updated'));
+  }
+};
+
+
 // ─── Default Checklist ───────────────────────────────────────────────────────
 const DEFAULT_CHECKLIST: ChecklistItem[] = [
   { id: 'c1', label: 'Confirm pooja items are ready', ready: false, category: 'Preparation' },
@@ -441,6 +486,45 @@ export const db = {
     profile = { ...profile, ...update };
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('doshanivarana_profile_updated'));
+    }
+  },
+
+  // ─── Notifications ────────────────────────────────────────────────────────
+  getNotifications: () => [...notifications],
+  addNotification: (title: string, message: string, redirectTo?: string) => {
+    const newNotif: ProNotification = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      title,
+      message,
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      redirectTo
+    };
+    notifications.unshift(newNotif);
+    saveNotifications();
+    return newNotif;
+  },
+  markNotificationAsRead: (id: string) => {
+    notifications = notifications.map(n => n.id === id ? { ...n, isRead: true } : n);
+    saveNotifications();
+  },
+  markAllNotificationsAsRead: () => {
+    notifications = notifications.map(n => ({ ...n, isRead: true }));
+    saveNotifications();
+  },
+  clearNotification: (id: string) => {
+    notifications = notifications.filter(n => n.id !== id);
+    saveNotifications();
+  },
+
+  // ─── Pujari Materials Submission Status ────────────────────────────────────
+  getPujariListSubmitted: (bookingId: string): boolean => {
+    return pujariListSubmittedMap[bookingId] ?? false;
+  },
+  savePujariListSubmitted: (bookingId: string, submitted: boolean) => {
+    pujariListSubmittedMap[bookingId] = submitted;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('doshanivarana_pujari_materials_updated'));
     }
   }
 };

@@ -81,6 +81,11 @@ export function StreamReadiness() {
   const handleConfirmStage3 = () => {
     if (!isStage3Complete) return;
     saveState(4, stage3, stage4);
+    db.addNotification(
+      'Stream Readiness Gate',
+      `Stage 3 Complete: Test stream completed successfully for ${booking?.poojaName || 'Pooja'}.`,
+      `/stream-readiness/${bookingId}`
+    );
     setNotification('Stage 3 Complete! Stage 4 is now unlocked.');
     setTimeout(() => setNotification(null), 3000);
   };
@@ -88,6 +93,11 @@ export function StreamReadiness() {
   const handleConfirmStage4 = () => {
     if (!isStage4Complete) return;
     saveState(5, stage3, stage4);
+    db.addNotification(
+      'Stream Readiness Gate',
+      `Stage 4 Complete: Readiness handshake OK. Live stream unlocked for ${booking?.poojaName || 'Pooja'}.`,
+      `/stream-readiness/${bookingId}`
+    );
     setNotification('All stages completed! Live stream is now active.');
     setTimeout(() => setNotification(null), 3000);
   };

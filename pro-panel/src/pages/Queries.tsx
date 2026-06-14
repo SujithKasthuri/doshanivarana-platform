@@ -40,6 +40,12 @@ export function Queries() {
     db.updateQuery(updatedQuery);
     setQueries(prev => prev.map(q => q.id === activeQuery.id ? updatedQuery : q));
 
+    db.addNotification(
+      'Query Replied',
+      `Sent reply to devotee ${activeQuery.devoteeName} for thread ${activeQuery.id}.`,
+      '/queries'
+    );
+
     setReplyText('');
     setNotification('Reply sent successfully!');
     setTimeout(() => setNotification(null), 3000);
@@ -53,6 +59,11 @@ export function Queries() {
     };
     db.updateQuery(updatedQuery);
     setQueries(prev => prev.map(q => q.id === activeQuery.id ? updatedQuery : q));
+    db.addNotification(
+      'Query Closed',
+      `Query thread ${activeQuery.id} from ${activeQuery.devoteeName} marked as Closed.`,
+      '/queries'
+    );
     setNotification('Query marked as Closed.');
     setTimeout(() => setNotification(null), 3000);
   };
@@ -368,6 +379,11 @@ export function Queries() {
                       const updatedQuery: DevoteeQuery = { ...activeQuery, status: 'Open' };
                       db.updateQuery(updatedQuery);
                       setQueries(prev => prev.map(q => q.id === activeQuery.id ? updatedQuery : q));
+                      db.addNotification(
+                        'Query Reopened',
+                        `Query thread ${activeQuery.id} from ${activeQuery.devoteeName} has been reopened.`,
+                        '/queries'
+                      );
                       setNotification('Query reopened.');
                       setTimeout(() => setNotification(null), 3000);
                     }}

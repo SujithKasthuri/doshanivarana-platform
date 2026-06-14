@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/PageHeader';
 import { CustomSelect } from '../components/CustomSelect';
+import { db as localDb } from '../lib/db';
 
 interface DeliveryDetailData {
   id: string;
@@ -135,6 +136,12 @@ export function DeliveryDetail() {
         createdAt: serverTimestamp()
       });
 
+      localDb.addNotification(
+        'Delivery Packed',
+        `Prasad parcel for booking ${delivery.bookingId} is marked as Packed.`,
+        `/deliveries/${id}`
+      );
+
       setNotification('Parcel marked as Packed!');
       setTimeout(() => setNotification(null), 3000);
     } catch (e) {
@@ -181,6 +188,12 @@ export function DeliveryDetail() {
         details: `Delivery ${id} marked as SHIPPED with tracking ${trackingNumber}`,
         createdAt: serverTimestamp()
       });
+
+      localDb.addNotification(
+        'Delivery Dispatched',
+        `Prasad parcel for booking ${delivery.bookingId} has been shipped via ${courier} (AWB: ${trackingNumber}).`,
+        `/deliveries/${id}`
+      );
 
       setShowSuccessOverlay(true);
     } catch (e) {
