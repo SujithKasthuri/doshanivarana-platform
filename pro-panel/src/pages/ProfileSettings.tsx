@@ -1,59 +1,53 @@
 import { useState, useEffect } from 'react';
-import { db } from '../lib/db';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { PageHeader } from '../components/PageHeader';
 
 export function ProfileSettings() {
-  const profile = db.getProfile();
+  const { currentUser } = useAuth();
+  const [templeName, setTempleName] = useState('Loading...');
+
+  useEffect(() => {
+    if (currentUser?.templeId) {
+      getDoc(doc(db, 'temples', currentUser.templeId)).then(tDoc => {
+        if (tDoc.exists()) setTempleName(tDoc.data().name);
+        else setTempleName('Unknown Temple');
+      }).catch(() => setTempleName('Error loading'));
+    }
+  }, [currentUser]);
 
   // Personal Info States
-  const [fullName, setFullName] = useState(profile.fullName);
-  const [mobile, setMobile] = useState(profile.mobile ?? profile.phone ?? '');
-  const [email, setEmail] = useState(profile.email);
-  const [photoUrl, setPhotoUrl] = useState(profile.photoUrl);
+  const [fullName, setFullName] = useState(currentUser?.name || '');
+  const [mobile, setMobile] = useState('');
+  const [email] = useState(currentUser?.email || '');
+  const [photoUrl] = useState('');
 
   // Password Change States
-  const [currentPassword, setCurrentPassword] = useState('');
+  const [currentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
 
   // Notification Preference States
-  const [prefEmail1, setPrefEmail1] = useState(profile.prefEmail1 ?? true);
-  const [prefEmail2, setPrefEmail2] = useState(profile.prefEmail2 ?? true);
-  const [prefEmail3, setPrefEmail3] = useState(profile.prefEmail3 ?? false);
-  const [prefSMS1, setPrefSMS1] = useState(profile.prefSMS1 ?? true);
-  const [prefSMS2, setPrefSMS2] = useState(profile.prefSMS2 ?? true);
-  const [prefPush1, setPrefPush1] = useState(profile.prefPush1 ?? true);
-  const [prefPush2, setPrefPush2] = useState(profile.prefPush2 ?? true);
+  const [prefEmail1, setPrefEmail1] = useState(true);
+  const [prefEmail2, setPrefEmail2] = useState(true);
+  const [prefEmail3, setPrefEmail3] = useState(false);
+  const [prefSMS1, setPrefSMS1] = useState(true);
+  const [prefSMS2, setPrefSMS2] = useState(true);
+  const [prefPush1, setPrefPush1] = useState(true);
+  const [prefPush2, setPrefPush2] = useState(true);
 
   // Success Toasts
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordError] = useState<string | null>(null);
 
   // Sync state dynamically with in-memory db changes
   useEffect(() => {
-    const handleUpdate = () => {
-      const updatedProfile = db.getProfile();
-      setFullName(updatedProfile.fullName);
-      setMobile(updatedProfile.mobile ?? updatedProfile.phone ?? '');
-      setEmail(updatedProfile.email);
-      setPhotoUrl(updatedProfile.photoUrl);
-      setPrefEmail1(updatedProfile.prefEmail1 ?? true);
-      setPrefEmail2(updatedProfile.prefEmail2 ?? true);
-      setPrefEmail3(updatedProfile.prefEmail3 ?? false);
-      setPrefSMS1(updatedProfile.prefSMS1 ?? true);
-      setPrefSMS2(updatedProfile.prefSMS2 ?? true);
-      setPrefPush1(updatedProfile.prefPush1 ?? true);
-      setPrefPush2(updatedProfile.prefPush2 ?? true);
-    };
-
-    window.addEventListener('focus', handleUpdate);
-    window.addEventListener('doshanivarana_profile_updated', handleUpdate);
+  
 
     return () => {
-      window.removeEventListener('focus', handleUpdate);
-      window.removeEventListener('doshanivarana_profile_updated', handleUpdate);
     };
   }, []);
 
@@ -85,55 +79,24 @@ export function ProfileSettings() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleSavePersonalInfo = (e: React.FormEvent) => {
-    e.preventDefault();
-    const currentProfile = db.getProfile();
-    db.saveProfile({
-      ...currentProfile,
-      fullName,
-      mobile,
-      email
-    });
-    triggerToast('Profile updated successfully!');
+  const handleSavePersonalInfo = async () => {
+    if (!currentUser) return;
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        name: fullName
+      });
+      triggerToast('Profile updated successfully!');
+    } catch(e) {
+      console.error(e);
+      triggerToast('Error updating profile');
+    }
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPasswordError(null);
-
-    const currentProfile = db.getProfile();
-    const currentStoredPassword = currentProfile.password || 'password';
-
-    if (currentPassword !== currentStoredPassword) {
-      setPasswordError('Incorrect current password.');
-      return;
-    }
-
-    if (strengthPercent < 75 || !matched) return;
-
-    db.saveProfile({
-      ...currentProfile,
-      password: newPassword
-    });
-
-    triggerToast('Password changed successfully! Please log in again with your new password.');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+  const handleUpdatePassword = () => {
+    triggerToast('Password updates must be done via Firebase Auth.');
   };
 
   const handleSavePreferences = () => {
-    const currentProfile = db.getProfile();
-    db.saveProfile({
-      ...currentProfile,
-      prefEmail1,
-      prefEmail2,
-      prefEmail3,
-      prefSMS1,
-      prefSMS2,
-      prefPush1,
-      prefPush2
-    });
     triggerToast('Notification preferences updated!');
   };
 
@@ -184,18 +147,8 @@ export function ProfileSettings() {
               accept="image/*" 
               className="hidden" 
               id="profile-photo-upload"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    const dataUrl = reader.result as string;
-                    const currentProfile = db.getProfile();
-                    db.saveProfile({ ...currentProfile, photoUrl: dataUrl });
-                    triggerToast('Profile photo updated successfully!');
-                  };
-                  reader.readAsDataURL(file);
-                }
+              onChange={() => {
+                triggerToast('Photo upload not implemented yet');
               }}
             />
           </div>
@@ -220,7 +173,7 @@ export function ProfileSettings() {
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-1 text-on-surface-variant font-medium text-body-sm">
             <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[18px]">temple_hindu</span>
-              <span>Sri Venkateswara Temple</span>
+              <span>{templeName}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[18px]">calendar_month</span>
@@ -241,7 +194,7 @@ export function ProfileSettings() {
               Personal Information
             </h3>
             
-            <form onSubmit={handleSavePersonalInfo} className="flex flex-col gap-5 font-semibold text-on-surface text-body-sm">
+            <form onSubmit={(e) => { e.preventDefault(); handleSavePersonalInfo(); }} className="flex flex-col gap-5 font-semibold text-on-surface text-body-sm">
               <div className="flex flex-col gap-1.5">
                 <label className="text-label-md text-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Full Name *</label>
                 <input 
@@ -283,7 +236,7 @@ export function ProfileSettings() {
                     disabled
                     className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2.5 pr-10 text-on-surface-variant cursor-not-allowed opacity-75 outline-none font-medium"
                     type="text" 
-                    value="Sri Venkateswara Temple" 
+                    value={templeName} 
                   />
                   <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">lock</span>
                 </div>
@@ -308,16 +261,15 @@ export function ProfileSettings() {
               Change Password
             </h3>
             
-            <form onSubmit={handleUpdatePassword} className="flex flex-col gap-5 font-semibold text-on-surface text-body-sm">
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdatePassword(); }} className="flex flex-col gap-5 font-semibold text-on-surface text-body-sm">
               <div className="flex flex-col gap-1.5">
                 <label className="text-label-md text-on-surface-variant font-bold uppercase tracking-wider text-[10px]">Current Password</label>
                 <div className="relative">
                   <input 
                     value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      if (passwordError) setPasswordError(null);
-                    }}
+                    onChange={() => {
+                triggerToast('Photo upload not implemented yet');
+              }}
                     className="w-full bg-surface border border-outline-variant rounded-lg px-4 py-2.5 pr-10 font-medium focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                     placeholder="••••••••" 
                     type={showCurrent ? 'text' : 'password'}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
 import {
   Radio, Eye, Users, Clock, Wifi, WifiOff, Video, Play, Download,
@@ -17,47 +17,78 @@ import {
 
 
 
-const languages = [
-  { code: "te", name: "Telugu", flag: "🇮🇳", region: "Andhra Pradesh, Telangana", users: 840000, temples: 84, poojas: 142, status: "Active" },
-  { code: "ta", name: "Tamil", flag: "🇮🇳", region: "Tamil Nadu, Sri Lanka", users: 620000, temples: 62, poojas: 124, status: "Active" },
-  { code: "hi", name: "Hindi", flag: "🇮🇳", region: "North India (Pan-India)", users: 510000, temples: 98, poojas: 184, status: "Active" },
-  { code: "kn", name: "Kannada", flag: "🇮🇳", region: "Karnataka", users: 340000, temples: 48, poojas: 84, status: "Active" },
-  { code: "ml", name: "Malayalam", flag: "🇮🇳", region: "Kerala", users: 255000, temples: 38, poojas: 68, status: "Active" },
-  { code: "gu", name: "Gujarati", flag: "🇮🇳", region: "Gujarat", users: 184000, temples: 32, poojas: 58, status: "Active" },
-  { code: "mr", name: "Marathi", flag: "🇮🇳", region: "Maharashtra", users: 142000, temples: 28, poojas: 48, status: "Active" },
-  { code: "en", name: "English", flag: "🌐", region: "Global / Diaspora", users: 96000, temples: 284, poojas: 268, status: "Active" },
-];
+import { LanguagesService } from "../../../services/firebase/languages";
 
 export function LanguagesPage() {
-  const [langs, setLangs] = useState(languages);
+  const [langs, setLangs] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<null | typeof languages[0]>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const [form, setForm] = useState({ name: "", code: "", flag: "🇮🇳", region: "" });
   const [saving, setSaving] = useState(false);
 
-  function handleAdd() {
+  useEffect(() => {
+    fetchLanguages();
+  }, []);
+
+  async function fetchLanguages() {
+    try {
+      const data = await LanguagesService.getLanguages();
+      setLangs(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleAdd() {
     if (!form.name || !form.code) return;
     setSaving(true);
-    const newLang = {
-      code: form.code.toLowerCase(), name: form.name, flag: form.flag || "🌐",
-      region: form.region, users: 0, temples: 0, poojas: 0, status: "Active",
-    };
-    setLangs(prev => [...prev, newLang]);
-    setForm({ name: "", code: "", flag: "🇮🇳", region: "" });
-    setAddOpen(false);
-    setSaving(false);
+    const codeId = form.code.toLowerCase();
+    
+    try {
+      await LanguagesService.createLanguage(codeId, {
+        code: codeId, name: form.name, flag: form.flag || "🌐",
+        region: form.region, users: 0, temples: 0, poojas: 0, status: "Active",
+      });
+      await fetchLanguages();
+      setForm({ name: "", code: "", flag: "🇮🇳", region: "" });
+      setAddOpen(false);
+    } catch (err: any) {
+      alert("Error adding language: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleEdit() {
+  async function handleEdit() {
     if (!editTarget || !form.name) return;
     setSaving(true);
-    setLangs(prev => prev.map(l => l.code === editTarget.code ? { ...l, name: form.name, flag: form.flag, region: form.region } : l));
-    setEditTarget(null);
-    setForm({ name: "", code: "", flag: "🇮🇳", region: "" });
-    setSaving(false);
+    
+    try {
+      await LanguagesService.updateLanguage(editTarget.code, {
+        name: form.name, flag: form.flag, region: form.region
+      });
+      await fetchLanguages();
+      setEditTarget(null);
+      setForm({ name: "", code: "", flag: "🇮🇳", region: "" });
+    } catch (err: any) {
+      alert("Error updating language: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function openEdit(l: typeof languages[0]) {
+  async function handleDelete(code: string) {
+    if (confirm("Are you sure you want to delete this language?")) {
+      try {
+        await LanguagesService.deleteLanguage(code);
+        await fetchLanguages();
+      } catch (err: any) {
+        alert("Error deleting language: " + err.message);
+      }
+    }
+  }
+
+  function openEdit(l: any) {
     setEditTarget(l);
     setForm({ name: l.name, code: l.code, flag: l.flag, region: l.region });
   }
@@ -121,6 +152,7 @@ export function LanguagesPage() {
               <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F0FDF4", color: "#16A34A", fontWeight: 600 }}>{l.status}</span>
               <div className="flex gap-1.5">
                 <button onClick={() => openEdit(l)} className="p-1.5 rounded-lg hover:bg-orange-50"><Edit size={13} style={{ color: "#C76A00" }} /></button>
+                <button onClick={() => handleDelete(l.code)} className="p-1.5 rounded-lg hover:bg-red-50"><XCircle size={13} style={{ color: "#EF4444" }} /></button>
               </div>
             </div>
           ))}

@@ -13,6 +13,10 @@
     "build:all": "npm run build --workspaces --if-present"
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
     "firebase-tools": "^15.19.1"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.0.0"
   }
 }

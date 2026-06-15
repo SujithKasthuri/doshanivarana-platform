@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, Edit, RefreshCcw, ChevronDown, Calendar, Building2, Package, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
-import { Modal, ModalFooter } from "../Modal";
+import { Search, Filter, Download, Eye, Edit, RefreshCcw, ChevronDown, Calendar, Building2, Package, CheckCircle, Clock, XCircle, Plus } from "lucide-react";
+import { Modal, Field, ModalFooter, inputCls, selectStyle, inputStyle } from "../Modal";
+import { BookingsService } from "../../../services/firebase/bookings";
+import { SlotsService } from "../../../services/firebase/slots";
+import { formatTimestamp, toDateObj } from "../../../services/firebase/core";
+import { TemplesService } from "../../../services/firebase/temples";
+import { PoojasService } from "../../../services/firebase/poojas";
 
 const statusConfig: Record<string, { bg: string; color: string; icon: typeof CheckCircle }> = {
   Confirmed: { bg: "#EFF6FF", color: "#2563EB", icon: CheckCircle },
@@ -24,51 +29,99 @@ const paymentConfig: Record<string, { bg: string; color: string }> = {
   Refunded: { bg: "#FFF1F2", color: "#DC2626" },
 };
 
-const defaultBookings = [
-  { id: "BK-8421", devotee: "Rajesh Kumar", temple: "Kashi Vishwanath", pooja: "Rudrabhishek", date: "15 Jun 2026", amount: "₹2,100", delivery: "Pending", status: "Confirmed", payment: "Paid", lang: "Sanskrit" },
-  { id: "BK-8420", devotee: "Priya Menon", temple: "Meenakshi Amman", pooja: "Archana", date: "12 Jun 2026", amount: "₹501", delivery: "Not Required", status: "Completed", payment: "Paid", lang: "Tamil" },
-  { id: "BK-8419", devotee: "Ankit Sharma", temple: "Somnath", pooja: "Maha Abhishek", date: "16 Jun 2026", amount: "₹5,100", delivery: "Pending", status: "Confirmed", payment: "Pending", lang: "Hindi" },
-  { id: "BK-8418", devotee: "Sushma Reddy", temple: "Tirumala Tirupati", pooja: "Kalyanotsavam", date: "14 Jun 2026", amount: "₹1,500", delivery: "Dispatched", status: "Completed", payment: "Paid", lang: "Telugu" },
-  { id: "BK-8417", devotee: "Deepak Joshi", temple: "Sabarimala", pooja: "Mandala Pooja", date: "20 Jun 2026", amount: "₹3,500", delivery: "Pending", status: "Confirmed", payment: "Paid", lang: "Malayalam" },
-  { id: "BK-8416", devotee: "Kavitha N", temple: "Kedarnath", pooja: "Abhishek", date: "11 Jun 2026", amount: "₹1,100", delivery: "Not Required", status: "Cancelled", payment: "Refunded", lang: "Hindi" },
-  { id: "BK-8415", devotee: "Suresh Pillai", temple: "Padmanabhaswamy", pooja: "Navakabhishekam", date: "18 Jun 2026", amount: "₹2,500", delivery: "Pending", status: "Pending", payment: "Pending", lang: "Malayalam" },
-  { id: "BK-8414", devotee: "Neha Gupta", temple: "Vaishno Devi", pooja: "Aarti Seva", date: "19 Jun 2026", amount: "₹1,100", delivery: "Not Required", status: "Confirmed", payment: "Paid", lang: "Hindi" },
-];
-
-const LS_KEY = "demo_bookings";
-
-function loadBookings() {
-  try {
-    const stored = localStorage.getItem(LS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
-  return defaultBookings;
-}
-
-function saveBookings(data: any) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-}
-
 export function Bookings() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [page, setPage] = useState(1);
-  const [bookings, setBookings] = useState(loadBookings);
+  
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [slots, setSlots] = useState<any[]>([]);
+  const [temples, setTemples] = useState<any[]>([]);
+  const [poojas, setPoojas] = useState<any[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<any | null>(null);
 
+  const [addOpen, setAddOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const emptyForm = {
+    devoteeName: "",
+    devoteeEmail: "",
+    slotId: "",
+    amount: "501",
+    paymentStatus: "Pending",
+  };
+  const [form, setForm] = useState(emptyForm);
+
   useEffect(() => {
-    saveBookings(bookings);
-  }, [bookings]);
+    const unsubBookings = BookingsService.subscribeToBookings(setBookings);
+    const unsubSlots = SlotsService.subscribeToSlots(setSlots);
+    const unsubTemples = TemplesService.subscribeToTemples(setTemples);
+    const unsubPoojas = PoojasService.subscribeToPoojas(setPoojas);
+    return () => {
+      unsubBookings();
+      unsubSlots();
+      unsubTemples();
+      unsubPoojas();
+    };
+  }, []);
 
   const filtered = bookings.filter((b: any) => {
     const matchSearch =
-      b.id.toLowerCase().includes(search.toLowerCase()) ||
-      b.devotee.toLowerCase().includes(search.toLowerCase()) ||
-      b.temple.toLowerCase().includes(search.toLowerCase()) ||
-      b.pooja.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "All" || b.status === statusFilter;
+      (b.bookingNumber || "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.devoteeName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.templeName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.poojaName || "").toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "All" || b.bookingStatus === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  const availableSlots = slots.filter(s => s.status !== "Full" && s.status !== "Cancelled");
+
+  async function handleAdd() {
+    if (!form.devoteeName || !form.slotId) {
+      setErrorMsg("Please fill required fields.");
+      return;
+    }
+    setSaving(true);
+    setErrorMsg("");
+    try {
+      const slot = slots.find(s => s.id === form.slotId);
+      if (!slot) throw new Error("Slot not found");
+
+      const newId = `BK_${Date.now()}`;
+      await BookingsService.createBooking(newId, {
+        userId: "GUEST",
+        devoteeName: form.devoteeName,
+        devoteeEmail: form.devoteeEmail,
+        slotId: slot.id,
+        templeId: slot.templeId,
+        templeName: temples.find(t => t.id === slot.templeId)?.name || "Unknown Temple",
+        poojaId: slot.poojaId,
+        poojaName: poojas.find(p => p.id === slot.poojaId)?.name || "Unknown Pooja",
+        amount: `₹${form.amount}`,
+        paymentStatus: form.paymentStatus,
+        bookingStatus: "Pending"
+      });
+      setAddOpen(false);
+      setForm(emptyForm);
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateStatus(id: string, newStatus: string) {
+    try {
+      await BookingsService.updateBookingStatus(id, newStatus);
+      if (selectedBooking) {
+        setSelectedBooking({ ...selectedBooking, bookingStatus: newStatus });
+      }
+    } catch (err: any) {
+      alert("Error updating status: " + err.message);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -76,10 +129,10 @@ export function Bookings() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Total Bookings", value: bookings.length.toString(), color: "#C76A00", bg: "#FFF0E6" },
-          { label: "Confirmed", value: bookings.filter((b: any) => b.status === "Confirmed").length.toString(), color: "#2563EB", bg: "#EFF6FF" },
-          { label: "Completed", value: bookings.filter((b: any) => b.status === "Completed").length.toString(), color: "#16A34A", bg: "#F0FDF4" },
-          { label: "Pending", value: bookings.filter((b: any) => b.status === "Pending").length.toString(), color: "#D97706", bg: "#FFFBEB" },
-          { label: "Cancelled", value: bookings.filter((b: any) => b.status === "Cancelled").length.toString(), color: "#DC2626", bg: "#FFF1F2" },
+          { label: "Confirmed", value: bookings.filter((b: any) => b.bookingStatus === "Confirmed").length.toString(), color: "#2563EB", bg: "#EFF6FF" },
+          { label: "Completed", value: bookings.filter((b: any) => b.bookingStatus === "Completed").length.toString(), color: "#16A34A", bg: "#F0FDF4" },
+          { label: "Pending", value: bookings.filter((b: any) => b.bookingStatus === "Pending").length.toString(), color: "#D97706", bg: "#FFFBEB" },
+          { label: "Cancelled", value: bookings.filter((b: any) => b.bookingStatus === "Cancelled").length.toString(), color: "#DC2626", bg: "#FFF1F2" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl p-4 border" style={{ borderColor: "rgba(199,106,0,0.1)" }}>
             <div className="text-xl" style={{ color: s.color, fontWeight: 700 }}>{s.value}</div>
@@ -103,26 +156,9 @@ export function Bookings() {
             />
           </div>
 
-          {/* Filter dropdowns */}
-          {[
-            { placeholder: "Temple", icon: Building2 },
-            { placeholder: "Date", icon: Calendar },
-            { placeholder: "Payment", icon: CheckCircle },
-          ].map((f) => {
-            const FIcon = f.icon;
-            return (
-              <button key={f.placeholder} className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
-                style={{ border: "1px solid rgba(199,106,0,0.15)", color: "#6B7280", backgroundColor: "#FAF6F2" }}>
-                <FIcon size={13} style={{ color: "#9CA3AF" }} />
-                {f.placeholder}
-                <ChevronDown size={12} />
-              </button>
-            );
-          })}
-
           {/* Status tabs */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {["All", "Confirmed", "In Progress", "Completed", "Pending", "Cancelled"].map((s) => (
+            {["All", "Confirmed", "Completed", "Pending", "Cancelled"].map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -140,10 +176,10 @@ export function Bookings() {
             ))}
           </div>
 
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm ml-auto"
-            style={{ border: "1px solid rgba(199,106,0,0.15)", color: "#C76A00", fontWeight: 600, backgroundColor: "#FFF0E6" }}>
-            <Download size={13} />
-            Export
+          <button onClick={() => setAddOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm ml-auto"
+            style={{ backgroundColor: "#C76A00", color: "#FFFFFF", fontWeight: 600 }}>
+            <Plus size={15} />
+            Create Booking
           </button>
         </div>
       </div>
@@ -153,39 +189,30 @@ export function Bookings() {
         {/* Mobile cards */}
         <div className="md:hidden divide-y" style={{ borderColor: "rgba(199,106,0,0.06)" }}>
           {filtered.map((b: any) => {
-            const sc = statusConfig[b.status] || statusConfig.Confirmed;
-            const dc = deliveryConfig[b.delivery] || deliveryConfig["Not Required"];
-            const pc = paymentConfig[b.payment] || paymentConfig.Pending;
+            const sc = statusConfig[b.bookingStatus] || statusConfig.Confirmed;
+            const pc = paymentConfig[b.paymentStatus] || paymentConfig.Pending;
             return (
               <div key={b.id} className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-xs font-mono" style={{ color: "#C76A00", fontWeight: 700 }}>{b.id}</span>
+                    <span className="text-xs font-mono" style={{ color: "#C76A00", fontWeight: 700 }}>{b.bookingNumber}</span>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: "#C76A00", fontSize: "9px", fontWeight: 700 }}>
-                        {b.devotee.split(" ").map((w: string) => w[0]).join("").slice(0, 2)}
+                        {b.devoteeName?.slice(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>{b.devotee}</span>
+                      <span className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>{b.devoteeName}</span>
                     </div>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: sc.bg, color: sc.color, fontWeight: 600 }}>{b.status}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: sc.bg, color: sc.color, fontWeight: 600 }}>{b.bookingStatus}</span>
                 </div>
-                <div className="text-xs" style={{ color: "#6B7280" }}>{b.temple}</div>
+                <div className="text-xs" style={{ color: "#6B7280" }}>{b.templeName}</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs" style={{ color: "#1F1F1F", fontWeight: 500 }}>{b.pooja}</span>
+                  <span className="text-xs" style={{ color: "#1F1F1F", fontWeight: 500 }}>{b.poojaName}</span>
                   <span className="text-sm" style={{ color: "#1F1F1F", fontWeight: 700 }}>{b.amount}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: pc.bg, color: pc.color, fontWeight: 600 }}>{b.payment}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: dc.bg, color: dc.color, fontWeight: 600 }}>{b.delivery}</span>
-                  <span className="text-xs" style={{ color: "#9CA3AF" }}>{b.date}</span>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setSelectedBooking(b)} className="flex-1 py-2 rounded-lg text-xs flex items-center justify-center gap-1" style={{ backgroundColor: "#FFF0E6", color: "#C76A00", fontWeight: 600 }}>
                     <Eye size={12} /> View
-                  </button>
-                  <button className="flex-1 py-2 rounded-lg text-xs flex items-center justify-center gap-1" style={{ backgroundColor: "#F3F4F6", color: "#6B7280", fontWeight: 500 }}>
-                    <Edit size={12} /> Edit
                   </button>
                 </div>
               </div>
@@ -197,21 +224,20 @@ export function Bookings() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: "#FAF6F2" }}>
-                {["Booking ID", "Devotee", "Temple", "Pooja / Service", "Date", "Amount", "Delivery", "Payment", "Status", "Actions"].map((h) => (
+                {["Booking ID", "Devotee", "Temple", "Pooja", "Date Created", "Amount", "Payment", "Status", "Actions"].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#9CA3AF", fontWeight: 600 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((b: any) => {
-                const sc = statusConfig[b.status] || statusConfig.Confirmed;
-                const dc = deliveryConfig[b.delivery] || deliveryConfig["Not Required"];
-                const pc = paymentConfig[b.payment] || paymentConfig.Pending;
+                const sc = statusConfig[b.bookingStatus] || statusConfig.Pending;
+                const pc = paymentConfig[b.paymentStatus] || paymentConfig.Pending;
                 const StatusIcon = sc.icon;
                 return (
                   <tr key={b.id} className="border-t hover:bg-orange-50 transition-colors" style={{ borderColor: "rgba(199,106,0,0.06)" }}>
                     <td className="px-4 py-3.5">
-                      <span className="text-xs font-mono" style={{ color: "#C76A00", fontWeight: 600 }}>{b.id}</span>
+                      <span className="text-xs font-mono" style={{ color: "#C76A00", fontWeight: 600 }}>{b.bookingNumber}</span>
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
@@ -219,44 +245,35 @@ export function Bookings() {
                           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
                           style={{ backgroundColor: "#C76A00", fontWeight: 700 }}
                         >
-                          {b.devotee.split(" ").map((w: string) => w[0]).join("").slice(0, 2)}
+                          {b.devoteeName?.slice(0, 2).toUpperCase()}
                         </div>
-                        <span className="text-xs" style={{ color: "#1F1F1F", fontWeight: 500 }}>{b.devotee}</span>
+                        <span className="text-xs" style={{ color: "#1F1F1F", fontWeight: 500 }}>{b.devoteeName}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{b.temple}</td>
+                    <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{b.templeName}</td>
                     <td className="px-4 py-3.5">
-                      <div className="text-xs" style={{ color: "#1F1F1F", fontWeight: 500 }}>{b.pooja}</div>
-                      <div className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>{b.lang}</div>
+                      <div className="text-xs" style={{ color: "#1F1F1F", fontWeight: 500 }}>{b.poojaName}</div>
                     </td>
-                    <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: "#6B7280" }}>{b.date}</td>
+                    <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: "#6B7280" }}>
+                      {formatTimestamp(b.createdAt)}
+                    </td>
                     <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{b.amount}</td>
                     <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1.5">
-                        <Package size={11} style={{ color: dc.color }} />
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: dc.bg, color: dc.color, fontWeight: 600 }}>
-                          {b.delivery}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
                       <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: pc.bg, color: pc.color, fontWeight: 600 }}>
-                        {b.payment}
+                        {b.paymentStatus}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         <StatusIcon size={11} style={{ color: sc.color }} />
                         <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: sc.bg, color: sc.color, fontWeight: 600 }}>
-                          {b.status}
+                          {b.bookingStatus}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1.5">
                         <button onClick={() => setSelectedBooking(b)} className="p-1.5 rounded-lg hover:bg-orange-50 transition-colors"><Eye size={13} style={{ color: "#C76A00" }} /></button>
-                        <button className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"><Edit size={13} style={{ color: "#6B7280" }} /></button>
-                        <button className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><RefreshCcw size={13} style={{ color: "#EF4444" }} /></button>
                       </div>
                     </td>
                   </tr>
@@ -271,106 +288,99 @@ export function Bookings() {
           <span className="text-xs" style={{ color: "#9CA3AF" }}>
             Showing {filtered.length} of {bookings.length} bookings
           </span>
-          <div className="flex items-center gap-1.5">
-            {[1, 2, 3, 4, 5].map((p) => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className="w-7 h-7 rounded-lg text-xs transition-all"
-                style={{
-                  backgroundColor: page === p ? "#C76A00" : "transparent",
-                  color: page === p ? "#FFFFFF" : "#6B7280",
-                  fontWeight: page === p ? 600 : 400,
-                }}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
-      {/* Booking Detail Modal */}
+
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Create Offline Booking">
+        <div className="px-6 py-5 space-y-4">
+          {errorMsg && <div className="text-red-500 text-xs">{errorMsg}</div>}
+          <Field label="Devotee Name">
+            <input className={inputCls} style={inputStyle} value={form.devoteeName} onChange={e => setForm(f => ({...f, devoteeName: e.target.value}))} />
+          </Field>
+          <Field label="Email">
+            <input type="email" className={inputCls} style={inputStyle} value={form.devoteeEmail} onChange={e => setForm(f => ({...f, devoteeEmail: e.target.value}))} />
+          </Field>
+          <Field label="Slot">
+            <select className={inputCls} style={selectStyle} value={form.slotId} onChange={e => setForm(f => ({...f, slotId: e.target.value}))}>
+              <option value="">Select an available slot...</option>
+              {availableSlots.map(s => {
+                const dObj = toDateObj(s.startTime);
+                const timeStr = dObj ? dObj.toLocaleString() : 'Unknown Time';
+                const tName = temples.find(t => t.id === s.templeId)?.name || "Unknown Temple";
+                const pName = poojas.find(p => p.id === s.poojaId)?.name || "Unknown Pooja";
+                return (
+                  <option key={s.id} value={s.id}>
+                    {timeStr} - {tName} - {pName} ({s.capacity - s.bookedCount} left)
+                  </option>
+                );
+              })}
+            </select>
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Amount (₹)">
+              <input type="number" className={inputCls} style={inputStyle} value={form.amount} onChange={e => setForm(f => ({...f, amount: e.target.value}))} />
+            </Field>
+            <Field label="Payment Status">
+              <select className={inputCls} style={selectStyle} value={form.paymentStatus} onChange={e => setForm(f => ({...f, paymentStatus: e.target.value}))}>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </Field>
+          </div>
+        </div>
+        <ModalFooter onClose={() => setAddOpen(false)} onSubmit={handleAdd} submitLabel="Create Booking" saving={saving} />
+      </Modal>
+
       {selectedBooking && (
-        <Modal open={!!selectedBooking} onClose={() => setSelectedBooking(null)} title={selectedBooking.id} width="580px">
+        <Modal open={!!selectedBooking} onClose={() => setSelectedBooking(null)} title={selectedBooking.bookingNumber} width="580px">
           <div className="px-6 py-5 space-y-4">
-            {/* Devotee header */}
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full flex items-center justify-center text-white flex-shrink-0"
                 style={{ backgroundColor: "#C76A00", fontWeight: 700, fontSize: 17 }}>
-                {selectedBooking.devotee.split(" ").map((w: string) => w[0]).join("").slice(0, 2)}
+                {selectedBooking.devoteeName?.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-base" style={{ color: "#1F1F1F", fontWeight: 700 }}>{selectedBooking.devotee}</div>
+                <div className="text-base" style={{ color: "#1F1F1F", fontWeight: 700 }}>{selectedBooking.devoteeName}</div>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <span className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: statusConfig[selectedBooking.status]?.bg, color: statusConfig[selectedBooking.status]?.color, fontWeight: 600 }}>
-                    {selectedBooking.status}
+                    style={{ backgroundColor: statusConfig[selectedBooking.bookingStatus]?.bg, color: statusConfig[selectedBooking.bookingStatus]?.color, fontWeight: 600 }}>
+                    {selectedBooking.bookingStatus}
                   </span>
-                  <span className="text-xs" style={{ color: "#9CA3AF" }}>{selectedBooking.lang}</span>
                 </div>
               </div>
               <div className="text-xl flex-shrink-0" style={{ color: "#1F1F1F", fontWeight: 700 }}>{selectedBooking.amount}</div>
             </div>
 
-            {/* Booking Info */}
             <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: "#FAF6F2" }}>
               <div className="text-xs mb-1" style={{ color: "#9CA3AF", fontWeight: 600, letterSpacing: "0.08em" }}>BOOKING DETAILS</div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <div className="text-xs" style={{ color: "#9CA3AF" }}>Temple</div>
-                  <div className="text-xs mt-0.5" style={{ color: "#1F1F1F", fontWeight: 600 }}>{selectedBooking.temple}</div>
+                  <div className="text-xs mt-0.5" style={{ color: "#1F1F1F", fontWeight: 600 }}>{selectedBooking.templeName}</div>
                 </div>
                 <div>
-                  <div className="text-xs" style={{ color: "#9CA3AF" }}>Pooja / Service</div>
-                  <div className="text-xs mt-0.5" style={{ color: "#1F1F1F", fontWeight: 600 }}>{selectedBooking.pooja}</div>
-                </div>
-                <div>
-                  <div className="text-xs" style={{ color: "#9CA3AF" }}>Scheduled Date</div>
-                  <div className="text-xs mt-0.5" style={{ color: "#1F1F1F", fontWeight: 600 }}>{selectedBooking.date}</div>
-                </div>
-                <div>
-                  <div className="text-xs" style={{ color: "#9CA3AF" }}>Language</div>
-                  <div className="text-xs mt-0.5">
-                    <span className="px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259", fontWeight: 500 }}>{selectedBooking.lang}</span>
-                  </div>
+                  <div className="text-xs" style={{ color: "#9CA3AF" }}>Pooja</div>
+                  <div className="text-xs mt-0.5" style={{ color: "#1F1F1F", fontWeight: 600 }}>{selectedBooking.poojaName}</div>
                 </div>
               </div>
             </div>
 
-            {/* Payment */}
-            <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: "#FAF6F2" }}>
-              <div className="text-xs mb-1" style={{ color: "#9CA3AF", fontWeight: 600, letterSpacing: "0.08em" }}>PAYMENT</div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs" style={{ color: "#9CA3AF" }}>Amount Paid</div>
-                  <div className="text-base mt-0.5" style={{ color: "#1F1F1F", fontWeight: 700 }}>{selectedBooking.amount}</div>
-                </div>
-                <span className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: paymentConfig[selectedBooking.payment]?.bg, color: paymentConfig[selectedBooking.payment]?.color, fontWeight: 600 }}>
-                  {selectedBooking.payment}
-                </span>
-              </div>
-            </div>
-
-            {/* Prasad Delivery */}
-            <div className="rounded-xl p-4" style={{ backgroundColor: "#FAF6F2" }}>
-              <div className="text-xs mb-2" style={{ color: "#9CA3AF", fontWeight: 600, letterSpacing: "0.08em" }}>PRASAD DELIVERY</div>
-              <div className="flex items-center gap-2">
-                <Package size={13} style={{ color: deliveryConfig[selectedBooking.delivery]?.color || "#9CA3AF" }} />
-                <span className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ backgroundColor: deliveryConfig[selectedBooking.delivery]?.bg, color: deliveryConfig[selectedBooking.delivery]?.color, fontWeight: 600 }}>
-                  {selectedBooking.delivery}
-                </span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            {(selectedBooking.status === "Confirmed" || selectedBooking.status === "Pending") && (
+            {selectedBooking.bookingStatus === "Pending" && (
               <div className="flex gap-3">
-                <button className="flex-1 py-2 rounded-lg text-xs" style={{ backgroundColor: "#EFF6FF", color: "#2563EB", fontWeight: 600 }}>
-                  Reschedule
+                <button onClick={() => updateStatus(selectedBooking.id, "Confirmed")} className="flex-1 py-2 rounded-lg text-xs" style={{ backgroundColor: "#EFF6FF", color: "#2563EB", fontWeight: 600 }}>
+                  Confirm Booking
                 </button>
-                <button className="flex-1 py-2 rounded-lg text-xs" style={{ backgroundColor: "#FFF1F2", color: "#DC2626", fontWeight: 600 }}>
+                <button onClick={() => updateStatus(selectedBooking.id, "Cancelled")} className="flex-1 py-2 rounded-lg text-xs" style={{ backgroundColor: "#FFF1F2", color: "#DC2626", fontWeight: 600 }}>
+                  Cancel Booking
+                </button>
+              </div>
+            )}
+            {selectedBooking.bookingStatus === "Confirmed" && (
+              <div className="flex gap-3">
+                <button onClick={() => updateStatus(selectedBooking.id, "Completed")} className="flex-1 py-2 rounded-lg text-xs" style={{ backgroundColor: "#F0FDF4", color: "#16A34A", fontWeight: 600 }}>
+                  Mark Completed
+                </button>
+                <button onClick={() => updateStatus(selectedBooking.id, "Cancelled")} className="flex-1 py-2 rounded-lg text-xs" style={{ backgroundColor: "#FFF1F2", color: "#DC2626", fontWeight: 600 }}>
                   Cancel Booking
                 </button>
               </div>

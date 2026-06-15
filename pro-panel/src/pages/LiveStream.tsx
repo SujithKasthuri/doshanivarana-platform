@@ -32,7 +32,7 @@ export function LiveStream() {
     const q = query(
       collection(db, 'bookings'),
       where('templeId', '==', templeId),
-      where('status', '==', 'SCHEDULED'),
+      where('bookingStatus', '==', 'Confirmed'),
       where('isDeleted', '==', false)
     );
 
@@ -96,8 +96,12 @@ export function LiveStream() {
       await setDoc(doc(db, 'liveStreams', streamId), {
         streamId,
         bookingId: booking.id,
-        templeId: booking.templeId,
-        poojaId: booking.poojaId,
+        templeId: booking.templeId || templeId,
+        templeName: booking.templeName || 'Unknown Temple',
+        poojaId: booking.poojaId || '',
+        poojaName: booking.poojaName || 'Unknown Pooja',
+        priestId: booking.priestId || null,
+        priestName: booking.priestName || null,
         streamUrl: `rtmp://live.doshanivarana.com/app/${streamId}`,
         status: 'LIVE',
         createdAt: serverTimestamp()
@@ -111,8 +115,8 @@ export function LiveStream() {
         payload: {
           streamId,
           bookingId: booking.id,
-          templeId: booking.templeId,
-          userId: booking.userId
+          templeId: booking.templeId || templeId,
+          userId: booking.userId || 'GUEST'
         },
         status: 'PENDING',
         createdAt: serverTimestamp()
@@ -195,30 +199,74 @@ export function LiveStream() {
         recordingStatus: notify ? 'Available' : 'Processing'
       });
 
-      // Generate System Event
-      await setDoc(doc(collection(db, 'systemEvents')), {
-        eventType: 'stream.ended',
-        entityId: activeStreamId,
-        entityType: 'stream',
-        payload: {
-          streamId: activeStreamId,
+      // Auto-generate Recording for Demo
+      try {
+        // Fetch stream document for fallback metadata
+        let streamPoojaName = '';
+        let streamTempleName = '';
+        try {
+          const streamSnap = await getDoc(doc(db, 'liveStreams', activeStreamId));
+          if (streamSnap.exists()) {
+            streamPoojaName = streamSnap.data().poojaName || '';
+            streamTempleName = streamSnap.data().templeName || '';
+          }
+        } catch (e) {
+          console.error("Could not fetch stream metadata:", e);
+        }
+
+        const recId = `rec_${Date.now()}`;
+        await setDoc(doc(db, 'recordings', recId), {
+          templeId: booking.templeId || templeId,
+          templeName: booking.templeName || streamTempleName || 'Unknown Temple',
+          poojaId: booking.poojaId || '',
+          poojaName: booking.poojaName || streamPoojaName || 'Unknown Pooja',
+          priestId: booking.priestId || null,
+          priestName: booking.priestName || null,
           bookingId: booking.id,
-          templeId: booking.templeId,
-          userId: booking.userId
-        },
-        status: 'PENDING',
-        createdAt: serverTimestamp()
-      });
+          streamId: activeStreamId,
+          status: 'READY',
+          duration: '1h 02m',
+          videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          slotDate: booking.scheduledDate || booking.dateTime || new Date().toISOString().split('T')[0]
+        });
+      } catch (recordingError) {
+        console.error("Failed to auto-generate recording document:", recordingError);
+      }
+
+      // Generate System Event
+      try {
+        await setDoc(doc(collection(db, 'systemEvents')), {
+          eventType: 'stream.ended',
+          entityId: activeStreamId,
+          entityType: 'stream',
+          payload: {
+            streamId: activeStreamId,
+            bookingId: booking.id,
+            templeId: booking.templeId || templeId,
+            userId: booking.userId || 'GUEST'
+          },
+          status: 'PENDING',
+          createdAt: serverTimestamp()
+        });
+      } catch (eventError) {
+        console.error("Failed to log stream.ended system event:", eventError);
+      }
 
       // Audit Log
-      await setDoc(doc(collection(db, 'auditLogs')), {
-        action: 'STREAM_ENDED',
-        entityId: activeStreamId,
-        entityType: 'stream',
-        performedBy: templeId,
-        timestamp: serverTimestamp(),
-        details: `Stream ${activeStreamId} ended for booking ${booking.id}`
-      });
+      try {
+        await setDoc(doc(collection(db, 'auditLogs')), {
+          action: 'STREAM_ENDED',
+          entityId: activeStreamId,
+          entityType: 'stream',
+          performedBy: templeId,
+          timestamp: serverTimestamp(),
+          details: `Stream ${activeStreamId} ended for booking ${booking.id}`
+        });
+      } catch (auditError) {
+        console.error("Failed to create audit log:", auditError);
+      }
 
       localDb.addNotification(
         'Live Stream Ended',

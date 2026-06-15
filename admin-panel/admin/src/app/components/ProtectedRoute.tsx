@@ -1,14 +1,15 @@
 import { Navigate } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEffect } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'pro';
+  requiredRole?: 'ADMIN' | 'PRO';
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRole = 'admin',
+  requiredRole = 'ADMIN',
 }) => {
   const { isAuthenticated, role, loading } = useAuth();
 

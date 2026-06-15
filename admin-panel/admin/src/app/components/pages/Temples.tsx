@@ -15,33 +15,24 @@ const statusConfig: Record<string, { bg: string; color: string; icon: typeof Che
   Inactive: { bg: "#FFF1F2", color: "#DC2626", icon: XCircle },
 };
 
-const templeProManagers = ["Ravi Shankar K.", "Suresh Menon", "Priya Joshi", "Amit Sharma", "Rajeev Nair", "Deepak Patel", "Sanjay Tiwari", "Kavitha Selvan", "Unassigned"];
-const emptyTempleForm = { name: "", location: "", deity: "", type: "Shaiva", pro: "Unassigned", status: "Active" };
+const emptyTempleForm = { name: "", location: "", deity: "", type: "Shaiva", proManagerId: "", proManagerName: "Unassigned", status: "Active" };
 
 const COLORS = ["#C76A00", "#4A1259", "#D4A017", "#22C55E", "#6366F1", "#EF4444", "#2563EB", "#0891B2"];
 
 const defaultTemples = [
-  { id: "t001", name: "Kashi Vishwanath Temple", location: "Varanasi, UP", deity: "Lord Shiva", type: "Shaiva", pro: "Ravi Shankar K.", status: "Active", isActive: true, bookings: 4820, revenue: "₹28.4L", rating: 4.9, poojas: 24, streams: 18, color: "#C76A00", since: "Jan 2024", devotees: 84200 },
-  { id: "t002", name: "Tirumala Tirupati Devasthanam", location: "Tirupati, AP", deity: "Lord Venkateswara", type: "Vaishnava", pro: "Suresh Menon", status: "Active", isActive: true, bookings: 8420, revenue: "₹52.1L", rating: 4.9, poojas: 32, streams: 28, color: "#4A1259", since: "Feb 2024", devotees: 242000 },
-  { id: "t003", name: "Meenakshi Amman Temple", location: "Madurai, TN", deity: "Goddess Meenakshi", type: "Shakta", pro: "Priya Joshi", status: "Active", isActive: true, bookings: 3640, revenue: "₹18.2L", rating: 4.8, poojas: 18, streams: 14, color: "#D4A017", since: "Mar 2024", devotees: 124000 },
-  { id: "t004", name: "Vaishno Devi Shrine", location: "Katra, J&K", deity: "Goddess Vaishno Devi", type: "Shakta", pro: "Amit Sharma", status: "Active", isActive: true, bookings: 5280, revenue: "₹32.8L", rating: 4.9, poojas: 12, streams: 8, color: "#22C55E", since: "Apr 2024", devotees: 184000 },
-  { id: "t005", name: "Kedarnath Temple", location: "Rudraprayag, UK", deity: "Lord Shiva", type: "Shaiva", pro: "Rajeev Nair", status: "Seasonal", isActive: false, bookings: 2140, revenue: "₹14.6L", rating: 4.8, poojas: 8, streams: 6, color: "#6366F1", since: "May 2024", devotees: 68000 },
-  { id: "t006", name: "Somnath Jyotirlinga", location: "Veraval, Gujarat", deity: "Lord Shiva", type: "Shaiva", pro: "Deepak Patel", status: "Active", isActive: true, bookings: 2840, revenue: "₹16.4L", rating: 4.7, poojas: 14, streams: 10, color: "#EF4444", since: "Jun 2024", devotees: 84000 },
-  { id: "t007", name: "Shirdi Sai Baba Mandir", location: "Shirdi, MH", deity: "Sai Baba", type: "Multi-faith", pro: "Unassigned", status: "Pending Review", isActive: false, bookings: 1820, revenue: "₹10.8L", rating: 4.6, poojas: 10, streams: 4, color: "#2563EB", since: "Jul 2024", devotees: 52000 },
-  { id: "t008", name: "Padmanabhaswamy Temple", location: "Trivandrum, KL", deity: "Lord Vishnu", type: "Vaishnava", pro: "Sanjay Tiwari", status: "Active", isActive: true, bookings: 2420, revenue: "₹14.2L", rating: 4.9, poojas: 16, streams: 12, color: "#0891B2", since: "Aug 2024", devotees: 76000 },
+  { id: "t001", name: "Kashi Vishwanath Temple", location: "Varanasi, UP", deity: "Lord Shiva", type: "Shaiva", proManagerId: "", proManagerName: "Ravi Shankar K.", status: "Active", isActive: true, bookings: 4820, revenue: "₹28.4L", rating: 4.9, poojas: 24, streams: 18, color: "#C76A00", since: "Jan 2024", devotees: 84200 },
+  { id: "t002", name: "Tirumala Tirupati Devasthanam", location: "Tirupati, AP", deity: "Lord Venkateswara", type: "Vaishnava", proManagerId: "", proManagerName: "Suresh Menon", status: "Active", isActive: true, bookings: 8420, revenue: "₹52.1L", rating: 4.9, poojas: 32, streams: 28, color: "#4A1259", since: "Feb 2024", devotees: 242000 },
+  { id: "t003", name: "Meenakshi Amman Temple", location: "Madurai, TN", deity: "Goddess Meenakshi", type: "Shakta", proManagerId: "", proManagerName: "Priya Joshi", status: "Active", isActive: true, bookings: 3640, revenue: "₹18.2L", rating: 4.8, poojas: 18, streams: 14, color: "#D4A017", since: "Mar 2024", devotees: 124000 },
+  { id: "t004", name: "Vaishno Devi Shrine", location: "Katra, J&K", deity: "Goddess Vaishno Devi", type: "Shakta", proManagerId: "", proManagerName: "Amit Sharma", status: "Active", isActive: true, bookings: 5280, revenue: "₹32.8L", rating: 4.9, poojas: 12, streams: 8, color: "#22C55E", since: "Apr 2024", devotees: 184000 },
+  { id: "t005", name: "Kedarnath Temple", location: "Rudraprayag, UK", deity: "Lord Shiva", type: "Shaiva", proManagerId: "", proManagerName: "Rajeev Nair", status: "Seasonal", isActive: false, bookings: 2140, revenue: "₹14.6L", rating: 4.8, poojas: 8, streams: 6, color: "#6366F1", since: "May 2024", devotees: 68000 },
+  { id: "t006", name: "Somnath Jyotirlinga", location: "Veraval, Gujarat", deity: "Lord Shiva", type: "Shaiva", proManagerId: "", proManagerName: "Deepak Patel", status: "Active", isActive: true, bookings: 2840, revenue: "₹16.4L", rating: 4.7, poojas: 14, streams: 10, color: "#EF4444", since: "Jun 2024", devotees: 84000 },
+  { id: "t007", name: "Shirdi Sai Baba Mandir", location: "Shirdi, MH", deity: "Sai Baba", type: "Multi-faith", proManagerId: "", proManagerName: "Unassigned", status: "Pending Review", isActive: false, bookings: 1820, revenue: "₹10.8L", rating: 4.6, poojas: 10, streams: 4, color: "#2563EB", since: "Jul 2024", devotees: 52000 },
+  { id: "t008", name: "Padmanabhaswamy Temple", location: "Trivandrum, KL", deity: "Lord Vishnu", type: "Vaishnava", proManagerId: "", proManagerName: "Sanjay Tiwari", status: "Active", isActive: true, bookings: 2420, revenue: "₹14.2L", rating: 4.9, poojas: 16, streams: 12, color: "#0891B2", since: "Aug 2024", devotees: 76000 },
 ];
 
-function loadTemples() {
-  try {
-    const stored = localStorage.getItem(LS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
-  return defaultTemples;
-}
-
-function saveTemples(data: typeof defaultTemples) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-}
+import { TemplesService } from "../../../services/firebase/temples";
+import { FirebaseUsersService } from "../../../services/firebase/users";
+import { formatTimestamp } from "../../../services/firebase/core";
 
 function genId() {
   return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -54,14 +45,18 @@ export function Temples() {
   const [editTarget, setEditTarget] = useState<typeof defaultTemples[0] | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [templeForm, setTempleForm] = useState(emptyTempleForm);
-  const [temples, setTemples] = useState(loadTemples);
+  const [temples, setTemples] = useState<any[]>([]);
+  const [pros, setPros] = useState<any[]>([]);
 
-  // Persist to localStorage whenever temples change
-  useEffect(() => { saveTemples(temples); }, [temples]);
+  useEffect(() => {
+    const unsubscribe = TemplesService.subscribeToTemples(setTemples);
+    FirebaseUsersService.getPros().then(setPros).catch(console.error);
+    return () => unsubscribe();
+  }, []);
 
   function openTempleEdit(t: typeof defaultTemples[0]) {
     setEditTarget(t);
-    setTempleForm({ name: t.name, location: t.location, deity: t.deity, type: t.type, pro: t.pro, status: t.status });
+    setTempleForm({ name: t.name, location: t.location, deity: t.deity, type: t.type, proManagerId: t.proManagerId, proManagerName: t.proManagerName, status: t.status });
   }
 
   function openTempleAdd() {
@@ -75,47 +70,58 @@ export function Temples() {
     setTempleForm(emptyTempleForm);
   }
 
-  function handleSaveTemple() {
-    if (editTarget) {
-      // Edit — update immediately
-      setTemples(prev => prev.map(t => t.id === editTarget.id ? {
-        ...t,
-        name: templeForm.name,
-        location: templeForm.location,
-        deity: templeForm.deity,
-        type: templeForm.type,
-        pro: templeForm.pro,
-        status: templeForm.status,
-        isActive: templeForm.status === "Active",
-      } : t));
-    } else {
-      // Add — create immediately with generated ID
-      const newTemple = {
-        id: genId(),
-        name: templeForm.name,
-        location: templeForm.location,
-        deity: templeForm.deity,
-        type: templeForm.type,
-        pro: templeForm.pro,
-        status: templeForm.status,
-        isActive: templeForm.status === "Active",
-        bookings: 0,
-        revenue: "₹0L",
-        rating: 5.0,
-        poojas: 0,
-        streams: 0,
-        color: COLORS[temples.length % COLORS.length],
-        since: new Date().toLocaleDateString("en-GB", { month: "short", year: "numeric" }),
-        devotees: 0,
-      };
-      setTemples(prev => [newTemple, ...prev]);
+  async function handleSaveTemple() {
+    try {
+      const selectedPro = pros.find(p => p.uid === templeForm.proManagerId);
+      const updatedProName = selectedPro ? selectedPro.name : "Unassigned";
+
+      if (editTarget) {
+        // Edit
+        await TemplesService.updateTemple(editTarget.id, {
+          name: templeForm.name,
+          location: templeForm.location,
+          deity: templeForm.deity,
+          type: templeForm.type,
+          proManagerId: templeForm.proManagerId,
+          proManagerName: updatedProName,
+          status: templeForm.status,
+          isActive: templeForm.status === "Active",
+        });
+      } else {
+        // Add
+        const newId = genId();
+        await TemplesService.createTemple(newId, {
+          name: templeForm.name,
+          location: templeForm.location,
+          deity: templeForm.deity,
+          type: templeForm.type,
+          proManagerId: templeForm.proManagerId,
+          proManagerName: updatedProName,
+          status: templeForm.status,
+          isActive: templeForm.status === "Active",
+          bookings: 0,
+          revenue: "₹0L",
+          rating: 5.0,
+          poojas: 0,
+          streams: 0,
+          color: COLORS[temples.length % COLORS.length],
+          since: new Date().toLocaleDateString("en-GB", { month: "short", year: "numeric" }),
+          devotees: 0,
+        });
+      }
+      closeModal();
+    } catch (error: any) {
+      alert("Error saving temple: " + error.message);
     }
-    closeModal();
   }
 
-  function handleDeleteTemple(t: typeof defaultTemples[0]) {
+  async function handleDeleteTemple(t: typeof defaultTemples[0]) {
     if (confirm(`Are you sure you want to remove ${t.name}?`)) {
-      setTemples(prev => prev.filter(temple => temple.id !== t.id));
+      try {
+        await TemplesService.deleteTemple(t.id);
+      } catch (error: any) {
+        alert("Error deleting temple: " + error.message);
+      }
     }
   }
 
@@ -261,7 +267,7 @@ export function Temples() {
 
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     {[
-                      { label: "Bookings", value: temple.bookings.toLocaleString(), icon: CalendarCheck, color: "#C76A00" },
+                      { label: "Bookings", value: (temple.bookings || 0).toLocaleString(), icon: CalendarCheck, color: "#C76A00" },
                       { label: "Revenue", value: temple.revenue, icon: IndianRupee, color: "#22C55E" },
                       { label: "Streams", value: temple.streams, icon: Radio, color: "#4A1259" },
                     ].map((m) => {
@@ -279,8 +285,8 @@ export function Temples() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <UserCircle size={14} style={{ color: "#9CA3AF" }} />
-                      <span className="text-xs" style={{ color: temple.pro === "Unassigned" ? "#EF4444" : "#6B7280" }}>
-                        {temple.pro}
+                      <span className="text-xs" style={{ color: !temple.proManagerId || temple.proManagerName === "Unassigned" ? "#EF4444" : "#6B7280" }}>
+                        {temple.proManagerName || "Unassigned"}
                       </span>
                     </div>
                     <span className="text-xs" style={{ color: "#9CA3AF" }}>Since {temple.since}</span>
@@ -341,7 +347,7 @@ export function Temples() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-xs" style={{ color: "#6B7280" }}>{t.deity}</td>
-                      <td className="px-5 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{t.bookings.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{(t.bookings || 0).toLocaleString()}</td>
                       <td className="px-5 py-3.5 text-xs" style={{ color: "#22C55E", fontWeight: 600 }}>{t.revenue}</td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
@@ -349,7 +355,7 @@ export function Temples() {
                           <span className="text-xs" style={{ fontWeight: 600, color: "#1F1F1F" }}>{t.rating}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-xs" style={{ color: t.pro === "Unassigned" ? "#EF4444" : "#6B7280" }}>{t.pro}</td>
+                      <td className="px-5 py-3.5 text-xs" style={{ color: !t.proManagerId || t.proManagerName === "Unassigned" ? "#EF4444" : "#6B7280" }}>{t.proManagerName || "Unassigned"}</td>
                       <td className="px-5 py-3.5">
                         <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: sc.bg, color: sc.color, fontWeight: 600 }}>
                           {t.status}
@@ -425,10 +431,11 @@ export function Temples() {
           <Field label="PRO Manager">
             <select
               className={inputCls} style={selectStyle}
-              value={templeForm.pro}
-              onChange={e => setTempleForm(f => ({ ...f, pro: e.target.value }))}
+              value={templeForm.proManagerId}
+              onChange={e => setTempleForm(f => ({ ...f, proManagerId: e.target.value }))}
             >
-              {templeProManagers.map(p => <option key={p}>{p}</option>)}
+              <option value="">Unassigned</option>
+              {pros.map(p => <option key={p.uid} value={p.uid}>{p.name}</option>)}
             </select>
           </Field>
         </div>

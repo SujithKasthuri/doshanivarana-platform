@@ -1,0 +1,22 @@
+Starting CRUD Tests...
+--- Testing Temples ---
+Created Temple: TEST_TEMPLE_1781497247477
+Read Temple: Success
+Updated Temple
+Deleted Temple
+--- Testing Categories ---
+Created Category: TEST_CAT_1781497248446
+Read Category: Success
+Updated Category
+Deleted Category
+--- Testing Poojas ---
+Created Pooja: TEST_POOJA_1781497248782
+Updated Pooja
+Deleted Pooja
+--- Testing Priests ---
+Created Priest: TEST_PRIEST_1781497249101
+Updated Priest
+Deleted Priest
+--- Testing PRO Managers (Skip Auth Create) ---
+--- Testing Temple Requests ---
+ERROR: Function setDoc() called with invalid data. Unsupported field value: undefined (found in field createdBy in document temple_requests/TEST_TR_1781497249343)

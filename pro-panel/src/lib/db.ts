@@ -21,14 +21,7 @@ export interface PoojaSlot extends CoreSlot {
   name?: string;
 }
 
-export interface Pujari extends CorePriest {
-  status?: string;
-  photoUrl?: string;
-  avatarBg?: string;
-  avatarText?: string;
-  experience?: string | number;
-  specializations?: string[];
-}
+
 
 export type { BookingStatus, PaymentStatus, SlotStatus };
 
@@ -193,7 +186,7 @@ const DEFAULT_CHECKLIST: ChecklistItem[] = [
 // ─── Data store (in-memory) ──────────────────────────────────────────────────
 let bookings: Booking[] = [];
 let slots: PoojaSlot[] = [];
-let pujaris: Pujari[] = [];
+
 
 let queries: DevoteeQuery[] = [
   {
@@ -435,15 +428,7 @@ export const db = {
     slots = slots.filter(s => s.id !== id);
   },
 
-  // ─── Pujaris ──────────────────────────────────────────────────────────────
-  getPujaris: () => [...pujaris],
-  addPujari: (p: Pujari) => { pujaris.unshift(p); },
-  updatePujari: (id: string, update: Partial<Pujari>) => {
-    pujaris = pujaris.map(p => p.id === id ? { ...p, ...update } : p);
-  },
-  deletePujari: (id: string) => {
-    pujaris = pujaris.filter(p => p.id !== id);
-  },
+
 
   // ─── Queries ──────────────────────────────────────────────────────────────
   getQueries: () => [...queries],

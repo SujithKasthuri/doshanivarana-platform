@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, CalendarCheck, Building2, IndianRupee, Users, Eye, Edit, Settings, TrendingUp, Clock, CheckCircle, Play, Star } from "lucide-react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
 
@@ -47,6 +47,8 @@ const festivalsData = [
   },
 ];
 
+import { FestivalsService } from "../../../services/firebase/festivals";
+
 const festivalColors = ["#C76A00", "#D4A017", "#4A1259", "#22C55E", "#6366F1", "#EF4444", "#EC4899", "#14B8A6"];
 const emptyFestForm = { name: "", status: "Upcoming", startDate: "", endDate: "", description: "", temples: "", poojas: "", limit: "" };
 
@@ -60,11 +62,24 @@ const statusConfig: Record<string, { bg: string; color: string; label: string }>
 export function Festivals() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [festivalsState, setFestivalsState] = useState(festivalsData);
+  const [festivalsState, setFestivalsState] = useState<any[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<typeof festivalsData[0] | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const [festForm, setFestForm] = useState(emptyFestForm);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchFestivals();
+  }, []);
+
+  async function fetchFestivals() {
+    try {
+      const data = await FestivalsService.getFestivals();
+      setFestivalsState(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
   const filtered = festivalsState.filter((f) => {
     const matchSearch = f.name.toLowerCase().includes(search.toLowerCase());
@@ -72,29 +87,35 @@ export function Festivals() {
     return matchSearch && matchStatus;
   });
 
-  function handleCreate() {
+  async function handleCreate() {
     if (!festForm.name || !festForm.startDate || !festForm.endDate) return;
     setSaving(true);
-    const newFest = {
-      id: `FV${String(festivalsState.length + 1).padStart(3, "0")}`,
-      name: festForm.name,
-      status: festForm.status,
-      startDate: festForm.startDate,
-      endDate: festForm.endDate,
-      description: festForm.description,
-      temples: parseInt(festForm.temples) || 0,
-      poojas: parseInt(festForm.poojas) || 0,
-      limit: parseInt(festForm.limit) || 0,
-      bookings: 0,
-      revenue: "₹0",
-      filled: 0,
-      color: festivalColors[festivalsState.length % festivalColors.length],
-      topTemples: [],
-    };
-    setFestivalsState(prev => [newFest, ...prev]);
-    setFestForm(emptyFestForm);
-    setCreateOpen(false);
-    setSaving(false);
+    const newId = `FV${String(Date.now()).slice(-6)}`;
+    
+    try {
+      await FestivalsService.createFestival(newId, {
+        name: festForm.name,
+        status: festForm.status,
+        startDate: festForm.startDate,
+        endDate: festForm.endDate,
+        description: festForm.description,
+        temples: parseInt(festForm.temples) || 0,
+        poojas: parseInt(festForm.poojas) || 0,
+        limit: parseInt(festForm.limit) || 0,
+        bookings: 0,
+        revenue: "₹0",
+        filled: 0,
+        color: festivalColors[festivalsState.length % festivalColors.length],
+        topTemples: [],
+      });
+      await fetchFestivals();
+      setFestForm(emptyFestForm);
+      setCreateOpen(false);
+    } catch (err: any) {
+      alert("Error adding festival: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openEdit(f: typeof festivalsData[0]) {
@@ -102,20 +123,29 @@ export function Festivals() {
     setFestForm({ name: f.name, status: f.status, startDate: f.startDate, endDate: f.endDate, description: f.description, temples: String(f.temples), poojas: String(f.poojas), limit: String(f.limit) });
   }
 
-  function handleEdit() {
+  async function handleEdit() {
     if (!editTarget) return;
     setSaving(true);
-    setFestivalsState(prev => prev.map(f => f.id === editTarget.id ? {
-      ...f,
-      name: festForm.name, status: festForm.status, startDate: festForm.startDate,
-      endDate: festForm.endDate, description: festForm.description,
-      temples: parseInt(festForm.temples) || f.temples,
-      poojas: parseInt(festForm.poojas) || f.poojas,
-      limit: parseInt(festForm.limit) || f.limit,
-    } : f));
-    setEditTarget(null);
-    setFestForm(emptyFestForm);
-    setSaving(false);
+    
+    try {
+      await FestivalsService.updateFestival(editTarget.id, {
+        name: festForm.name, 
+        status: festForm.status, 
+        startDate: festForm.startDate,
+        endDate: festForm.endDate, 
+        description: festForm.description,
+        temples: parseInt(festForm.temples) || editTarget.temples,
+        poojas: parseInt(festForm.poojas) || editTarget.poojas,
+        limit: parseInt(festForm.limit) || editTarget.limit,
+      });
+      await fetchFestivals();
+      setEditTarget(null);
+      setFestForm(emptyFestForm);
+    } catch (err: any) {
+      alert("Error updating festival: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -220,7 +250,7 @@ export function Festivals() {
                 <div className="grid grid-cols-4 gap-3 mb-4">
                   {[
                     { label: "Temples", value: festival.temples, icon: Building2, color: "#C76A00" },
-                    { label: "Bookings", value: festival.bookings.toLocaleString(), icon: CalendarCheck, color: "#4A1259" },
+                    { label: "Bookings", value: (festival.bookings || 0).toLocaleString(), icon: CalendarCheck, color: "#4A1259" },
                     { label: "Revenue", value: festival.revenue, icon: IndianRupee, color: "#22C55E" },
                     { label: "Poojas", value: festival.poojas, icon: Star, color: "#D4A017" },
                   ].map((m) => {
@@ -240,7 +270,7 @@ export function Festivals() {
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-xs mb-1.5">
                       <span style={{ color: "#6B7280" }}>Booking Capacity</span>
-                      <span style={{ color: "#1F1F1F", fontWeight: 600 }}>{festival.filled}% filled ({festival.bookings.toLocaleString()} / {festival.limit.toLocaleString()})</span>
+                      <span style={{ color: "#1F1F1F", fontWeight: 600 }}>{festival.filled}% filled ({(festival.bookings || 0).toLocaleString()} / {(festival.limit || 0).toLocaleString()})</span>
                     </div>
                     <div className="h-2 rounded-full" style={{ backgroundColor: "#F3EDE8" }}>
                       <div
@@ -258,14 +288,14 @@ export function Festivals() {
                 <div className="mb-4">
                   <div className="text-xs mb-2" style={{ color: "#9CA3AF", fontWeight: 600 }}>PARTICIPATING TEMPLES</div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {festival.topTemples.map((t) => (
+                    {(festival.topTemples || []).map((t: string) => (
                       <span key={t} className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: festival.color + "18", color: festival.color, fontWeight: 500 }}>
                         {t}
                       </span>
                     ))}
-                    {festival.temples > festival.topTemples.length && (
+                    {festival.temples > (festival.topTemples?.length || 0) && (
                       <span className="text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: "#F3F4F6", color: "#9CA3AF" }}>
-                        +{festival.temples - festival.topTemples.length} more
+                        +{festival.temples - (festival.topTemples?.length || 0)} more
                       </span>
                     )}
                   </div>

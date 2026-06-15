@@ -1,35 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useAuth, buildHandoffUrl, type DemoUser } from '../../../contexts/AuthContext';
-
-// ── Which app is this? We detect by checking window.location.port
-// Admin panel runs on a higher port (5174 by default when pro is on 5173).
-// We use an env-style approach: the admin panel passes its own URL via
-// import.meta.env, or we fall back to smart detection.
-const THIS_ROLE = 'admin' as const;
-const OTHER_ROLE = 'pro' as const;
-
-// When running dev, pro-panel is typically on 5173. In production this
-// would be a real URL. For demo we detect by port offset.
-function getPROPanelOrigin(): string {
-  const { protocol, hostname, port } = window.location;
-  // Heuristic: admin is usually one port above pro
-  // If admin is on 5174, pro is on 5173; if admin is on 3001, pro is on 3000
-  const adminPort = parseInt(port || '80', 10);
-  const proPort = adminPort - 1;
-  return `${protocol}//${hostname}:${proPort}`;
-}
+import { useAuth } from '../../../contexts/AuthContext';
 
 export function Login() {
-  const { login } = useAuth();
+  const { login, isAuthenticated, role, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState('');
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !!(params.get('email') && params.get('password'));
+  });
+  
+  const isDemoMode = import.meta.env.VITE_DEMO_AUTH_MODE === 'true';
+  
+  // If already authenticated with the correct role, redirect to dashboard.
+  // If authenticated with wrong role, redirect to the correct port.
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (role === 'ADMIN') {
+        navigate('/', { replace: true });
+      } else if (role === 'PRO') {
+        const redirectAndLogout = async () => {
+          const baseUrl = import.meta.env.VITE_PRO_PANEL_URL || 'http://localhost:5174/';
+          await logout();
+          window.location.href = baseUrl;
+        };
+        redirectAndLogout();
+      }
+    }
+  }, [isAuthenticated, role, navigate, logout]);
+
+  // Check for auto-login credentials in URL query parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlEmail = params.get('email');
+    const urlPassword = params.get('password');
+
+    if (urlEmail && urlPassword) {
+      // Clear credentials from address bar immediately
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      setEmail(urlEmail);
+      setPassword(urlPassword);
+      setIsLoading(true);
+      setError('');
+
+      login(urlEmail, urlPassword)
+        .then(async (userRole) => {
+          if (userRole === 'ADMIN') {
+            navigate('/', { replace: true });
+          } else if (userRole === 'PRO') {
+            const baseUrl = import.meta.env.VITE_PRO_PANEL_URL || 'http://localhost:5174/';
+            const targetUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+            await logout();
+            window.location.href = `${targetUrl}/login?email=${encodeURIComponent(urlEmail)}&password=${encodeURIComponent(urlPassword)}`;
+          } else {
+            setError('Unauthorized.');
+            setIsLoading(false);
+          }
+        })
+        .catch((err) => {
+          setError(err.message || 'Auto-login failed.');
+          setIsLoading(false);
+          setIsAutoLoggingIn(false);
+        });
+    }
+  }, [login, navigate, logout]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,28 +78,22 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      const role = await login(username, password);
+      const userRole = await login(email, password);
 
-      if (role === THIS_ROLE) {
-        // ✅ Admin → go straight to admin dashboard
+      if (userRole === 'ADMIN') {
         navigate('/', { replace: true });
+      } else if (userRole === 'PRO') {
+        const baseUrl = import.meta.env.VITE_PRO_PANEL_URL || 'http://localhost:5174/';
+        const targetUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+        await logout();
+        window.location.href = `${targetUrl}/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
       } else {
-        // ✅ PRO creds entered here → cross-app redirect to PRO panel
-        setRedirecting(true);
-        const user: DemoUser = {
-          username: username.toLowerCase().trim(),
-          name: 'PRO Manager',
-          email: 'pro@doshanivarana.com',
-          role: OTHER_ROLE,
-        };
-        const targetUrl = buildHandoffUrl(getPROPanelOrigin(), user);
-        // Small delay so user sees the "Redirecting..." state
-        setTimeout(() => {
-          window.location.href = targetUrl;
-        }, 700);
+        await logout();
+        setError('Unauthorized.');
+        setIsLoading(false);
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.');
       setIsLoading(false);
     }
   };
@@ -79,25 +114,12 @@ export function Login() {
       <div style={{ position: 'absolute', bottom: '-20%', left: '-10%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(74,18,89,0.35) 0%, transparent 70%)', animation: 'floatOrb2 10s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', top: '40%', left: '15%', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,23,0.1) 0%, transparent 70%)', animation: 'floatOrb1 12s ease-in-out infinite reverse' }} />
 
-      {/* Mandala watermark */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.04, pointerEvents: 'none' }} viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
-        <g stroke="#C76A00" strokeWidth="0.8" fill="none" transform="translate(400,400)">
-          <circle r="340" /><circle r="280" strokeDasharray="4 4" /><circle r="220" />
-          <circle r="160" strokeDasharray="2 6" /><circle r="100" /><circle r="50" strokeDasharray="3 3" />
-          <line x1="-340" y1="0" x2="340" y2="0" /><line x1="0" y1="-340" x2="0" y2="340" />
-          <line x1="-240" y1="-240" x2="240" y2="240" /><line x1="240" y1="-240" x2="-240" y2="240" />
-          <polygon points="0,-160 92,-80 57,130 -57,130 -92,-80" />
-          <polygon points="0,160 -92,80 -57,-130 57,-130 92,80" />
-        </g>
-      </svg>
-
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
         @keyframes floatOrb1 { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
         @keyframes floatOrb2 { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(25px) scale(0.97)} }
         @keyframes slideUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin { to{transform:rotate(360deg)} }
-        @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
         .dn-card{animation:slideUp 0.55s cubic-bezier(0.22,1,0.36,1) both}
         .dn-input:focus{outline:none;border-color:#C76A00 !important;box-shadow:0 0 0 3px rgba(199,106,0,0.15) !important}
         .dn-input::placeholder{color:rgba(139,119,119,0.5)}
@@ -105,10 +127,23 @@ export function Login() {
         .dn-btn:active:not(:disabled){transform:translateY(0)}
         .dn-btn:disabled{opacity:0.75;cursor:not-allowed}
         .dn-eye:hover{color:#C76A00 !important}
-        .dn-cred-row:hover{background:rgba(255,255,255,0.05);border-radius:8px;cursor:pointer}
       `}</style>
 
       <main style={{ width: '100%', maxWidth: '440px', padding: '16px', position: 'relative', zIndex: 10 }}>
+        {isAutoLoggingIn ? (
+          <div className="dn-card" style={{
+            background: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+            borderRadius: '20px', border: '1px solid rgba(255,255,255,0.12)',
+            padding: '40px 36px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04) inset',
+            minHeight: '400px'
+          }}>
+             <div style={{ width: '40px', height: '40px', border: '3px solid rgba(199,106,0,0.3)', borderTopColor: '#C76A00', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '20px' }} />
+             <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '14px', fontWeight: 600 }}>Authenticating securely...</p>
+          </div>
+        ) : (
         <div className="dn-card" style={{
           background: 'rgba(255,255,255,0.06)',
           backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
@@ -133,23 +168,31 @@ export function Login() {
               letterSpacing: '-0.3px', margin: 0, textShadow: '0 2px 8px rgba(0,0,0,0.3)',
             }}>Dosha Nivarana</h1>
 
+            {isDemoMode && (
+              <div style={{ marginTop: '8px', padding: '4px 12px', background: '#F59E0B', color: '#fff', borderRadius: '12px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em' }}>
+                DEMO MODE ENABLED
+              </div>
+            )}
+
             <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.18em', color: 'rgba(196,181,212,0.7)', marginTop: '6px', textTransform: 'uppercase' }}>
-              Digital Temple Services
+              Management Portal
             </p>
 
-            {/* Role pills */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-              {[{ label: '🛡️ Admin', color: '#4A1259', border: 'rgba(74,18,89,0.6)' }, { label: '⚡ PRO', color: '#a04100', border: 'rgba(199,106,0,0.5)' }].map(r => (
-                <span key={r.label} style={{
-                  fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em',
-                  padding: '3px 10px', borderRadius: '20px',
-                  background: r.color + '33', border: `1px solid ${r.border}`,
-                  color: 'rgba(255,255,255,0.75)',
-                }}>{r.label}</span>
-              ))}
+              <span style={{
+                fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em',
+                padding: '3px 10px', borderRadius: '20px',
+                background: '#4A125933', border: `1px solid rgba(74,18,89,0.6)`,
+                color: 'rgba(255,255,255,0.75)',
+              }}>🛡️ Admin</span>
+              <span style={{
+                fontSize: '10px', fontWeight: 700, letterSpacing: '0.08em',
+                padding: '3px 10px', borderRadius: '20px',
+                background: '#C76A0033', border: `1px solid rgba(199,106,0,0.5)`,
+                color: 'rgba(255,255,255,0.75)',
+              }}>⚡ PRO</span>
             </div>
 
-            {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', marginTop: '24px' }}>
               <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }} />
               <span style={{ fontSize: '10px', color: 'rgba(196,181,212,0.5)', fontWeight: 600, letterSpacing: '0.1em' }}>SIGN IN</span>
@@ -157,7 +200,6 @@ export function Login() {
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div style={{
               display: 'flex', alignItems: 'flex-start', gap: '10px',
@@ -169,35 +211,21 @@ export function Login() {
             </div>
           )}
 
-          {/* Redirecting state */}
-          {redirecting && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              background: 'rgba(199,106,0,0.15)', border: '1px solid rgba(199,106,0,0.3)',
-              borderRadius: '10px', padding: '14px 16px', marginBottom: '20px',
-            }}>
-              <span style={{ width: '18px', height: '18px', border: '2px solid rgba(199,106,0,0.3)', borderTopColor: '#C76A00', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
-              <p style={{ margin: 0, fontSize: '13px', color: '#E8894A', fontWeight: 600 }}>Redirecting to PRO Panel…</p>
-            </div>
-          )}
-
-          {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            {/* Username */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label htmlFor="dn-username" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>USERNAME</label>
+              <label htmlFor="dn-email" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>EMAIL ADDRESS</label>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>👤</span>
+                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>✉️</span>
                 <input
-                  id="dn-username"
+                  id="dn-email"
                   className="dn-input"
-                  type="text"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  placeholder="Enter your username"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Enter your email"
                   required
-                  autoComplete="username"
-                  disabled={isLoading || redirecting}
+                  autoComplete="email"
+                  disabled={isLoading}
                   style={{
                     width: '100%', height: '48px',
                     background: 'rgba(255,255,255,0.07)',
@@ -211,7 +239,6 @@ export function Login() {
               </div>
             </div>
 
-            {/* Password */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label htmlFor="dn-password" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>PASSWORD</label>
               <div style={{ position: 'relative' }}>
@@ -225,7 +252,7 @@ export function Login() {
                   placeholder="Enter your password"
                   required
                   autoComplete="current-password"
-                  disabled={isLoading || redirecting}
+                  disabled={isLoading}
                   style={{
                     width: '100%', height: '48px',
                     background: 'rgba(255,255,255,0.07)',
@@ -242,16 +269,14 @@ export function Login() {
               </div>
             </div>
 
-            {/* Submit */}
             <div style={{ paddingTop: '6px' }}>
               <button
-                id="dn-login-btn"
                 type="submit"
-                disabled={isLoading || redirecting}
+                disabled={isLoading}
                 className="dn-btn"
                 style={{
                   width: '100%', height: '50px',
-                  background: (isLoading || redirecting)
+                  background: isLoading
                     ? 'linear-gradient(135deg, rgba(199,106,0,0.6), rgba(232,137,74,0.6))'
                     : 'linear-gradient(135deg, #C76A00, #E8894A)',
                   border: 'none', borderRadius: '12px',
@@ -259,18 +284,13 @@ export function Login() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   boxShadow: '0 8px 24px rgba(199,106,0,0.35)',
                   transition: 'all 0.2s cubic-bezier(0.22,1,0.36,1)',
-                  letterSpacing: '0.02em', cursor: (isLoading || redirecting) ? 'not-allowed' : 'pointer',
+                  letterSpacing: '0.02em', cursor: isLoading ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isLoading ? (
                   <>
                     <span style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                     Authenticating…
-                  </>
-                ) : redirecting ? (
-                  <>
-                    <span style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
-                    Redirecting…
                   </>
                 ) : (
                   <>Sign In →</>
@@ -279,34 +299,24 @@ export function Login() {
             </div>
           </form>
 
-          {/* Demo credentials — clickable to auto-fill */}
-          <div style={{ marginTop: '24px', background: 'rgba(212,160,23,0.1)', border: '1px solid rgba(212,160,23,0.22)', borderRadius: '12px', padding: '14px 16px' }}>
-            <p style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: 700, color: '#F5D673', letterSpacing: '0.08em' }}>🔑 DEMO CREDENTIALS — Click to fill</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {[
-                { label: 'Admin', user: 'admin', pass: 'admin123', badge: '🛡️', dest: 'Admin Dashboard' },
-                { label: 'PRO',   user: 'pro',   pass: 'pro123',   badge: '⚡', dest: 'PRO Dashboard'   },
-              ].map(c => (
-                <div
-                  key={c.label}
-                  className="dn-cred-row"
-                  onClick={() => { setUsername(c.user); setPassword(c.pass); setError(''); }}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', transition: 'background 0.15s', cursor: 'pointer', borderRadius: '8px' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>{c.badge}</span>
-                    <span style={{ fontSize: '12px', color: '#F5D673', fontFamily: 'monospace', fontWeight: 700 }}>{c.user} / {c.pass}</span>
-                  </div>
-                  <span style={{ fontSize: '10px', color: 'rgba(196,181,212,0.5)', fontWeight: 600 }}>→ {c.dest}</span>
+          {isDemoMode && (
+            <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', border: '1px dashed rgba(255,255,255,0.2)' }}>
+              <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Demo Credentials:</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '12px', color: '#fff' }}>
+                  <span style={{ color: '#E8894A', fontWeight: 600 }}>Admin:</span> admin@doshanivarana.com <br/>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>Pass:</span> Admin@123
                 </div>
-              ))}
+                <div style={{ fontSize: '12px', color: '#fff' }}>
+                  <span style={{ color: '#E8894A', fontWeight: 600 }}>PRO:</span> pro@doshanivarana.com <br/>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>Pass:</span> Pro@123
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          <p style={{ textAlign: 'center', marginTop: '18px', marginBottom: 0, fontSize: '11px', color: 'rgba(196,181,212,0.35)' }}>
-            Demo-only session · Dosha Nivarana Platform
-          </p>
         </div>
+        )}
       </main>
     </div>
   );

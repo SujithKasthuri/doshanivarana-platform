@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, Star, CalendarCheck, Building2, UserCircle, Edit, PowerOff, Eye, Filter, RefreshCcw } from "lucide-react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
 
@@ -22,66 +22,98 @@ const statusConfig: Record<string, { bg: string; color: string }> = {
   "On Leave": { bg: "#FFF1F2", color: "#DC2626" },
 };
 
-const priestTemples = ["Kashi Vishwanath", "Tirumala Tirupati", "Meenakshi Amman", "Dwarkadhish Temple", "Padmanabhaswamy", "Kedarnath Temple", "Sabarimala Temple", "Somnath Jyotirlinga", "Shirdi Sai Baba", "Unassigned"];
+import { PriestsService } from "../../../services/firebase/priests";
+import { TemplesService } from "../../../services/firebase/temples";
+
 const priestColors = ["#C76A00", "#4A1259", "#D4A017", "#22C55E", "#6366F1", "#EF4444", "#F59E0B", "#14B8A6", "#8B5CF6", "#EC4899"];
-const emptyPriestForm = { name: "", experience: "", temple: "Unassigned", location: "", specialization: "", languagesStr: "Sanskrit, Hindi", status: "Active" };
+const emptyPriestForm = { name: "", experience: "", templeId: "", location: "", specialization: "", languagesStr: "Sanskrit, Hindi", status: "Active" };
 
 export function Priests() {
-  const [priests, setPriests] = useState(priestsData);
+  const [priests, setPriests] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [addOpen, setAddOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<typeof priestsData[0] | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
   const [priestForm, setPriestForm] = useState(emptyPriestForm);
   const [saving, setSaving] = useState(false);
+  const [temples, setTemples] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = PriestsService.subscribeToPriests(setPriests);
+    TemplesService.getTemples().then(setTemples).catch(console.error);
+    return () => unsubscribe();
+  }, []);
 
   const filtered = priests.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.temple.toLowerCase().includes(search.toLowerCase()) ||
+      (p.templeName || "").toLowerCase().includes(search.toLowerCase()) ||
       p.specialization.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  function handleAddPriest() {
+  async function handleAddPriest() {
     if (!priestForm.name) return;
     setSaving(true);
     const initials = priestForm.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-    const newPriest = {
-      id: `PR${String(priests.length + 1).padStart(3, "0")}`,
-      name: priestForm.name, photo: initials, experience: priestForm.experience || "1 yr",
-      temple: priestForm.temple, location: priestForm.location,
-      specialization: priestForm.specialization || "General Puja Services",
-      bookings: 0, rating: 5.0, status: priestForm.status,
-      color: priestColors[priests.length % priestColors.length],
-      languages: priestForm.languagesStr.split(",").map(l => l.trim()).filter(Boolean),
-      since: "Jun 2026",
-    };
-    // Immediate local update — modal closes, UI updates instantly
-    setPriests(prev => [...prev, newPriest]);
-    setPriestForm(emptyPriestForm);
-    setAddOpen(false);
-    setSaving(false);
+    const newId = `PR${String(Date.now()).slice(-6)}`;
+    
+    try {
+      const selectedTemple = temples.find(t => t.id === priestForm.templeId);
+
+      await PriestsService.createPriest(newId, {
+        name: priestForm.name, photo: initials, experience: priestForm.experience || "1 yr",
+        templeId: priestForm.templeId, templeName: selectedTemple ? selectedTemple.name : "Unassigned", location: priestForm.location,
+        specialization: priestForm.specialization || "General Puja Services",
+        bookings: 0, rating: 5.0, status: priestForm.status,
+        color: priestColors[priests.length % priestColors.length],
+        languages: priestForm.languagesStr.split(",").map(l => l.trim()).filter(Boolean),
+        since: "Jun 2026",
+      });
+      setPriestForm(emptyPriestForm);
+      setAddOpen(false);
+    } catch (error: any) {
+      alert("Error adding priest: " + error.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleEditPriest() {
+  async function handleEditPriest() {
     if (!editTarget || !priestForm.name) return;
     setSaving(true);
-    // Immediate local update — modal closes, UI updates instantly
-    setPriests(prev => prev.map(p => p.id === editTarget.id ? {
-      ...p, name: priestForm.name, experience: priestForm.experience,
-      temple: priestForm.temple, location: priestForm.location,
-      specialization: priestForm.specialization, status: priestForm.status,
-      languages: priestForm.languagesStr.split(",").map(l => l.trim()).filter(Boolean),
-    } : p));
-    setEditTarget(null);
-    setPriestForm(emptyPriestForm);
-    setSaving(false);
+    
+    try {
+      const selectedTemple = temples.find(t => t.id === priestForm.templeId);
+
+      await PriestsService.updatePriest(editTarget.id, {
+        name: priestForm.name, experience: priestForm.experience,
+        templeId: priestForm.templeId, templeName: selectedTemple ? selectedTemple.name : "Unassigned", location: priestForm.location,
+        specialization: priestForm.specialization, status: priestForm.status,
+        languages: priestForm.languagesStr.split(",").map(l => l.trim()).filter(Boolean),
+      });
+      setEditTarget(null);
+      setPriestForm(emptyPriestForm);
+    } catch (error: any) {
+      alert("Error updating priest: " + error.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function openEditPriest(p: typeof priestsData[0]) {
+  async function handleDeletePriest(id: string) {
+    if (confirm("Are you sure you want to delete this priest?")) {
+      try {
+        await PriestsService.deletePriest(id);
+      } catch (error: any) {
+        alert("Error deleting priest: " + error.message);
+      }
+    }
+  }
+
+  function openEditPriest(p: any) {
     setEditTarget(p);
-    setPriestForm({ name: p.name, experience: p.experience, temple: p.temple, location: p.location, specialization: p.specialization, languagesStr: p.languages.join(", "), status: p.status });
+    setPriestForm({ name: p.name, experience: p.experience, templeId: p.templeId || "", location: p.location, specialization: p.specialization, languagesStr: p.languages.join(", "), status: p.status });
   }
 
   return (
@@ -175,7 +207,7 @@ export function Priests() {
                       <Star size={11} fill="#D4A017" style={{ color: "#D4A017" }} />
                       <span className="text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{priest.rating}</span>
                       <span className="text-xs" style={{ color: "#D1D5DB" }}>·</span>
-                      <span className="text-xs" style={{ color: "#9CA3AF" }}>{priest.bookings.toLocaleString()} bookings</span>
+                      <span className="text-xs" style={{ color: "#9CA3AF" }}>{(priest.bookings || 0).toLocaleString()} bookings</span>
                     </div>
                   </div>
                 </div>
@@ -184,14 +216,14 @@ export function Priests() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-xs">
                     <Building2 size={12} style={{ color: "#C76A00" }} />
-                    <span style={{ color: priest.temple === "Unassigned" ? "#EF4444" : "#1F1F1F", fontWeight: 500 }}>{priest.temple}</span>
+                    <span style={{ color: (!priest.templeId || priest.templeName === "Unassigned") ? "#EF4444" : "#1F1F1F", fontWeight: 500 }}>{priest.templeName || "Unassigned"}</span>
                   </div>
                   <div className="flex items-start gap-2 text-xs">
                     <UserCircle size={12} className="mt-0.5 flex-shrink-0" style={{ color: "#9CA3AF" }} />
                     <span style={{ color: "#6B7280" }}>{priest.specialization}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {priest.languages.map((l) => (
+                    {(priest.languages || []).map((l: string) => (
                       <span key={l} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259", fontWeight: 500 }}>
                         {l}
                       </span>
@@ -213,7 +245,7 @@ export function Priests() {
                     style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}>
                     <RefreshCcw size={12} />
                   </button>
-                  <button className="flex items-center justify-center py-1.5 px-2.5 rounded-lg"
+                  <button onClick={() => handleDeletePriest(priest.id)} className="flex items-center justify-center py-1.5 px-2.5 rounded-lg"
                     style={{ backgroundColor: "#FFF1F2", color: "#EF4444" }}>
                     <PowerOff size={12} />
                   </button>
@@ -241,8 +273,9 @@ export function Priests() {
             </Field>
           </div>
           <Field label="Assigned Temple">
-            <select className={inputCls} style={selectStyle} value={priestForm.temple} onChange={e => setPriestForm(f => ({ ...f, temple: e.target.value }))}>
-              {priestTemples.map(t => <option key={t}>{t}</option>)}
+            <select className={inputCls} style={selectStyle} value={priestForm.templeId} onChange={e => setPriestForm(f => ({ ...f, templeId: e.target.value }))}>
+              <option value="">Unassigned</option>
+              {temples.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </Field>
           <Field label="Location">
@@ -275,8 +308,9 @@ export function Priests() {
             </Field>
           </div>
           <Field label="Assigned Temple">
-            <select className={inputCls} style={selectStyle} value={priestForm.temple} onChange={e => setPriestForm(f => ({ ...f, temple: e.target.value }))}>
-              {priestTemples.map(t => <option key={t}>{t}</option>)}
+            <select className={inputCls} style={selectStyle} value={priestForm.templeId} onChange={e => setPriestForm(f => ({ ...f, templeId: e.target.value }))}>
+              <option value="">Unassigned</option>
+              {temples.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </Field>
           <Field label="Location">

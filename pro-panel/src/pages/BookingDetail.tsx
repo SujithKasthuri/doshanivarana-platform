@@ -1,19 +1,18 @@
 // @ts-nocheck
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router';
-import { doc, getDoc, updateDoc, setDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, collection, query, where, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import type { Booking } from '@devaseva/core';
 import { PageHeader } from '../components/PageHeader';
-import { CustomSelect } from '../components/CustomSelect';
-import { db as localDb } from '../lib/db';
 
 export function BookingDetail() {
   const { id } = useParams<{ id: string }>();
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [selectedPujari, setSelectedPujari] = useState('Not Assigned');
+  const [selectedPujariId, setSelectedPujariId] = useState('Not Assigned');
   const [notification, setNotification] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [priests, setPriests] = useState<any[]>([]);
   
   useEffect(() => {
     if (!id) return;
@@ -24,7 +23,7 @@ export function BookingDetail() {
         if (docSnap.exists()) {
           const bData = docSnap.data() as Booking;
           setBooking({ id: docSnap.id, ...bData });
-          setSelectedPujari(bData.priestName || 'Not Assigned');
+          setSelectedPujariId(bData.priestId || 'Not Assigned');
         }
       } catch (err) {
         console.error(err);
@@ -34,6 +33,24 @@ export function BookingDetail() {
     };
     fetchBooking();
   }, [id]);
+
+  useEffect(() => {
+    if (!booking?.templeId) return;
+
+    const q = query(
+      collection(db, 'priests'),
+      where('templeId', '==', booking.templeId),
+      where('isDeleted', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Only show priests that are eligible for assignment
+      setPriests(docs.filter(p => p.status !== 'Inactive' && p.status !== 'On Leave'));
+    });
+
+    return () => unsubscribe();
+  }, [booking?.templeId]);
 
   const rescheduleRequest = booking?.rescheduleRequest;
 
@@ -69,11 +86,6 @@ export function BookingDetail() {
         });
 
         setBooking({ ...booking, scheduledDate: updatedDate, scheduledTime: updatedTime, rescheduleRequest: null });
-        localDb.addNotification(
-          'Reschedule Approved',
-          `Reschedule request approved for booking ${booking.id}. New slot: ${updatedDate} at ${updatedTime}.`,
-          `/bookings/${booking.id}`
-        );
         setNotification('Reschedule request approved!');
         setTimeout(() => setNotification(null), 3000);
       } catch (e) {
@@ -105,11 +117,6 @@ export function BookingDetail() {
         });
 
         setBooking({ ...booking, rescheduleRequest: null });
-        localDb.addNotification(
-          'Reschedule Rejected',
-          `Reschedule request rejected for booking ${booking.id}.`,
-          `/bookings/${booking.id}`
-        );
         setNotification('Reschedule request rejected.');
         setTimeout(() => setNotification(null), 3000);
       } catch (e) {
@@ -121,16 +128,22 @@ export function BookingDetail() {
   const handleSaveAssignment = async () => {
     if (booking && id) {
       try {
-        await updateDoc(doc(db, 'bookings', id), {
-          priestName: selectedPujari,
+        const priestObj = priests.find(p => p.id === selectedPujariId);
+        
+        const updatePayload: any = {
           updatedAt: serverTimestamp()
-        });
-        setBooking({ ...booking, priestName: selectedPujari });
-        localDb.addNotification(
-          'Pujari Assigned',
-          `Pt. ${selectedPujari} has been assigned to booking ${booking.id} (${booking.poojaId || 'Pooja'}).`,
-          `/bookings/${booking.id}`
-        );
+        };
+
+        if (priestObj) {
+          updatePayload.priestId = priestObj.id;
+          updatePayload.priestName = priestObj.name;
+        } else {
+          updatePayload.priestId = null;
+          updatePayload.priestName = 'Not Assigned';
+        }
+
+        await updateDoc(doc(db, 'bookings', id), updatePayload);
+        setBooking({ ...booking, priestId: updatePayload.priestId, priestName: updatePayload.priestName });
         setNotification('Pujari assigned successfully!');
         setTimeout(() => setNotification(null), 3000);
       } catch (e) {
@@ -304,26 +317,26 @@ export function BookingDetail() {
                 <h3 className="font-display text-headline-sm text-on-surface font-bold">Pujari Assignment</h3>
               </div>
               <span className={`font-label-md text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                selectedPujari === 'Not Assigned' 
+                selectedPujariId === 'Not Assigned' 
                   ? 'bg-error-container text-on-error-container' 
                   : 'bg-green-100 text-green-800'
               }`}>
-                {selectedPujari === 'Not Assigned' ? 'Not Assigned' : 'Assigned'}
+                {selectedPujariId === 'Not Assigned' ? 'Not Assigned' : 'Assigned'}
               </span>
             </div>
             
             <div className="mb-4">
               <label className="text-label-md text-on-surface-variant block mb-2 font-bold uppercase tracking-wider">Select Pujari</label>
-              <CustomSelect 
-                value={selectedPujari}
-                onChange={(val) => setSelectedPujari(val)}
-                options={[
-                  { value: 'Not Assigned', label: 'Select Pujari' },
-                  { value: 'Pandit Ramachandra', label: 'Pandit Ramachandra' },
-                  { value: 'Pandit Shivakumara', label: 'Pandit Shivakumara' }
-                ]}
-                className=""
-              />
+              <select 
+                className="w-full border border-outline-variant rounded-lg p-3 text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface-bright font-semibold"
+                value={selectedPujariId}
+                onChange={(e) => setSelectedPujariId(e.target.value)}
+              >
+                <option value="Not Assigned">Select Pujari</option>
+                {priests.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.experience})</option>
+                ))}
+              </select>
             </div>
             
             <button 

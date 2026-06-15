@@ -1,30 +1,26 @@
 // @ts-nocheck
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { db, type Booking, type PoojaSlot, type DevoteeQuery } from '../lib/db';
+import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { PageHeader } from '../components/PageHeader';
 
 export function Home() {
   const navigate = useNavigate();
+  const { currentUser, templeId } = useAuth();
+  
+  const profileName = currentUser?.name?.trim().split(/\s+/)[0] || 'PRO';
 
-  const [bookings] = useState<Booking[]>(() => db.getBookings());
-  const [slots] = useState<PoojaSlot[]>(() => db.getSlots());
-  const [queries] = useState<DevoteeQuery[]>(() => db.getQueries());
-  const [profileName] = useState(() => {
-    const profile = db.getProfile();
-    if (profile && profile.fullName) {
-      return profile.fullName.trim().split(/\s+/)[0] || 'Ravi';
-    }
-    return 'Ravi';
-  });
+  const [activePoojas, setActivePoojas] = useState<any[]>([]);
+  const [todaysPoojasCount, setTodaysPoojasCount] = useState(0);
+  const [pendingPujariCount, setPendingPujariCount] = useState(0);
+  const [pendingDeliveriesCount, setPendingDeliveriesCount] = useState(0);
+  const [recentBookings, setRecentBookings] = useState<any[]>([]);
+  const [unreadQueriesCount, setUnreadQueriesCount] = useState(0);
 
-  const handleStartStream = (id: string) => {
-    navigate(`/stream-readiness/${id}`);
-  };
-
-  const handleAssignPujari = (id: string) => {
-    navigate(`/bookings/${id}`);
-  };
+  const [poojasMap, setPoojasMap] = useState<Record<string, string>>({});
+  const [allBookings, setAllBookings] = useState<any[]>([]);
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -39,30 +35,145 @@ export function Home() {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowLabel = tomorrow.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  const tomorrowDateStr = tomorrow.toISOString().split('T')[0];
 
-  // Stats calculation
-  const todaysPoojasCount = slots.filter(s => s.status && s.date === todayDateStr).length;
-  const pendingPujariCount = bookings.filter(b => (b.status === 'COMPLETED' ? 'completed' : 'upcoming') === 'upcoming' && b.pujari === 'Not Assigned').length;
-  const pendingDeliveriesCount = bookings.filter(b => b.delivery === 'Yes' && b.deliveryStatus !== 'Delivered' && b.deliveryStatus !== 'Not Applicable').length;
-  const unreadQueriesCount = queries.filter(q => q.status === 'Open').length;
+  useEffect(() => {
+    if (!templeId) return;
 
-  // Filter bookings for today and tomorrow
-  const activePoojas = bookings.filter(b => {
-    const datePart = b.dateTime.split(',')[0].trim();
-    return (b.status === 'COMPLETED' ? 'completed' : 'upcoming') === 'upcoming' && (datePart === todayLabel || datePart === tomorrowLabel);
-  });
+    // Fetch Poojas for mapping pooja names
+    const poojasQuery = query(collection(db, 'poojas'), where('templeId', '==', templeId));
+    const unsubPoojas = onSnapshot(poojasQuery, (snapshot) => {
+      const pMap: Record<string, string> = {};
+      snapshot.forEach(doc => {
+        pMap[doc.id] = doc.data().name || 'Unknown Pooja';
+      });
+      setPoojasMap(pMap);
+    });
 
-  const getBookingDateLabel = (dateTimeStr: string) => {
-    const parts = dateTimeStr.split(',');
-    const datePart = parts[0].trim();
-    const timePart = parts[1] ? parts[1].trim() : '';
+    // 1 & 5. Today's Poojas & Today's/Tomorrow's Poojas (Slots Collection)
+    const slotsQuery = query(
+      collection(db, 'slots'),
+      where('templeId', '==', templeId)
+    );
+    const unsubSlots = onSnapshot(slotsQuery, (snapshot) => {
+      const allSlots = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Todays Count
+      const todays = allSlots.filter(s => s.date === todayDateStr && s.status !== 'CANCELLED');
+      setTodaysPoojasCount(todays.length);
 
-    if (datePart === todayLabel) return `Today ${timePart}`;
-    if (datePart === tomorrowLabel) return `Tomorrow ${timePart}`;
-    return dateTimeStr;
+      // Active Poojas (Today + Tomorrow)
+      const active = allSlots.filter(s => (s.date === todayDateStr || s.date === tomorrowDateStr) && s.status !== 'CANCELLED');
+      // Sort by date then time
+      active.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return (a.time || '').localeCompare(b.time || '');
+      });
+      setActivePoojas(active);
+    });
+
+    // 2. Pending Pujari Assignments (Bookings Collection)
+    const pujariQuery = query(
+      collection(db, 'bookings'),
+      where('templeId', '==', templeId)
+    );
+    const unsubPujari = onSnapshot(pujariQuery, (snapshot) => {
+      let pendingCount = 0;
+      const bks: any[] = [];
+      snapshot.forEach(doc => {
+        const b = { id: doc.id, ...doc.data() };
+        bks.push(b);
+        if (b.status !== 'COMPLETED' && (!b.priestName || b.priestName === 'Not Assigned')) {
+          pendingCount++;
+        }
+      });
+      setPendingPujariCount(pendingCount);
+      setAllBookings(bks);
+    });
+
+    // 3. Pending Deliveries (Deliveries Collection)
+    const deliveriesQuery = query(
+      collection(db, 'deliveries'),
+      where('templeId', '==', templeId)
+    );
+    const unsubDeliveries = onSnapshot(deliveriesQuery, (snapshot) => {
+      let pendingCount = 0;
+      snapshot.forEach(doc => {
+        const status = doc.data().status;
+        if (['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(status)) {
+          pendingCount++;
+        }
+      });
+      setPendingDeliveriesCount(pendingCount);
+    });
+
+    // 4. Recent Bookings (Bookings Collection)
+    const recentBookingsQuery = query(
+      collection(db, 'bookings'),
+      where('templeId', '==', templeId)
+    );
+    const unsubRecentBookings = onSnapshot(recentBookingsQuery, (snapshot) => {
+      let recent = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Sort in memory by createdAt (or fallback to id if missing) to avoid index requirement
+      recent.sort((a, b) => {
+        let timeA = 0;
+        let timeB = 0;
+        
+        if (a.createdAt) {
+          timeA = typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() : new Date(a.createdAt).getTime();
+        }
+        if (b.createdAt) {
+          timeB = typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() : new Date(b.createdAt).getTime();
+        }
+        return timeB - timeA;
+      });
+      
+      setRecentBookings(recent.slice(0, 5));
+    });
+
+    // 6. Unread Queries (Queries Collection)
+    // Note: The schema for queries may not have templeId, but we apply it in case it's added.
+    const queriesQuery = query(
+      collection(db, 'queries')
+    );
+    const unsubQueries = onSnapshot(queriesQuery, (snapshot) => {
+      let unreadCount = 0;
+      snapshot.forEach(doc => {
+        const qData = doc.data();
+        // Fallback global check since Admin schema lacks templeId currently
+        if (qData.status === 'Open' || qData.unreadCount > 0) {
+          unreadCount++;
+        }
+      });
+      setUnreadQueriesCount(unreadCount);
+    });
+
+    return () => {
+      unsubPoojas();
+      unsubSlots();
+      unsubPujari();
+      unsubDeliveries();
+      unsubRecentBookings();
+      unsubQueries();
+    };
+  }, [templeId, todayDateStr, tomorrowDateStr]);
+
+  const handleStartStream = (id: string) => {
+    navigate(`/stream-readiness/${id}`);
   };
 
-  const recentBookings = bookings.filter(b => (b.status === 'COMPLETED' ? 'completed' : 'upcoming') === 'upcoming').slice(0, 4);
+  const handleAssignPujari = (id: string) => {
+    navigate(`/bookings/${id}`);
+  };
+
+  const getBookingDateLabel = (dateStr: string, timeStr?: string) => {
+    if (!dateStr) return '';
+    let label = dateStr;
+    if (dateStr === todayDateStr) label = 'Today';
+    if (dateStr === tomorrowDateStr) label = 'Tomorrow';
+    return `${label} ${timeStr || ''}`.trim();
+  };
 
   return (
     <div className="p-xl min-h-[calc(100vh-104px)] relative mandala-watermark">
@@ -163,35 +274,67 @@ export function Home() {
                   </tr>
                 </thead>
                 <tbody className="font-sans text-body-sm divide-y divide-outline-variant">
-                  {activePoojas.map(pooja => (
-                    <tr key={pooja.id} className="hover:bg-surface-container-lowest transition-colors bg-white">
-                      <td className="p-4 font-semibold text-on-surface">{pooja.poojaName}</td>
-                      <td className="p-4 text-on-surface-variant">{getBookingDateLabel(pooja.dateTime)}</td>
-                      <td className="p-4 text-on-surface-variant text-center">{pooja.currentBookings}/{pooja.maxBookings}</td>
+                  {activePoojas.map(slot => {
+                    const slotBookings = allBookings.filter(b => {
+                      const bDate = b.scheduledDate || (b.createdAt?.toDate ? b.createdAt.toDate().toISOString().substring(0,10) : typeof b.createdAt === 'string' ? b.createdAt.substring(0,10) : '');
+                      // Match Pooja ID
+                      if (b.poojaId !== slot.poojaId) return false;
+                      // Match Date
+                      if (bDate !== slot.date) return false;
+                      // Match Time (if specified, otherwise assume matched if date matches)
+                      if (b.scheduledTime && slot.startTime && b.scheduledTime !== slot.startTime && b.scheduledTime !== slot.time) {
+                        return false;
+                      }
+                      return true;
+                    });
+                    const priests = [...new Set(slotBookings.map(b => b.priestName).filter(n => n && n !== 'Not Assigned'))];
+                    const unassignedBookings = slotBookings.filter(b => !b.priestName || b.priestName === 'Not Assigned');
+                    
+                    let priestLabel = 'Not Assigned';
+                    let isAssigned = false;
+                    let hasBookings = slotBookings.length > 0;
+                    
+                    if (priests.length > 0) {
+                      priestLabel = priests.join(', ');
+                      if (unassignedBookings.length > 0) {
+                        priestLabel += ' (Partial)';
+                      } else {
+                        isAssigned = true;
+                      }
+                    } else if (!hasBookings) {
+                      priestLabel = 'No Bookings';
+                      isAssigned = true; // Use neutral/green state since it doesn't need attention
+                    }
+
+                    return (
+                    <tr key={slot.id} className="hover:bg-surface-container-lowest transition-colors bg-white">
+                      <td className="p-4 font-semibold text-on-surface">{poojasMap[slot.poojaId] || slot.poojaName || slot.poojaId || 'Unknown Pooja'}</td>
+                      <td className="p-4 text-on-surface-variant">{getBookingDateLabel(slot.date, slot.startTime || slot.time)}</td>
+                      <td className="p-4 text-on-surface-variant text-center">{slotBookings.length}/{slot.capacity || '-'}</td>
                       <td className="p-4">
-                        {pooja.pujari === 'Not Assigned' ? (
+                        {!isAssigned ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-error-container text-on-error-container">
-                            Not Assigned
+                            {priestLabel}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E8F5E9] text-[#1B5E20]">
-                            {pooja.pujari}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${hasBookings ? 'bg-[#E8F5E9] text-[#1B5E20]' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                            {priestLabel}
                           </span>
                         )}
                       </td>
-                      <td className="p-4 text-on-surface-variant">{pooja.streamStatus}</td>
+                      <td className="p-4 text-on-surface-variant">{slot.streamStatus || 'Pending'}</td>
                       <td className="p-4 text-right">
                         <div className="flex gap-2 justify-end">
-                          {pooja.pujari === 'Not Assigned' && (
+                          {!isAssigned && unassignedBookings.length > 0 && (
                             <button 
-                              onClick={() => handleAssignPujari(pooja.id)}
+                              onClick={() => handleAssignPujari(unassignedBookings[0].id)}
                               className="font-sans text-button px-4 py-2 rounded-full border-2 border-primary text-primary hover:bg-primary-container/10 transition-colors whitespace-nowrap cursor-pointer font-bold"
                             >
                               Assign Pujari
                             </button>
                           )}
                           <button 
-                            onClick={() => handleStartStream(pooja.id)}
+                            onClick={() => handleStartStream(slot.id)}
                             className="font-sans text-button px-4 py-2 rounded-full bg-primary text-on-primary hover:bg-primary/90 transition-colors whitespace-nowrap shadow-sm cursor-pointer font-bold"
                           >
                             Start Stream
@@ -199,7 +342,7 @@ export function Home() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             ) : (
@@ -233,18 +376,18 @@ export function Home() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="font-sans text-label-md text-on-surface-variant uppercase bg-surface-variant px-2 py-0.5 rounded font-semibold">
-                      {booking.id}
+                      {booking.id.substring(0, 10)}...
                     </span>
-                    <span className="font-sans text-body-md font-bold text-on-surface">{booking.devoteeDetails?.name}</span>
+                    <span className="font-sans text-body-md font-bold text-on-surface">{booking.userId || 'Guest'}</span>
                   </div>
                   <div className="font-sans text-body-sm text-on-surface-variant">
-                    {booking.poojaName} • {booking.scheduledDate.split(',')[0]}
+                    {booking.poojaName} • {booking.scheduledDate || (booking.createdAt?.toDate ? booking.createdAt.toDate().toISOString().substring(0,10) : typeof booking.createdAt === 'string' ? booking.createdAt.substring(0,10) : '')}
                   </div>
                 </div>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  booking.paymentStatus === 'COMPLETED' ? 'bg-[#E8F5E9] text-[#1B5E20]' : 'bg-yellow-100 text-yellow-800'
+                  booking.paymentStatus === 'PAID' ? 'bg-[#E8F5E9] text-[#1B5E20]' : 'bg-yellow-100 text-yellow-800'
                 }`}>
-                  {booking.paymentStatus}
+                  {booking.paymentStatus || 'PENDING'}
                 </span>
               </Link>
             ))}
@@ -261,4 +404,3 @@ export function Home() {
     </div>
   );
 }
-

@@ -1,154 +1,236 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Calendar, Clock, Search, Edit, Trash2, UserCircle } from "lucide-react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
+import { SlotsService } from "../../../services/firebase/slots";
+import { TemplesService } from "../../../services/firebase/temples";
+import { PoojasService } from "../../../services/firebase/poojas";
+import { PriestsService } from "../../../services/firebase/priests";
+import { LanguagesService } from "../../../services/firebase/languages";
+import { Timestamp } from "firebase/firestore";
+import { toDateObj } from "../../../services/firebase/core";
 
-type SlotStatus = "Available" | "Booked" | "Cancelled";
+type SlotStatus = "Available" | "Full" | "Cancelled";
 
 interface Slot {
   id: string;
-  temple: string;
-  pooja: string;
-  priest: string;
-  date: string;
-  time: string;
-  duration: string;
+  templeId: string;
+  templeName: string;
+  poojaId: string;
+  poojaName: string;
+  priestId: string;
+  priestName: string;
+  languageCode: string;
+  startTime: Timestamp;
+  endTime: Timestamp;
   capacity: number;
-  booked: number;
-  language: string;
+  bookedCount: number;
   status: SlotStatus;
 }
 
-const initialSlots: Slot[] = [
-  { id: "SL001", temple: "Tirumala Tirupati", pooja: "Sudarshana Homam", priest: "Swami Krishnananda", date: "09 Jun 2026", time: "6:00 AM", duration: "2h", capacity: 10, booked: 8, language: "Telugu", status: "Available" },
-  { id: "SL002", temple: "Kashi Vishwanath", pooja: "Rudrabhishek", priest: "Pandit Ramesh Sharma", date: "09 Jun 2026", time: "8:00 AM", duration: "1h 30m", capacity: 8, booked: 8, language: "Hindi", status: "Booked" },
-  { id: "SL003", temple: "Sabarimala Temple", pooja: "Abhishekam", priest: "Archaka Subramaniam", date: "09 Jun 2026", time: "10:00 AM", duration: "45m", capacity: 12, booked: 4, language: "Malayalam", status: "Available" },
-  { id: "SL004", temple: "Meenakshi Amman", pooja: "Sahasranama Archana", priest: "Acharya Venkatesh Iyer", date: "09 Jun 2026", time: "12:00 PM", duration: "1h", capacity: 15, booked: 12, language: "Tamil", status: "Available" },
-  { id: "SL005", temple: "Shirdi Sai Baba", pooja: "Kakad Aarti", priest: "Panditji Ramakrishna Rao", date: "09 Jun 2026", time: "4:30 AM", duration: "30m", capacity: 20, booked: 20, language: "Marathi", status: "Booked" },
-  { id: "SL006", temple: "Somnath Jyotirlinga", pooja: "Maha Abhishek", priest: "Guruji Chandrashekhar", date: "10 Jun 2026", time: "7:00 AM", duration: "3h", capacity: 6, booked: 0, language: "Gujarati", status: "Available" },
-  { id: "SL007", temple: "Vaishno Devi Shrine", pooja: "Vishnu Sahasranamam", priest: "Pandit Gopal Das", date: "10 Jun 2026", time: "9:00 AM", duration: "1h", capacity: 10, booked: 3, language: "Hindi", status: "Available" },
-  { id: "SL008", temple: "Kedarnath Temple", pooja: "Shiv Puja", priest: "Mahant Shivprasad Ji", date: "10 Jun 2026", time: "6:00 AM", duration: "1h 30m", capacity: 8, booked: 8, language: "Hindi", status: "Cancelled" },
-  { id: "SL009", temple: "Tirumala Tirupati", pooja: "Abhishekam", priest: "Swami Krishnananda", date: "11 Jun 2026", time: "7:00 AM", duration: "45m", capacity: 20, booked: 14, language: "Telugu", status: "Available" },
-  { id: "SL010", temple: "Kashi Vishwanath", pooja: "Navakabhishekam", priest: "Pandit Ramesh Sharma", date: "11 Jun 2026", time: "5:00 AM", duration: "4h", capacity: 5, booked: 5, language: "Hindi", status: "Booked" },
-  { id: "SL011", temple: "Padmanabhaswamy", pooja: "Deeparadhana", priest: "Shastri Narayanan Pillai", date: "12 Jun 2026", time: "6:30 PM", duration: "1h", capacity: 25, booked: 18, language: "Malayalam", status: "Available" },
-  { id: "SL012", temple: "Sabarimala Temple", pooja: "Rudrabhishek", priest: "Archaka Subramaniam", date: "13 Jun 2026", time: "8:00 AM", duration: "1h 30m", capacity: 10, booked: 2, language: "Tamil", status: "Available" },
-];
-
-const templeOptions = ["Tirumala Tirupati", "Kashi Vishwanath", "Sabarimala Temple", "Meenakshi Amman", "Shirdi Sai Baba", "Somnath Jyotirlinga", "Vaishno Devi Shrine", "Kedarnath Temple", "Padmanabhaswamy", "Dwarkadhish Temple"];
-const poojaOptions = ["Sudarshana Homam", "Rudrabhishek", "Abhishekam", "Sahasranama Archana", "Kakad Aarti", "Maha Abhishek", "Vishnu Sahasranamam", "Shiv Puja", "Navakabhishekam", "Deeparadhana", "Satyanarayan Katha"];
-const priestOptions = ["Swami Krishnananda", "Pandit Ramesh Sharma", "Archaka Subramaniam", "Acharya Venkatesh Iyer", "Panditji Ramakrishna Rao", "Guruji Chandrashekhar", "Pandit Gopal Das", "Mahant Shivprasad Ji", "Shastri Narayanan Pillai"];
-const languageOptions = ["Telugu", "Hindi", "Malayalam", "Tamil", "Marathi", "Gujarati", "Kannada", "Sanskrit"];
-
 const statusCfg: Record<SlotStatus, { bg: string; color: string }> = {
   Available: { bg: "#F0FDF4", color: "#16A34A" },
-  Booked: { bg: "#EFF6FF", color: "#2563EB" },
+  Full: { bg: "#EFF6FF", color: "#2563EB" },
   Cancelled: { bg: "#FFF1F2", color: "#DC2626" },
 };
 
-const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const weekDates = ["09", "10", "11", "12", "13", "14", "15"];
-
-const emptyForm = {
-  temple: templeOptions[0], pooja: poojaOptions[0], priest: priestOptions[0],
-  date: "", time: "", duration: "1h", capacity: "10", language: languageOptions[0],
-  status: "Available" as SlotStatus,
-};
-
 export function Schedule() {
-  const [slots, setSlots] = useState<Slot[]>(initialSlots);
-  const [selectedDay, setSelectedDay] = useState(0);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [temples, setTemples] = useState<any[]>([]);
+  const [poojas, setPoojas] = useState<any[]>([]);
+  const [priests, setPriests] = useState<any[]>([]);
+  const [languages, setLanguages] = useState<any[]>([]);
+
+  // Simple day selection (0 = Today, 1 = Tomorrow, etc.)
+  const [selectedDayOffset, setSelectedDayOffset] = useState(0);
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Slot | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const emptyForm = {
+    templeId: "",
+    poojaId: "",
+    priestId: "",
+    startDateTime: "",
+    durationMinutes: "60",
+    capacity: "10",
+    languageCode: "Sanskrit",
+    status: "Available" as SlotStatus,
+  };
+
   const [form, setForm] = useState(emptyForm);
 
-  const dayDate = `${weekDates[selectedDay]} Jun 2026`;
+  useEffect(() => {
+    const unsubSlots = SlotsService.subscribeToSlots(setSlots);
+    const unsubPoojas = PoojasService.subscribeToPoojas(setPoojas);
+    const unsubPriests = PriestsService.subscribeToPriests(setPriests);
+    
+    TemplesService.getTemples().then(setTemples).catch(console.error);
+    LanguagesService.getLanguages().then(setLanguages).catch(console.error);
+
+    return () => {
+      unsubSlots();
+      unsubPoojas();
+      unsubPriests();
+    };
+  }, []);
+
+  // Compute displayed week
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const selectedDate = new Date(today);
+  selectedDate.setDate(today.getDate() + selectedDayOffset);
+
+  const weekDates = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    return d;
+  });
+
   const filtered = slots.filter(s => {
-    const matchDay = s.date === dayDate;
+    const slotDate = toDateObj(s.startTime);
+    if (!slotDate) return false;
+    
+    const matchDay = 
+      slotDate.getFullYear() === selectedDate.getFullYear() &&
+      slotDate.getMonth() === selectedDate.getMonth() &&
+      slotDate.getDate() === selectedDate.getDate();
+
     const matchSearch = !search ||
-      s.pooja.toLowerCase().includes(search.toLowerCase()) ||
-      s.temple.toLowerCase().includes(search.toLowerCase()) ||
-      s.priest.toLowerCase().includes(search.toLowerCase());
+      s.poojaName.toLowerCase().includes(search.toLowerCase()) ||
+      s.templeName.toLowerCase().includes(search.toLowerCase()) ||
+      s.priestName.toLowerCase().includes(search.toLowerCase());
+      
     return matchDay && matchSearch;
   });
 
-  function handleAdd() {
-    if (!form.date || !form.time) return;
-    const newSlot: Slot = {
-      id: `SL${String(slots.length + 1).padStart(3, "0")}`,
-      ...form,
-      capacity: parseInt(form.capacity) || 10,
-      booked: 0,
-    };
-    setSlots(prev => [...prev, newSlot]);
-    setForm(emptyForm);
-    setAddOpen(false);
-  }
+  async function handleSave() {
+    if (!form.templeId || !form.poojaId || !form.priestId || !form.startDateTime) {
+      alert("Please fill all required fields.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const selectedTemple = temples.find(t => t.id === form.templeId);
+      const selectedPooja = poojas.find(p => p.id === form.poojaId);
+      const selectedPriest = priests.find(p => p.id === form.priestId);
 
-  function handleEdit() {
-    if (!editTarget) return;
-    setSlots(prev => prev.map(s =>
-      s.id === editTarget.id ? { ...s, ...form, capacity: parseInt(form.capacity) || s.capacity } : s
-    ));
-    setEditTarget(null);
-    setForm(emptyForm);
+      const start = new Date(form.startDateTime);
+      const end = new Date(start.getTime() + parseInt(form.durationMinutes) * 60000);
+
+      const slotData: any = {
+        templeId: form.templeId,
+        templeName: selectedTemple ? selectedTemple.name : "Unknown Temple",
+        poojaId: form.poojaId,
+        poojaName: selectedPooja ? selectedPooja.name : "Unknown Pooja",
+        priestId: form.priestId,
+        priestName: selectedPriest ? selectedPriest.name : "Unknown Priest",
+        languageCode: form.languageCode,
+        startTime: Timestamp.fromDate(start),
+        endTime: Timestamp.fromDate(end),
+        capacity: parseInt(form.capacity) || 10,
+        status: form.status,
+      };
+
+      if (editTarget) {
+        await SlotsService.updateSlot(editTarget.id, slotData, editTarget);
+      } else {
+        const newId = `SL${String(Date.now()).slice(-6)}`;
+        await SlotsService.createSlot(newId, slotData);
+      }
+      setAddOpen(false);
+      setEditTarget(null);
+      setForm(emptyForm);
+    } catch (err: any) {
+      alert("Error saving slot: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openEdit(slot: Slot) {
     setEditTarget(slot);
-    setForm({ ...slot, capacity: String(slot.capacity) });
+    const start = toDateObj(slot.startTime);
+    const end = toDateObj(slot.endTime);
+    if (!start || !end) return;
+    const duration = Math.round((end.getTime() - start.getTime()) / 60000);
+
+    const startLocal = new Date(start.getTime() - start.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 16);
+
+    setForm({
+      templeId: slot.templeId,
+      poojaId: slot.poojaId,
+      priestId: slot.priestId,
+      startDateTime: startLocal,
+      durationMinutes: String(duration),
+      capacity: String(slot.capacity),
+      languageCode: slot.languageCode || "Sanskrit",
+      status: slot.status,
+    });
+    setAddOpen(true);
   }
 
-  function deleteSlot(id: string) {
-    setSlots(prev => prev.filter(s => s.id !== id));
+  async function deleteSlot(id: string) {
+    if (confirm("Are you sure you want to delete this slot?")) {
+      try {
+        await SlotsService.softDeleteSlot(id);
+      } catch (err: any) {
+        alert("Error deleting slot: " + err.message);
+      }
+    }
   }
 
   const totalSlots = slots.length;
   const available = slots.filter(s => s.status === "Available").length;
-  const booked = slots.filter(s => s.status === "Booked").length;
+  const booked = slots.filter(s => s.status === "Full").length;
   const cancelled = slots.filter(s => s.status === "Cancelled").length;
 
   const slotForm = (
     <div className="px-6 py-5 space-y-4">
       <Field label="Temple">
-        <select className={inputCls} style={selectStyle} value={form.temple} onChange={e => setForm(f => ({ ...f, temple: e.target.value }))}>
-          {templeOptions.map(t => <option key={t}>{t}</option>)}
+        <select className={inputCls} style={selectStyle} value={form.templeId} onChange={e => setForm(f => ({ ...f, templeId: e.target.value }))}>
+          <option value="">Select Temple...</option>
+          {temples.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
       </Field>
       <Field label="Pooja / Service">
-        <select className={inputCls} style={selectStyle} value={form.pooja} onChange={e => setForm(f => ({ ...f, pooja: e.target.value }))}>
-          {poojaOptions.map(p => <option key={p}>{p}</option>)}
+        <select className={inputCls} style={selectStyle} value={form.poojaId} onChange={e => setForm(f => ({ ...f, poojaId: e.target.value }))}>
+          <option value="">Select Pooja...</option>
+          {poojas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <Field label="Priest">
-        <select className={inputCls} style={selectStyle} value={form.priest} onChange={e => setForm(f => ({ ...f, priest: e.target.value }))}>
-          {priestOptions.map(p => <option key={p}>{p}</option>)}
+        <select className={inputCls} style={selectStyle} value={form.priestId} onChange={e => setForm(f => ({ ...f, priestId: e.target.value }))}>
+          <option value="">Select Priest...</option>
+          {priests.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </Field>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Date">
-          <input className={inputCls} style={inputStyle} placeholder="e.g. 09 Jun 2026" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        <Field label="Start Date & Time">
+          <input type="datetime-local" className={inputCls} style={inputStyle} value={form.startDateTime} onChange={e => setForm(f => ({ ...f, startDateTime: e.target.value }))} />
         </Field>
-        <Field label="Time">
-          <input className={inputCls} style={inputStyle} placeholder="e.g. 6:00 AM" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+        <Field label="Duration (minutes)">
+          <input type="number" min="15" step="15" className={inputCls} style={inputStyle} value={form.durationMinutes} onChange={e => setForm(f => ({ ...f, durationMinutes: e.target.value }))} />
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Duration">
-          <input className={inputCls} style={inputStyle} placeholder="e.g. 1h 30m" value={form.duration} onChange={e => setForm(f => ({ ...f, duration: e.target.value }))} />
-        </Field>
         <Field label="Capacity">
           <input className={inputCls} style={inputStyle} type="number" min="1" value={form.capacity} onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))} />
         </Field>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
         <Field label="Language">
-          <select className={inputCls} style={selectStyle} value={form.language} onChange={e => setForm(f => ({ ...f, language: e.target.value }))}>
-            {languageOptions.map(l => <option key={l}>{l}</option>)}
+          <select className={inputCls} style={selectStyle} value={form.languageCode} onChange={e => setForm(f => ({ ...f, languageCode: e.target.value }))}>
+            <option value="Sanskrit">Sanskrit</option>
+            {languages.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
           </select>
         </Field>
-        <Field label="Status">
+      </div>
+      <div className="grid grid-cols-1 gap-4">
+        <Field label="Status Override">
           <select className={inputCls} style={selectStyle} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as SlotStatus }))}>
-            {(["Available", "Booked", "Cancelled"] as SlotStatus[]).map(s => <option key={s}>{s}</option>)}
+            <option value="Available">Available</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Full">Full</option>
           </select>
         </Field>
       </div>
@@ -162,7 +244,7 @@ export function Schedule() {
         {[
           { label: "Total Slots", value: totalSlots, color: "#C76A00", bg: "#FFF0E6" },
           { label: "Available", value: available, color: "#16A34A", bg: "#F0FDF4" },
-          { label: "Booked", value: booked, color: "#2563EB", bg: "#EFF6FF" },
+          { label: "Full", value: booked, color: "#2563EB", bg: "#EFF6FF" },
           { label: "Cancelled", value: cancelled, color: "#DC2626", bg: "#FFF1F2" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl p-4 border" style={{ borderColor: "rgba(199,106,0,0.1)" }}>
@@ -175,9 +257,9 @@ export function Schedule() {
       {/* Week Selector */}
       <div className="bg-white rounded-xl p-4 border" style={{ borderColor: "rgba(199,106,0,0.1)" }}>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>Week of 09 Jun 2026</span>
+          <span className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>Week of {today.toLocaleDateString()}</span>
           <button
-            onClick={() => setAddOpen(true)}
+            onClick={() => { setForm(emptyForm); setAddOpen(true); }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
             style={{ backgroundColor: "#C76A00", color: "#FFFFFF", fontWeight: 600 }}
           >
@@ -185,21 +267,26 @@ export function Schedule() {
           </button>
         </div>
         <div className="grid grid-cols-7 gap-1.5">
-          {weekDays.map((day, i) => {
-            const daySlots = slots.filter(s => s.date === `${weekDates[i]} Jun 2026`);
-            const isSelected = selectedDay === i;
+          {weekDates.map((d, i) => {
+            const dayStr = d.toLocaleDateString("en-US", { weekday: 'short' });
+            const dateStr = d.getDate();
+            const daySlots = slots.filter(s => {
+               const sd = toDateObj(s.startTime);
+               return sd && sd.getDate() === d.getDate() && sd.getMonth() === d.getMonth() && sd.getFullYear() === d.getFullYear();
+            });
+            const isSelected = selectedDayOffset === i;
             return (
               <button
-                key={day}
-                onClick={() => setSelectedDay(i)}
+                key={i}
+                onClick={() => setSelectedDayOffset(i)}
                 className="flex flex-col items-center py-2.5 px-1 rounded-xl transition-all"
                 style={{
                   backgroundColor: isSelected ? "#C76A00" : "#FAF6F2",
                   border: `1px solid ${isSelected ? "#C76A00" : "rgba(199,106,0,0.15)"}`,
                 }}
               >
-                <span className="text-xs mb-1" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : "#9CA3AF", fontWeight: 500 }}>{day}</span>
-                <span className="text-sm" style={{ color: isSelected ? "#FFFFFF" : "#1F1F1F", fontWeight: 700 }}>{weekDates[i]}</span>
+                <span className="text-xs mb-1" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : "#9CA3AF", fontWeight: 500 }}>{dayStr}</span>
+                <span className="text-sm" style={{ color: isSelected ? "#FFFFFF" : "#1F1F1F", fontWeight: 700 }}>{dateStr}</span>
                 {daySlots.length > 0 && (
                   <span className="mt-1 w-5 h-5 rounded-full flex items-center justify-center text-xs"
                     style={{ backgroundColor: isSelected ? "rgba(255,255,255,0.25)" : "rgba(199,106,0,0.12)", color: isSelected ? "#FFFFFF" : "#C76A00", fontWeight: 700 }}>
@@ -226,41 +313,48 @@ export function Schedule() {
               style={{ backgroundColor: "#FAF6F2", border: "1px solid rgba(199,106,0,0.15)", color: "#1F1F1F" }}
             />
           </div>
-          <span className="text-xs flex-shrink-0" style={{ color: "#9CA3AF" }}>{dayDate} · {filtered.length} slot{filtered.length !== 1 ? "s" : ""}</span>
+          <span className="text-xs flex-shrink-0" style={{ color: "#9CA3AF" }}>{selectedDate.toLocaleDateString()} · {filtered.length} slot{filtered.length !== 1 ? "s" : ""}</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-12 text-center">
             <Calendar size={28} className="mx-auto mb-2" style={{ color: "#E5D5C5" }} />
             <p className="text-sm" style={{ color: "#9CA3AF" }}>No slots scheduled for this day</p>
-            <button onClick={() => setAddOpen(true)} className="mt-3 text-xs" style={{ color: "#C76A00", fontWeight: 600 }}>+ Add a slot</button>
+            <button onClick={() => { setForm(emptyForm); setAddOpen(true); }} className="mt-3 text-xs" style={{ color: "#C76A00", fontWeight: 600 }}>+ Add a slot</button>
           </div>
         ) : (
           <>
             {/* Mobile cards */}
             <div className="md:hidden divide-y" style={{ borderColor: "rgba(199,106,0,0.06)" }}>
               {filtered.map(s => {
-                const sc = statusCfg[s.status];
-                const fillPct = Math.round((s.booked / s.capacity) * 100);
+                const sc = statusCfg[s.status] || statusCfg.Available;
+                const fillPct = Math.round((s.bookedCount / s.capacity) * 100) || 0;
+                
+                const sObj = toDateObj(s.startTime);
+                const eObj = toDateObj(s.endTime);
+                const startStr = sObj ? sObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                const endStr = eObj ? eObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                const durationMinutes = (eObj && sObj) ? Math.round((eObj.getTime() - sObj.getTime()) / 60000) : 0;
+
                 return (
                   <div key={s.id} className="p-4 space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>{s.pooja}</div>
-                        <div className="text-xs mt-0.5" style={{ color: "#C76A00", fontWeight: 500 }}>{s.temple}</div>
+                        <div className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>{s.poojaName}</div>
+                        <div className="text-xs mt-0.5" style={{ color: "#C76A00", fontWeight: 500 }}>{s.templeName}</div>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: sc.bg, color: sc.color, fontWeight: 600 }}>{s.status}</span>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap text-xs" style={{ color: "#6B7280" }}>
-                      <span className="flex items-center gap-1"><Clock size={10} /> {s.time}</span>
-                      <span>{s.duration}</span>
-                      <span className="flex items-center gap-1"><UserCircle size={10} /> {s.priest}</span>
+                      <span className="flex items-center gap-1"><Clock size={10} /> {startStr} - {endStr}</span>
+                      <span>{durationMinutes}m</span>
+                      <span className="flex items-center gap-1"><UserCircle size={10} /> {s.priestName}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: "#F3EDE8" }}>
-                        <div className="h-1.5 rounded-full" style={{ width: `${fillPct}%`, backgroundColor: fillPct >= 90 ? "#EF4444" : "#22C55E" }} />
+                        <div className="h-1.5 rounded-full" style={{ width: `${Math.min(fillPct, 100)}%`, backgroundColor: fillPct >= 90 ? "#EF4444" : "#22C55E" }} />
                       </div>
-                      <span className="text-xs flex-shrink-0" style={{ color: "#6B7280" }}>{s.booked}/{s.capacity}</span>
+                      <span className="text-xs flex-shrink-0" style={{ color: "#6B7280" }}>{s.bookedCount}/{s.capacity}</span>
                     </div>
                     <div className="flex gap-2 pt-1">
                       <button onClick={() => openEdit(s)} className="flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs"
@@ -289,28 +383,35 @@ export function Schedule() {
                 </thead>
                 <tbody>
                   {filtered.map(s => {
-                    const sc = statusCfg[s.status];
-                    const fillPct = Math.round((s.booked / s.capacity) * 100);
+                    const sc = statusCfg[s.status] || statusCfg.Available;
+                    const fillPct = Math.round((s.bookedCount / s.capacity) * 100) || 0;
+                    
+                    const sObj = toDateObj(s.startTime);
+                    const eObj = toDateObj(s.endTime);
+                    const startStr = sObj ? sObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    const endStr = eObj ? eObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                    const durationMinutes = (eObj && sObj) ? Math.round((eObj.getTime() - sObj.getTime()) / 60000) : 0;
+
                     return (
                       <tr key={s.id} className="border-t hover:bg-orange-50 transition-colors" style={{ borderColor: "rgba(199,106,0,0.06)" }}>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>
-                            <Clock size={12} style={{ color: "#C76A00" }} /> {s.time}
+                            <Clock size={12} style={{ color: "#C76A00" }} /> {startStr} - {endStr}
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: "#C76A00", fontWeight: 500 }}>{s.temple}</td>
-                        <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{s.pooja}</td>
-                        <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{s.priest}</td>
-                        <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{s.duration}</td>
+                        <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: "#C76A00", fontWeight: 500 }}>{s.templeName}</td>
+                        <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{s.poojaName}</td>
+                        <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{s.priestName}</td>
+                        <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{durationMinutes}m</td>
                         <td className="px-4 py-3.5">
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259" }}>{s.language}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259" }}>{s.languageCode}</span>
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="w-16 h-1.5 rounded-full" style={{ backgroundColor: "#F3EDE8" }}>
-                              <div className="h-1.5 rounded-full" style={{ width: `${fillPct}%`, backgroundColor: fillPct >= 90 ? "#EF4444" : "#22C55E" }} />
+                              <div className="h-1.5 rounded-full" style={{ width: `${Math.min(fillPct, 100)}%`, backgroundColor: fillPct >= 90 ? "#EF4444" : "#22C55E" }} />
                             </div>
-                            <span className="text-xs" style={{ color: "#6B7280" }}>{s.booked}/{s.capacity}</span>
+                            <span className="text-xs" style={{ color: "#6B7280" }}>{s.bookedCount}/{s.capacity}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
@@ -332,16 +433,9 @@ export function Schedule() {
         )}
       </div>
 
-      {/* Add Slot Modal */}
-      <Modal open={addOpen} onClose={() => { setAddOpen(false); setForm(emptyForm); }} title="Add Service Slot">
+      <Modal open={addOpen || !!editTarget} onClose={() => { setAddOpen(false); setEditTarget(null); setForm(emptyForm); }} title={editTarget ? "Edit Service Slot" : "Add Service Slot"}>
         {slotForm}
-        <ModalFooter onClose={() => { setAddOpen(false); setForm(emptyForm); }} onSubmit={handleAdd} submitLabel="Add Slot" />
-      </Modal>
-
-      {/* Edit Slot Modal */}
-      <Modal open={!!editTarget} onClose={() => { setEditTarget(null); setForm(emptyForm); }} title="Edit Service Slot">
-        {slotForm}
-        <ModalFooter onClose={() => { setEditTarget(null); setForm(emptyForm); }} onSubmit={handleEdit} submitLabel="Save Changes" />
+        <ModalFooter onClose={() => { setAddOpen(false); setEditTarget(null); setForm(emptyForm); }} onSubmit={handleSave} submitLabel={editTarget ? "Save Changes" : "Add Slot"} saving={saving} />
       </Modal>
     </div>
   );

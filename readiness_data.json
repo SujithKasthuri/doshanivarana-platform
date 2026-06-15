@@ -1,0 +1,23 @@
+{
+  "counts": {
+    "temples": 2,
+    "poojas": 3,
+    "priests": 4,
+    "bookings": 3,
+    "deliveries": 1,
+    "recordings": 1,
+    "liveStreams": 4,
+    "users": 4,
+    "queries": 0,
+    "feedback": 0,
+    "categories": 1,
+    "festivals": 0,
+    "languages": 0
+  },
+  "emptyModules": [
+    "queries",
+    "feedback",
+    "festivals",
+    "languages"
+  ]
+}

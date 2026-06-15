@@ -1,94 +1,7 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft, CheckCircle, Send } from "lucide-react";
-
-const defaultQueries = [
-  {
-    id: "QR-1284", devotee: "Rajesh Kumar", avatar: "RK", email: "rajesh@gmail.com", phone: "+91 98421 84210",
-    subject: "Request to reschedule Rudrabhishek booking", category: "Booking", priority: "High",
-    status: "Open", assigned: "Support Team A", created: "08 Jun · 9:42 AM",
-    preview: "I need to reschedule my Rudrabhishek booking at Kashi Vishwanath from 15 Jun to 22 Jun due to travel plans.",
-    thread: [
-      { from: "Rajesh Kumar", time: "9:42 AM", text: "Hi, I would like to reschedule my Rudrabhishek booking (BK-2024-8284) from 15 Jun to 22 Jun. Is that possible?", isAdmin: false },
-      { from: "Support Team A", time: "10:05 AM", text: "Hello Rajesh, thank you for reaching out. Let me check availability for 22 Jun at Kashi Vishwanath.", isAdmin: true },
-      { from: "Support Team A", time: "10:18 AM", text: "Good news! We have slots available on 22 Jun. I will initiate the reschedule. You'll receive a confirmation within 30 minutes.", isAdmin: true },
-    ],
-  },
-  {
-    id: "QR-1283", devotee: "Priya Menon", avatar: "PM", email: "priya@gmail.com", phone: "+91 94472 28410",
-    subject: "Prasad delivery not received after 10 days", category: "Delivery", priority: "High",
-    status: "In Progress", assigned: "Logistics Team", created: "08 Jun · 8:30 AM",
-    preview: "I placed my order 10 days ago and the prasad from Sabarimala has not arrived yet.",
-    thread: [
-      { from: "Priya Menon", time: "8:30 AM", text: "I placed order DEL-8240 on 29 May and still haven't received my prasad from Sabarimala. Tracking shows it's been stuck for 5 days.", isAdmin: false },
-      { from: "Logistics Team", time: "9:15 AM", text: "We're sorry for the inconvenience. We're investigating with BlueDart. Can you please confirm your delivery address?", isAdmin: true },
-    ],
-  },
-  {
-    id: "QR-1282", devotee: "Sunita Reddy", avatar: "SR", email: "sunita@gmail.com", phone: "+91 99001 28410",
-    subject: "Live stream video quality was very poor", category: "Technical", priority: "Medium",
-    status: "In Progress", assigned: "Tech Support", created: "07 Jun · 4:15 PM",
-    preview: "During the Sahasranama Archana live stream yesterday, the video kept buffering and the quality was 240p.",
-    thread: [
-      { from: "Sunita Reddy", time: "4:15 PM", text: "The live stream for Sahasranama Archana on 07 Jun was unwatchable. Very poor quality and buffering every 30 seconds.", isAdmin: false },
-      { from: "Tech Support", time: "5:02 PM", text: "Thank you for the report, Sunita. We've logged a technical incident for that stream. Our team is reviewing server logs.", isAdmin: true },
-    ],
-  },
-  {
-    id: "QR-1281", devotee: "Mohan Das", avatar: "MD", email: "mohan@gmail.com", phone: "+91 97301 28401",
-    subject: "Refund not processed after 7 days", category: "Payment", priority: "High",
-    status: "Escalated", assigned: "Finance Team", created: "07 Jun · 2:00 PM",
-    preview: "My refund of ₹800 for cancelled Kakad Aarti booking has not been credited back to my account.",
-    thread: [
-      { from: "Mohan Das", time: "2:00 PM", text: "I cancelled booking BK-2024-8417 on 01 Jun and was promised a 5-7 day refund. It's been 7 days now and nothing.", isAdmin: false },
-      { from: "Finance Team", time: "3:30 PM", text: "This has been escalated to our payment gateway team. The refund reference is REF-2024-8417. Expected by 09 Jun.", isAdmin: true },
-    ],
-  },
-  {
-    id: "QR-1280", devotee: "Kavitha Iyer", avatar: "KI", email: "kavitha@gmail.com", phone: "+91 98001 82410",
-    subject: "Unable to find preferred language options", category: "Platform", priority: "Low",
-    status: "Resolved", assigned: "Product Team", created: "06 Jun · 11:30 AM",
-    preview: "I prefer Tamil for the booking flow but the app keeps defaulting to English.",
-    thread: [
-      { from: "Kavitha Iyer", time: "11:30 AM", text: "The app keeps showing content in English. I changed my language preference to Tamil but it doesn't stick.", isAdmin: false },
-      { from: "Product Team", time: "12:45 PM", text: "This is a known issue on iOS 17.4+. We've released a fix in v2.4.1. Please update your app and let us know!", isAdmin: true },
-      { from: "Kavitha Iyer", time: "1:10 PM", text: "Updated the app and it's working perfectly now. Thank you!", isAdmin: false },
-    ],
-  },
-  {
-    id: "QR-1279", devotee: "Deepak Joshi", avatar: "DJ", email: "deepak@gmail.com", phone: "+91 93001 82410",
-    subject: "Priest didn't perform the correct ritual variant", category: "Service Quality", priority: "High",
-    status: "Open", assigned: "Unassigned", created: "06 Jun · 9:00 AM",
-    preview: "I booked the Laghu Rudrabhishek variant but the priest performed the standard version instead.",
-    thread: [
-      { from: "Deepak Joshi", time: "9:00 AM", text: "I specifically booked Laghu Rudrabhishek with Pandit Chandrashekhar at Kashi Vishwanath, but he performed the basic Abhishek instead. I feel cheated.", isAdmin: false },
-    ],
-  },
-  {
-    id: "QR-1278", devotee: "Sarla Gupta", avatar: "SG", email: "sarla@gmail.com", phone: "+91 90001 82410",
-    subject: "How to book for multiple family members?", category: "General", priority: "Low",
-    status: "Resolved", assigned: "Support Team B", created: "05 Jun · 3:45 PM",
-    preview: "Is it possible to book the same pooja for multiple family members in a single transaction?",
-    thread: [
-      { from: "Sarla Gupta", time: "3:45 PM", text: "Can I book Sahasranama Archana for myself and my husband in one booking, or do I need two separate bookings?", isAdmin: false },
-      { from: "Support Team B", time: "4:30 PM", text: "Yes! You can add multiple devotee names in the 'Devotee Names' field during booking. No need for separate bookings.", isAdmin: true },
-      { from: "Sarla Gupta", time: "4:42 PM", text: "That's great, thank you!", isAdmin: false },
-    ],
-  },
-];
-
-const LS_KEY = "demo_queries";
-
-function loadQueries() {
-  try {
-    const stored = localStorage.getItem(LS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
-  return defaultQueries;
-}
-
-function saveQueries(data: any) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-}
+import { QueriesService } from "../../../services/firebase/queries";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const statusDot: Record<string, string> = {
   Open: "#3B82F6",
@@ -98,17 +11,34 @@ const statusDot: Record<string, string> = {
 };
 
 export function QueriesPage() {
-  const [queriesList, setQueriesList] = useState<any[]>(loadQueries);
-  const [selected, setSelected] = useState<string>(queriesList[0]?.id || "");
+  const [queriesList, setQueriesList] = useState<any[]>([]);
+  const [selected, setSelected] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [reply, setReply] = useState("");
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    saveQueries(queriesList);
-  }, [queriesList]);
+    const unsubscribe = QueriesService.subscribeToQueries((list) => {
+      setQueriesList(list);
+      if (list.length > 0 && !selected) {
+        setSelected(list[0].id);
+      }
+    });
+    return () => unsubscribe();
+  }, [selected]);
 
-  const activeQuery = queriesList.find((q: any) => q.id === selected) || queriesList[0];
+  useEffect(() => {
+    if (!selected) {
+      setMessages([]);
+      return;
+    }
+    const unsubscribe = QueriesService.subscribeToMessages(selected, setMessages);
+    return () => unsubscribe();
+  }, [selected]);
+
+  const activeQuery = queriesList.find((q: any) => q.id === selected);
   const filtered = statusFilter === "All" ? queriesList : queriesList.filter((q: any) => q.status === statusFilter);
 
   function selectQuery(id: string) {
@@ -116,24 +46,23 @@ export function QueriesPage() {
     setMobilePanelOpen(true);
   }
 
-  function handleResolve() {
-    setQueriesList(prev => prev.map(q => q.id === activeQuery.id ? { ...q, status: "Resolved" } : q));
+  async function handleResolve() {
+    if (!user || !activeQuery) return;
+    try {
+      await QueriesService.updateQueryStatus(activeQuery.id, "Resolved", user.uid);
+    } catch (error: any) {
+      alert("Error updating status: " + error.message);
+    }
   }
 
-  function handleReply() {
-    if (!reply.trim()) return;
-    const newMsg = {
-      from: "Super Admin",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: reply.trim(),
-      isAdmin: true
-    };
-    setQueriesList(prev => prev.map(q => q.id === activeQuery.id ? {
-      ...q,
-      status: q.status === "Open" ? "In Progress" : q.status,
-      thread: [...q.thread, newMsg]
-    } : q));
-    setReply("");
+  async function handleReply() {
+    if (!reply.trim() || !user || !activeQuery) return;
+    try {
+      await QueriesService.addMessageToQuery(activeQuery.id, reply.trim(), user.uid);
+      setReply("");
+    } catch (error: any) {
+      alert("Error adding message: " + error.message);
+    }
   }
 
   return (
@@ -179,7 +108,7 @@ export function QueriesPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: statusDot[q.status] }} />
                     <span className="text-xs truncate flex-1" style={{ color: "#1F1F1F", fontWeight: isActive ? 600 : 500 }}>{q.devotee}</span>
-                    <span className="text-xs flex-shrink-0" style={{ color: "#C4C9D4" }}>{q.created.split("·")[1]?.trim()}</span>
+                    <span className="text-xs flex-shrink-0" style={{ color: "#C4C9D4" }}>{q.created || new Date(q.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className="pl-4 text-xs line-clamp-2" style={{ color: isActive ? "#374151" : "#9CA3AF", lineHeight: 1.5 }}>
                     {q.subject}
@@ -224,11 +153,11 @@ export function QueriesPage() {
 
           {/* Thread messages */}
           <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-5 space-y-4 md:space-y-5">
-            {activeQuery?.thread.map((msg: any, i: number) => (
-              <div key={i} className={`flex gap-3 ${msg.isAdmin ? "flex-row-reverse" : ""}`}>
+            {messages.map((msg: any, i: number) => (
+              <div key={msg.id || i} className={`flex gap-3 ${msg.isAdmin ? "flex-row-reverse" : ""}`}>
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-white flex-shrink-0 mt-0.5"
                   style={{ backgroundColor: msg.isAdmin ? "#4A1259" : "#C76A00", fontSize: 9, fontWeight: 700 }}>
-                  {msg.isAdmin ? "A" : activeQuery.avatar}
+                  {msg.isAdmin ? "A" : activeQuery?.avatar || "U"}
                 </div>
                 <div className={`max-w-xs sm:max-w-xl flex flex-col ${msg.isAdmin ? "items-end" : "items-start"}`}>
                   <span className="text-xs mb-1" style={{ color: "#C4C9D4" }}>{msg.time}</span>

@@ -1,31 +1,27 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
-// ─── Demo Credentials ──────────────────────────────────────────────────────────
-const DEMO_USERS: Record<string, { password: string; role: 'admin' | 'pro'; name: string; email: string }> = {
-  admin: { password: 'admin123', role: 'admin', name: 'Super Admin',  email: 'admin@doshanivarana.com' },
-  pro:   { password: 'pro123',   role: 'pro',   name: 'PRO Manager',  email: 'pro@doshanivarana.com'   },
-};
-
-const SESSION_KEY = 'dn_demo_session';
-const HANDOFF_PARAM = 'dn_auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
-export type UserRole = 'admin' | 'pro';
+export type UserRole = 'ADMIN' | 'PRO';
 
-export interface DemoUser {
-  username: string;
+export interface AppUser {
+  uid: string;
   name: string;
   email: string;
   role: UserRole;
+  templeId?: string;
+  isActive: boolean;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  currentUser: DemoUser | null;
+  currentUser: AppUser | null;
   role: UserRole | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<UserRole>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<UserRole>;
+  logout: () => Promise<void>;
 }
 
 // ─── Context ───────────────────────────────────────────────────────────────────
@@ -35,70 +31,130 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   loading: true,
   login: async () => { throw new Error('AuthProvider not mounted'); },
-  logout: () => {},
+  logout: async () => {},
 });
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<DemoUser | null>(null);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isDemoMode = import.meta.env.VITE_DEMO_AUTH_MODE === 'true';
+
   useEffect(() => {
-    // 1️⃣ Check URL for a cross-app session handoff first
-    const params = new URLSearchParams(window.location.search);
-    const handoff = params.get(HANDOFF_PARAM);
-    if (handoff) {
-      try {
-        const user = JSON.parse(atob(handoff)) as DemoUser;
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-        setCurrentUser(user);
-        // Clean the URL so it doesn't persist on refresh
-        const clean = window.location.pathname;
-        window.history.replaceState({}, '', clean);
+    if (isDemoMode) {
+      const demoUserStr = localStorage.getItem('demo_user');
+      if (demoUserStr) {
+        setCurrentUser(JSON.parse(demoUserStr));
         setLoading(false);
-        return;
-      } catch {
-        // Ignore bad handoff param
+        return; // Only skip Firebase if a demo user is explicitly logged in
       }
     }
 
-    // 2️⃣ Restore session from localStorage
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) {
-        setCurrentUser(JSON.parse(raw) as DemoUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as AppUser;
+            setCurrentUser({ ...userData, uid: firebaseUser.uid });
+          } else {
+            console.error("User document not found in Firestore!");
+            setCurrentUser(null);
+            await signOut(auth); // Force logout if no record
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
       }
-    } catch {
-      localStorage.removeItem(SESSION_KEY);
-    } finally {
       setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [isDemoMode]);
+
+  const login = useCallback(async (email: string, password: string): Promise<UserRole> => {
+    // DEMO CHECK
+    if (isDemoMode) {
+      if (email === 'admin@doshanivarana.com' && password === 'Admin@123') {
+        console.log("Demo Auth Path Triggered");
+        const demoAdmin: AppUser = {
+          uid: 'demo_admin_uid',
+          name: 'Demo Admin',
+          email: 'admin@doshanivarana.com',
+          role: 'ADMIN',
+          isActive: true
+        };
+        localStorage.setItem('demo_user', JSON.stringify(demoAdmin));
+        setCurrentUser(demoAdmin);
+        console.log("Dashboard Redirect Target: Admin Dashboard");
+        return 'ADMIN';
+      } else if (email === 'pro@doshanivarana.com' && password === 'Pro@123') {
+        console.log("Demo Auth Path Triggered");
+        const demoPro: AppUser = {
+          uid: 'demo_pro_uid',
+          name: 'Demo PRO',
+          email: 'pro@doshanivarana.com',
+          role: 'PRO',
+          templeId: 'demo_temple',
+          isActive: true
+        };
+        localStorage.setItem('demo_user', JSON.stringify(demoPro));
+        setCurrentUser(demoPro);
+        console.log("Dashboard Redirect Target: PRO Dashboard");
+        return 'PRO';
+      }
     }
-  }, []);
 
-  const login = useCallback(async (username: string, password: string): Promise<UserRole> => {
-    await new Promise(r => setTimeout(r, 600));
-
-    const match = DEMO_USERS[username.toLowerCase().trim()];
-    if (!match || match.password !== password) {
-      throw new Error('Invalid username or password. Please try again.');
+    // FIREBASE FALLBACK
+    console.log("Firebase Auth Path Triggered");
+    let uid;
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      uid = userCredential.user.uid;
+    } catch (e: any) {
+      if (isDemoMode) {
+         throw new Error("Invalid demo credentials."); // Fallback error message if BOTH failed and demo is enabled
+      }
+      throw e;
     }
+    
+    const userDocRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data() as AppUser;
+      if (!userData.isActive) {
+        await signOut(auth);
+        throw new Error("Account is inactive. Please contact support.");
+      }
+      console.log("User Role Retrieved:", userData.role);
+      console.log("Dashboard Redirect Target:", userData.role === 'ADMIN' ? 'Admin Dashboard' : 'PRO Dashboard');
+      
+      // PREVENT RACE CONDITION: Set current user synchronously before returning
+      // so that immediate navigate('/') doesn't bounce back due to null user
+      setCurrentUser({ ...userData, uid });
+      
+      return userData.role;
+    } else {
+      await signOut(auth);
+      throw new Error("No user profile found.");
+    }
+  }, [isDemoMode]);
 
-    const user: DemoUser = {
-      username: username.toLowerCase().trim(),
-      name: match.name,
-      email: match.email,
-      role: match.role,
-    };
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    setCurrentUser(user);
-    return match.role;
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(SESSION_KEY);
-    setCurrentUser(null);
-  }, []);
+  const logout = useCallback(async () => {
+    if (isDemoMode) {
+      localStorage.removeItem('demo_user');
+      setCurrentUser(null);
+      return;
+    }
+    await signOut(auth);
+  }, [isDemoMode]);
 
   return (
     <AuthContext.Provider value={{
@@ -115,9 +171,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
-
-// ─── Helper: build cross-app redirect URL ─────────────────────────────────────
-export function buildHandoffUrl(targetOrigin: string, user: DemoUser): string {
-  const encoded = btoa(JSON.stringify(user));
-  return `${targetOrigin}/?${HANDOFF_PARAM}=${encoded}`;
-}

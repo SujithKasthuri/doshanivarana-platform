@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
 import {
   Radio, Eye, Users, Clock, Wifi, WifiOff, Video, Play, Download,
@@ -17,53 +17,83 @@ import {
 
 
 
-const categories = [
-  { id: "CAT001", name: "Abhishek", poojas: 48, bookings: 62840, icon: "💧", color: "#C76A00", description: "Ritual bathing of the deity with sacred substances" },
-  { id: "CAT002", name: "Homam", poojas: 32, bookings: 28420, icon: "🔥", color: "#EF4444", description: "Sacred fire rituals with oblations and mantras" },
-  { id: "CAT003", name: "Archana", poojas: 42, bookings: 84200, icon: "🌺", color: "#D4A017", description: "Offering of flowers or leaves with devotional chanting" },
-  { id: "CAT004", name: "Katha", poojas: 18, bookings: 12480, icon: "📖", color: "#4A1259", description: "Devotional discourse and storytelling of sacred texts" },
-  { id: "CAT005", name: "Aarti", poojas: 28, bookings: 48200, icon: "🪔", color: "#D97706", description: "Ritual of light offering with lamps and devotional songs" },
-  { id: "CAT006", name: "Festival Puja", poojas: 24, bookings: 32840, icon: "🎊", color: "#22C55E", description: "Special pujas tied to annual festival events and calendars" },
-  { id: "CAT007", name: "Deeparadhana", poojas: 14, bookings: 18420, icon: "✨", color: "#6366F1", description: "Waving of lighted lamps before the deity" },
-  { id: "CAT008", name: "Sahasranama", poojas: 12, bookings: 14840, icon: "🕉️", color: "#4A1259", description: "Chanting of thousand names of the deity" },
-];
+import { CategoriesService } from "../../../services/firebase/categories";
 
 const catColors = ["#C76A00", "#EF4444", "#D4A017", "#4A1259", "#D97706", "#22C55E", "#6366F1", "#2563EB"];
 
 export function CategoriesPage() {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<null | typeof categories[0]>(null);
-  const [cats, setCats] = useState(categories);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [cats, setCats] = useState<any[]>([]);
   const [form, setForm] = useState({ name: "", icon: "🕉️", description: "" });
   const [saving, setSaving] = useState(false);
   const filtered = cats.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
-  function handleAdd() {
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  async function fetchCategories() {
+    try {
+      const data = await CategoriesService.getCategories();
+      setCats(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleAdd() {
     if (!form.name) return;
     setSaving(true);
-    const newCat = {
-      id: `CAT${String(cats.length + 1).padStart(3, "0")}`,
-      name: form.name, icon: form.icon || "🕉️",
-      color: catColors[cats.length % catColors.length],
-      description: form.description, poojas: 0, bookings: 0,
-    };
-    setCats(prev => [...prev, newCat]);
-    setForm({ name: "", icon: "🕉️", description: "" });
-    setAddOpen(false);
-    setSaving(false);
+    const newId = `CAT${String(Date.now()).slice(-6)}`;
+    
+    try {
+      await CategoriesService.createCategory(newId, {
+        name: form.name, icon: form.icon || "🕉️",
+        color: catColors[cats.length % catColors.length],
+        description: form.description, poojas: 0, bookings: 0,
+      });
+      await fetchCategories();
+      setForm({ name: "", icon: "🕉️", description: "" });
+      setAddOpen(false);
+    } catch (err: any) {
+      alert("Error adding category: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function handleEdit() {
+  async function handleEdit() {
     if (!editTarget || !form.name) return;
     setSaving(true);
-    setCats(prev => prev.map(c => c.id === editTarget.id ? { ...c, name: form.name, icon: form.icon, description: form.description } : c));
-    setEditTarget(null);
-    setForm({ name: "", icon: "🕉️", description: "" });
-    setSaving(false);
+    
+    try {
+      await CategoriesService.updateCategory(editTarget.id, {
+        name: form.name, icon: form.icon, description: form.description 
+      });
+      await fetchCategories();
+      setEditTarget(null);
+      setForm({ name: "", icon: "🕉️", description: "" });
+    } catch (err: any) {
+      alert("Error updating category: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  function openEdit(c: typeof categories[0]) {
+  async function handleDelete(id: string) {
+    if (confirm("Are you sure you want to delete this category?")) {
+      try {
+        await CategoriesService.deleteCategory(id);
+        await fetchCategories();
+      } catch (err: any) {
+        alert("Error deleting category: " + err.message);
+      }
+    }
+  }
+
+  function openEdit(c: any) {
     setEditTarget(c);
     setForm({ name: c.name, icon: c.icon, description: c.description });
   }
@@ -101,13 +131,14 @@ export function CategoriesPage() {
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor: c.color + "18" }}>{c.icon}</div>
               <div className="flex gap-1.5">
                 <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-gray-50"><Edit size={12} style={{ color: "#9CA3AF" }} /></button>
+                <button onClick={() => handleDelete(c.id)} className="p-1.5 rounded-lg hover:bg-red-50"><XCircle size={12} style={{ color: "#EF4444" }} /></button>
               </div>
             </div>
             <div className="text-sm mb-1" style={{ color: "#1F1F1F", fontWeight: 700 }}>{c.name}</div>
             <p className="text-xs mb-3" style={{ color: "#9CA3AF", lineHeight: 1.5 }}>{c.description}</p>
             <div className="flex items-center justify-between text-xs pt-3 border-t" style={{ borderColor: "rgba(199,106,0,0.08)" }}>
               <span style={{ color: "#6B7280" }}>{c.poojas} poojas</span>
-              <span style={{ color: c.color, fontWeight: 600 }}>{c.bookings.toLocaleString()} bookings</span>
+              <span style={{ color: c.color, fontWeight: 600 }}>{(c.bookings || 0).toLocaleString()} bookings</span>
             </div>
           </div>
         ))}

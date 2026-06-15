@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
 import {
   Radio, Eye, Users, Clock, Wifi, WifiOff, Video, Play, Download,
@@ -15,15 +15,8 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
 
-
-
-const templeRequests = [
-  { id: "TR-284", name: "Sri Ranganathaswamy Temple", location: "Srirangam, Tamil Nadu", deity: "Lord Vishnu", type: "Vaishnava", contact: "Arumugam Pillai", phone: "+91 98421 84210", submitted: "07 Jun 2026", status: "Pending Review", docs: "Complete" },
-  { id: "TR-283", name: "Kamakshi Amman Temple", location: "Kanchipuram, Tamil Nadu", deity: "Goddess Kamakshi", type: "Shakta", contact: "Subramania Iyer", phone: "+91 98432 12840", submitted: "06 Jun 2026", status: "Under Verification", docs: "Incomplete" },
-  { id: "TR-282", name: "Siddhivinayak Temple", location: "Mumbai, Maharashtra", deity: "Lord Ganesha", type: "Shaiva", contact: "Mahesh Kale", phone: "+91 98201 84210", submitted: "05 Jun 2026", status: "Pending Review", docs: "Complete" },
-  { id: "TR-281", name: "Hazur Sahib Gurdwara", location: "Nanded, Maharashtra", deity: "Guru Granth Sahib", type: "Multi-faith", contact: "Gurpreet Singh", phone: "+91 97302 18421", submitted: "04 Jun 2026", status: "Approved", docs: "Complete" },
-  { id: "TR-280", name: "Brihadeeswara Temple", location: "Thanjavur, Tamil Nadu", deity: "Lord Shiva", type: "Shaiva", contact: "Natarajan K.", phone: "+91 94428 18420", submitted: "03 Jun 2026", status: "Rejected", docs: "Incomplete" },
-];
+import { TempleRequestsService } from "../../../services/firebase/templeRequests";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const trStatusCfg: Record<string, { bg: string; color: string }> = {
   "Pending Review": { bg: "#FFFBEB", color: "#D97706" },
@@ -33,10 +26,39 @@ const trStatusCfg: Record<string, { bg: string; color: string }> = {
 };
 
 export function TempleRequestsPage() {
-  const [requests, setRequests] = useState(templeRequests);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  function updateStatus(id: string, status: string) {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+  useEffect(() => {
+    const unsubscribe = TempleRequestsService.subscribeToRequests(setRequests);
+    return () => unsubscribe();
+  }, []);
+
+  async function updateStatus(id: string, status: string) {
+    if (!user) return;
+    setLoadingAction(id);
+    try {
+      await TempleRequestsService.updateRequestStatus(id, status, user.uid);
+    } catch (error: any) {
+      alert("Error updating status: " + error.message);
+    } finally {
+      setLoadingAction(null);
+    }
+  }
+
+  async function handleApproveAndCreate(id: string) {
+    if (!user) return;
+    if (!confirm("Approve this request and automatically create a new Temple?")) return;
+    setLoadingAction(id);
+    try {
+      const newTempleId = await TempleRequestsService.createTempleFromRequest(id, user.uid);
+      alert(`Temple created successfully with ID: ${newTempleId}`);
+    } catch (error: any) {
+      alert("Error creating temple: " + error.message);
+    } finally {
+      setLoadingAction(null);
+    }
   }
 
   const pending = requests.filter(r => r.status === "Pending Review").length;
@@ -89,13 +111,18 @@ export function TempleRequestsPage() {
                 </div>
                 <div className="text-xs" style={{ color: "#6B7280" }}>{r.contact} · {r.submitted}</div>
                 {(r.status === "Pending Review" || r.status === "Under Verification") && (
-                  <div className="flex gap-2 pt-1">
-                    <button onClick={() => updateStatus(r.id, "Approved")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs" style={{ backgroundColor: "#F0FDF4", color: "#16A34A", fontWeight: 600 }}>
-                      <CheckCircle2 size={14} /> Approve
+                  <div className="flex flex-col gap-2 pt-1">
+                    <button disabled={loadingAction === r.id} onClick={() => handleApproveAndCreate(r.id)} className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs" style={{ backgroundColor: "#F0FDF4", color: "#16A34A", fontWeight: 600 }}>
+                      <CheckCircle2 size={14} /> Approve & Create Temple
                     </button>
-                    <button onClick={() => updateStatus(r.id, "Rejected")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs" style={{ backgroundColor: "#FFF1F2", color: "#DC2626", fontWeight: 600 }}>
-                      <XCircle size={14} /> Reject
-                    </button>
+                    <div className="flex gap-2">
+                      <button disabled={loadingAction === r.id} onClick={() => updateStatus(r.id, "Under Verification")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs" style={{ backgroundColor: "#EFF6FF", color: "#2563EB", fontWeight: 600 }}>
+                        <Clock size={14} /> Verify
+                      </button>
+                      <button disabled={loadingAction === r.id} onClick={() => updateStatus(r.id, "Rejected")} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs" style={{ backgroundColor: "#FFF1F2", color: "#DC2626", fontWeight: 600 }}>
+                        <XCircle size={14} /> Reject
+                      </button>
+                    </div>
                   </div>
                 )}
                 {r.status === "Approved" && <div className="text-xs py-2 text-center rounded-xl" style={{ backgroundColor: "#F0FDF4", color: "#16A34A", fontWeight: 600 }}>✓ Approved</div>}
@@ -147,10 +174,13 @@ export function TempleRequestsPage() {
                         <button className="p-1.5 rounded-lg hover:bg-orange-50" title="View"><Eye size={13} style={{ color: "#C76A00" }} /></button>
                         {(r.status === "Pending Review" || r.status === "Under Verification") && (
                           <>
-                            <button onClick={() => updateStatus(r.id, "Approved")} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-green-50 transition-colors" style={{ color: "#16A34A", fontWeight: 600 }}>
-                              <CheckCircle2 size={12} /> Approve
+                            <button disabled={loadingAction === r.id} onClick={() => handleApproveAndCreate(r.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-green-50 transition-colors" style={{ color: "#16A34A", fontWeight: 600 }}>
+                              <CheckCircle2 size={12} /> Approve & Create
                             </button>
-                            <button onClick={() => updateStatus(r.id, "Rejected")} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-red-50 transition-colors" style={{ color: "#DC2626", fontWeight: 600 }}>
+                            <button disabled={loadingAction === r.id} onClick={() => updateStatus(r.id, "Under Verification")} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-blue-50 transition-colors" style={{ color: "#2563EB", fontWeight: 600 }}>
+                              <Clock size={12} /> Verify
+                            </button>
+                            <button disabled={loadingAction === r.id} onClick={() => updateStatus(r.id, "Rejected")} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs hover:bg-red-50 transition-colors" style={{ color: "#DC2626", fontWeight: 600 }}>
                               <XCircle size={12} /> Reject
                             </button>
                           </>

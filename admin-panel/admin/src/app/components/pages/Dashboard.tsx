@@ -400,7 +400,7 @@ export function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs truncate" style={{ color: "#1F1F1F", fontWeight: 600 }}>{t.name}</div>
-                  <div className="text-xs" style={{ color: "#9CA3AF" }}>{t.revenue} · {t.bookings.toLocaleString()} bookings</div>
+                  <div className="text-xs" style={{ color: "#9CA3AF" }}>{t.revenue} · {(t.bookings || 0).toLocaleString()} bookings</div>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <Star size={11} fill="#D4A017" style={{ color: "#D4A017" }} />
@@ -442,7 +442,7 @@ export function Dashboard() {
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{t.revenue}</td>
-                    <td className="px-5 py-3.5 text-xs" style={{ color: "#1F1F1F" }}>{t.bookings.toLocaleString()}</td>
+                    <td className="px-5 py-3.5 text-xs" style={{ color: "#1F1F1F" }}>{(t.bookings || 0).toLocaleString()}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <Star size={11} fill="#D4A017" style={{ color: "#D4A017" }} />

@@ -1,7 +1,6 @@
 import { createBrowserRouter } from 'react-router';
 import { Layout } from './components/Layout.tsx';
 import { ProtectedRoute } from './components/ProtectedRoute.tsx';
-import { HeaderProvider } from './components/PageHeader.tsx';
 import { Login } from './pages/Login.tsx';
 import { Home } from './pages/Home.tsx';
 import { Schedule } from './pages/Schedule.tsx';
@@ -28,10 +27,8 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <ProtectedRoute requiredRole="pro">
-        <HeaderProvider>
-          <Layout />
-        </HeaderProvider>
+      <ProtectedRoute requiredRole="PRO">
+        <Layout />
       </ProtectedRoute>
     ),
     children: [

@@ -1,88 +1,69 @@
-// @ts-nocheck
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { db, type Pujari, AVAILABLE_SPECIALIZATIONS } from '../lib/db';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
+import { AVAILABLE_SPECIALIZATIONS } from '../lib/db';
 import { PageHeader } from '../components/PageHeader';
 
 export function PujariManager() {
   const navigate = useNavigate();
-  const [pujaris, setPujaris] = useState<Pujari[]>(() => db.getPujaris());
+  const { currentUser, templeId } = useAuth();
 
-  const bookings = db.getBookings();
-  const getPujariBookingsCount = (name: string) => {
-    return bookings.filter(b => b.pujari === name).length;
-  };
-  const getPujariUpcomingBookingsCount = (name: string) => {
-    return bookings.filter(b => b.pujari === name && b.tab === 'upcoming').length;
-  };
-
+  const [pujaris, setPujaris] = useState<any[]>([]);
   const [statusFilter, setStatusFilter] = useState('All');
   const [specFilter, setSpecFilter] = useState('All');
   
-  // Custom dropdown states
-  const [isStatusOpen, setIsStatusOpen] = useState(false);
-  const [isSpecOpen, setIsSpecOpen] = useState(false);
-  const statusRef = useRef<HTMLDivElement>(null);
-  const specRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (statusRef.current && !statusRef.current.contains(event.target as Node)) setIsStatusOpen(false);
-      if (specRef.current && !specRef.current.contains(event.target as Node)) setIsSpecOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-  
   // Deactivation Modal State
-  const [deactivatingPujari, setDeactivatingPujari] = useState<Pujari | null>(null);
+  const [deactivatingPujari, setDeactivatingPujari] = useState<any | null>(null);
   const [showWarningModal, setShowWarningModal] = useState(false);
 
-  const handleApplyFilters = () => {
-    // Handled in render directly based on filters
-  };
+  useEffect(() => {
+    if (!templeId) return;
+
+    const q = query(
+      collection(db, 'priests'),
+      where('templeId', '==', templeId),
+      where('isDeleted', '==', false)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      }));
+      setPujaris(docs);
+    });
+
+    return () => unsubscribe();
+  }, [templeId]);
+
+  const handleApplyFilters = () => {};
 
   const handleResetFilters = () => {
     setStatusFilter('All');
     setSpecFilter('All');
   };
 
-  const handleToggleStatus = (pujari: Pujari) => {
-    if (pujari.status === 'Active') {
-      const upcomingCount = getPujariUpcomingBookingsCount(pujari.name);
-      // If active, show deactivation flow
-      if (upcomingCount > 0) {
+  const handleToggleStatus = async (pujari: any) => {
+    if (pujari.status !== 'Inactive') {
+      // If active/available/etc, show deactivation flow
+      if (pujari.bookings > 0) {
         setDeactivatingPujari(pujari);
         setShowWarningModal(true);
       } else {
-        // Safe to deactivate immediately
-        const updated = { ...pujari, status: 'Inactive' as const };
-        db.updatePujari(updated);
-        setPujaris(prev => prev.map(p => p.id === pujari.id ? updated : p));
+        await updateDoc(doc(db, 'priests', pujari.id), { status: 'Inactive' });
       }
     } else {
-      // Reactivate
-      const updated = { ...pujari, status: 'Active' as const };
-      db.updatePujari(updated);
-      setPujaris(prev => prev.map(p => p.id === pujari.id ? updated : p));
+      // Reactivate (default to Active)
+      await updateDoc(doc(db, 'priests', pujari.id), { status: 'Active' });
     }
   };
 
-  const confirmDeactivate = () => {
+  const confirmDeactivate = async () => {
     if (deactivatingPujari) {
-      const updated = { ...deactivatingPujari, status: 'Inactive' as const };
-      db.updatePujari(updated);
-
-      // Dynamic unassignment: set any upcoming bookings assigned to this Pujari back to 'Not Assigned'
-      const updatedBookings = bookings.map(b => {
-        if (b.pujari === deactivatingPujari.name && b.tab === 'upcoming') {
-          return { ...b, pujari: 'Not Assigned' };
-        }
-        return b;
-      });
-      db.saveBookings(updatedBookings);
-
-      setPujaris(prev => prev.map(p => p.id === deactivatingPujari.id ? updated : p));
+      await updateDoc(doc(db, 'priests', deactivatingPujari.id), { status: 'Inactive' });
+      // We no longer manually mutate bookings since Bookings relies on Firestore.
       setShowWarningModal(false);
       setDeactivatingPujari(null);
     }
@@ -91,22 +72,24 @@ export function PujariManager() {
   // Filter Logic
   const filteredPujaris = pujaris.filter(p => {
     const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
-    const matchesSpec = specFilter === 'All' || p.specializations.includes(specFilter);
+    const matchesSpec = specFilter === 'All' || (p.specialization && p.specialization.includes(specFilter));
     return matchesStatus && matchesSpec;
   });
 
   const totalCount = pujaris.length;
-  const activeCount = pujaris.filter(p => p.status === 'Active').length;
-  const inactiveCount = pujaris.filter(p => p.status === 'Inactive').length;
+  const activeCount = pujaris.filter(p => p.status === 'Active' || p.status === 'Available' || p.status === 'Seasonal').length;
+  const inactiveCount = pujaris.filter(p => p.status === 'Inactive' || p.status === 'On Leave').length;
+
+  // Unique statuses from Firestore
+  const allStatuses = Array.from(new Set(pujaris.map(p => p.status || 'Active')));
 
   return (
     <div className="max-w-[1440px] mx-auto pb-12 relative font-sans">
       <PageHeader title="Pujari Management" />
       
-      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 mt-4 gap-4">
         <div>
-          <p className="text-body-md text-on-surface-variant mt-1 font-medium">Manage priests assigned to Sri Venkateswara Temple</p>
+          <p className="text-body-md text-on-surface-variant mt-1 font-medium">Manage priests assigned to {templeId === 'tmqar6jp5yk4t' ? 'Sri Venkateswara Temple' : 'your temple'}</p>
         </div>
         <button 
           onClick={() => navigate('/pujaris/add')}
@@ -117,77 +100,46 @@ export function PujariManager() {
         </button>
       </div>
 
-      {/* Filter & Summary Bar */}
-      <div className="bg-surface-container-lowest rounded-xl p-4 mb-8 soft-shadow border border-outline-variant/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
-          <div className="relative w-full sm:w-auto min-w-[150px]" ref={statusRef}>
-            <div 
-              className="w-full sm:w-auto appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold cursor-pointer flex items-center justify-between truncate transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
-              onClick={() => { setIsStatusOpen(!isStatusOpen); setIsSpecOpen(false); }}
-              tabIndex={0}
+      <div className="bg-surface-container-lowest rounded-xl p-4 mb-8 soft-shadow border border-outline-variant/30 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="relative">
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold"
             >
-              <span className="truncate">{statusFilter === 'All' ? 'Status: All' : statusFilter}</span>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isStatusOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
-            </div>
-            {isStatusOpen && (
-              <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 overflow-hidden font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
-                {['All', 'Active', 'Inactive'].map(opt => (
-                  <div 
-                    key={opt}
-                    className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${statusFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
-                    onClick={() => { setStatusFilter(opt); setIsStatusOpen(false); }}
-                  >
-                    {opt === 'All' ? 'Status: All' : opt}
-                  </div>
-                ))}
-              </div>
-            )}
+              <option value="All">Status: All</option>
+              {allStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">arrow_drop_down</span>
           </div>
 
-          <div className="relative w-full sm:w-auto min-w-[200px]" ref={specRef}>
-            <div 
-              className="w-full sm:w-auto appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold cursor-pointer flex items-center justify-between truncate transition-colors hover:border-primary focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
-              onClick={() => { setIsSpecOpen(!isSpecOpen); setIsStatusOpen(false); }}
-              tabIndex={0}
+          <div className="relative">
+            <select 
+              value={specFilter}
+              onChange={(e) => setSpecFilter(e.target.value)}
+              className="appearance-none bg-surface-bright border border-outline-variant text-on-surface font-body-sm text-body-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary h-[40px] font-semibold"
             >
-              <span className="truncate">{specFilter === 'All' ? 'All Specializations' : specFilter}</span>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm transition-transform" style={{ transform: isSpecOpen ? 'rotate(180deg)' : 'none' }}>arrow_drop_down</span>
-            </div>
-            {isSpecOpen && (
-              <div className="absolute top-full left-0 w-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto font-sans text-body-sm animate-in fade-in slide-in-from-top-2 duration-200">
-                <div 
-                  className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${specFilter === 'All' ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
-                  onClick={() => { setSpecFilter('All'); setIsSpecOpen(false); }}
-                >
-                  All Specializations
-                </div>
-                {AVAILABLE_SPECIALIZATIONS.map(opt => (
-                  <div 
-                    key={opt}
-                    className={`px-3 py-2.5 cursor-pointer hover:bg-primary/5 transition-colors truncate ${specFilter === opt ? 'bg-primary/10 text-primary font-bold' : 'text-on-surface'}`}
-                    onClick={() => { setSpecFilter(opt); setIsSpecOpen(false); }}
-                  >
-                    {opt}
-                  </div>
-                ))}
-              </div>
-            )}
+              <option value="All">All Specializations</option>
+              {AVAILABLE_SPECIALIZATIONS.map(spec => (
+                <option key={spec} value={spec}>{spec}</option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">arrow_drop_down</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-            <button 
-              onClick={handleApplyFilters}
-              className="w-full sm:w-auto bg-primary text-on-primary font-button text-button px-4 py-2 rounded-lg hover:bg-[#b04b00] transition-colors h-[40px] font-bold cursor-pointer"
-            >
-              Apply
-            </button>
-            <button 
-              onClick={handleResetFilters}
-              className="w-full sm:w-auto text-on-surface-variant font-button text-button px-4 py-2 rounded-lg hover:bg-surface-variant transition-colors h-[40px] font-bold cursor-pointer border border-outline-variant/50 sm:border-none"
-            >
-              Reset
-            </button>
-          </div>
+          <button 
+            onClick={handleApplyFilters}
+            className="bg-primary text-on-primary font-button text-button px-4 py-2 rounded-lg hover:bg-[#b04b00] transition-colors h-[40px] font-bold cursor-pointer"
+          >
+            Apply
+          </button>
+          <button 
+            onClick={handleResetFilters}
+            className="text-on-surface-variant font-button text-button px-4 py-2 rounded-lg hover:bg-surface-variant transition-colors h-[40px] font-bold cursor-pointer"
+          >
+            Reset
+          </button>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap font-semibold">
@@ -203,10 +155,12 @@ export function PujariManager() {
         </div>
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPujaris.map(pujari => {
-          const isInactive = pujari.status === 'Inactive';
+          const isInactive = pujari.status === 'Inactive' || pujari.status === 'On Leave';
+          const specializationsList = pujari.specialization ? pujari.specialization.split(',').map((s: string) => s.trim()) : [];
+          const languagesList = Array.isArray(pujari.languages) ? pujari.languages : (pujari.languagesStr ? pujari.languagesStr.split(',') : []);
+
           return (
             <div 
               key={pujari.id} 
@@ -220,15 +174,15 @@ export function PujariManager() {
               
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
-                  {pujari.photoUrl ? (
+                  {pujari.photo && pujari.photo.length > 2 ? (
                     <img 
-                      src={pujari.photoUrl} 
+                      src={pujari.photo} 
                       alt={pujari.name} 
                       className="w-12 h-12 rounded-full object-cover shadow-sm"
                     />
                   ) : (
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-headline-sm font-bold shadow-sm ${pujari.avatarBg}`}>
-                      {pujari.avatarText}
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-display text-headline-sm font-bold shadow-sm text-white`} style={{ backgroundColor: pujari.color || '#C76A00' }}>
+                      {pujari.photo || pujari.name?.substring(0, 2).toUpperCase()}
                     </div>
                   )}
                   <div>
@@ -245,10 +199,9 @@ export function PujariManager() {
                 </div>
               </div>
 
-              {/* Specializations */}
               <div className="mb-4">
                 <div className="flex flex-wrap gap-2">
-                  {pujari.specializations.map(spec => (
+                  {specializationsList.map((spec: string) => (
                     <span 
                       key={spec}
                       className={`border px-2 py-0.5 rounded font-label-md text-[9px] uppercase tracking-wider font-bold ${
@@ -263,13 +216,11 @@ export function PujariManager() {
                 </div>
               </div>
  
-              {/* Languages */}
               <div className="mb-4 flex items-center gap-1.5 font-sans text-body-sm text-on-surface-variant font-medium">
                 <span className="material-symbols-outlined text-[18px] text-primary">translate</span>
-                <span>{pujari.languages?.join(', ') || 'No languages configured'}</span>
+                <span>{languagesList.join(', ') || 'No languages configured'}</span>
               </div>
 
-              {/* Stats Grid */}
               <div className={`grid grid-cols-2 gap-4 mb-6 p-3 rounded-lg border font-sans ${
                 isInactive 
                   ? 'bg-surface-bright/50 border-outline-variant/30 opacity-80' 
@@ -281,11 +232,10 @@ export function PujariManager() {
                 </div>
                 <div>
                   <p className="text-label-md text-on-surface-variant uppercase text-[10px] font-bold tracking-wider">Bookings</p>
-                  <p className="text-body-md text-on-surface font-bold">{getPujariBookingsCount(pujari.name)}</p>
+                  <p className="text-body-md text-on-surface font-bold">{pujari.bookings || 0}</p>
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 mt-auto pt-4 border-t border-outline-variant/30 font-semibold">
                 <button 
                   onClick={() => navigate(`/pujaris/edit/${pujari.id}`)}
@@ -313,7 +263,6 @@ export function PujariManager() {
         })}
       </div>
 
-      {/* Warning Deactivation Modal */}
       {showWarningModal && deactivatingPujari && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-surface-container-lowest rounded-xl max-w-md w-full p-6 modal-shadow border border-[#F0E6D2] font-sans">
@@ -323,14 +272,8 @@ export function PujariManager() {
             </div>
             
             <p className="text-body-md text-on-surface-variant font-medium mb-4">
-              <strong className="text-on-surface">{deactivatingPujari.name}</strong> has <strong className="text-on-surface">{getPujariUpcomingBookingsCount(deactivatingPujari.name)} upcoming bookings</strong>. Deactivating this priest requires reassignment of all their bookings.
+              <strong className="text-on-surface">{deactivatingPujari.name}</strong> has <strong className="text-on-surface">{deactivatingPujari.bookings} total bookings</strong>. Deactivating this priest might affect upcoming schedules.
             </p>
-
-            <div className="bg-error-container text-on-error-container p-3 rounded-lg border border-red-200 mb-6">
-              <p className="text-body-sm font-semibold">
-                Proceeding will clear active bookings count for simulation. In production, reassign bookings first.
-              </p>
-            </div>
 
             <div className="flex gap-4 justify-end font-semibold">
               <button 

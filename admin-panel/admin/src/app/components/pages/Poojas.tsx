@@ -2,81 +2,79 @@ import { useState, useEffect } from "react";
 import { Modal, Field, ModalFooter, inputCls, inputStyle, selectStyle } from "../Modal";
 import { Flame, Search, Plus, Edit, Eye, Star, CheckCircle, XCircle } from "lucide-react";
 
-const emptyPoojaForm = { name: "", category: "Abhishek", duration: "", price: "", liveStream: true, prasad: true };
+import { PoojasService } from "../../../services/firebase/poojas";
+import { TemplesService } from "../../../services/firebase/temples";
+import { CategoriesService } from "../../../services/firebase/categories";
 
-const defaultPoojas = [
-  { id: "pj001", name: "Rudrabhishek", categoryStr: "Abhishek", duration: "1h 30m", priceDisplay: "₹2,100", price: 2100, templesCount: 42, bookings: 12400, rating: 4.9, liveStream: true, prasad: true, status: "Active", isActive: true },
-  { id: "pj002", name: "Maha Ganapati Homam", categoryStr: "Homam", duration: "2h", priceDisplay: "₹5,100", price: 5100, templesCount: 18, bookings: 8400, rating: 4.8, liveStream: true, prasad: true, status: "Active", isActive: true },
-  { id: "pj003", name: "Sahasranama Archana", categoryStr: "Archana", duration: "45m", priceDisplay: "₹501", price: 501, templesCount: 120, bookings: 42000, rating: 4.7, liveStream: false, prasad: true, status: "Active", isActive: true },
-  { id: "pj004", name: "Satyanarayan Katha", categoryStr: "Katha", duration: "2h 30m", priceDisplay: "₹1,500", price: 1500, templesCount: 64, bookings: 18200, rating: 4.9, liveStream: true, prasad: false, status: "Active", isActive: true },
-  { id: "pj005", name: "Navagraha Shanti", categoryStr: "Homam", duration: "3h", priceDisplay: "₹7,500", price: 7500, templesCount: 12, bookings: 3200, rating: 4.6, liveStream: true, prasad: true, status: "Active", isActive: true },
-  { id: "pj006", name: "Daily Aarti Seva", categoryStr: "Aarti", duration: "30m", priceDisplay: "₹251", price: 251, templesCount: 86, bookings: 54000, rating: 4.9, liveStream: false, prasad: false, status: "Active", isActive: true }
-];
-
-const LS_KEY = "demo_poojas";
-
-function loadPoojas() {
-  try {
-    const stored = localStorage.getItem(LS_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch { /* ignore */ }
-  return defaultPoojas;
-}
-
-function savePoojas(data: any) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-}
+const emptyPoojaForm = { name: "", categoryId: "", duration: "", price: "", liveStream: true, prasad: true, templeId: "" };
 
 function genId() { return "pj" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 export function PoojasPage() {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [poojasState, setPoojasState] = useState(loadPoojas);
+  const [poojasState, setPoojasState] = useState<any[]>([]);
   const [form, setForm] = useState(emptyPoojaForm);
   const [editTarget, setEditTarget] = useState<any | null>(null);
   const [editForm, setEditForm] = useState(emptyPoojaForm);
+  const [temples, setTemples] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    savePoojas(poojasState);
-  }, [poojasState]);
+    const unsubscribe = PoojasService.subscribeToPoojas(setPoojasState);
+    TemplesService.getTemples().then(setTemples).catch(console.error);
+    CategoriesService.getCategories().then(setCategories).catch(console.error);
+    return () => unsubscribe();
+  }, []);
 
-  const filtered = poojasState.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()) || p.categoryStr.toLowerCase().includes(search.toLowerCase()));
+  const filtered = poojasState.filter((p: any) => p.name.toLowerCase().includes(search.toLowerCase()) || (p.categoryName || "").toLowerCase().includes(search.toLowerCase()));
 
-  function handleAdd() {
-    if (!form.name || !form.duration || !form.price) return;
+  async function handleAdd() {
+    if (!form.name || !form.duration || !form.price || !form.templeId) {
+      alert("Please fill all required fields (including Temple ID).");
+      return;
+    }
     const numericPrice = parseInt(form.price.replace(/[^0-9]/g, ''), 10) || 0;
     
-    const newPooja = {
-      id: genId(),
-      name: form.name,
-      categoryStr: form.category,
-      duration: form.duration,
-      price: numericPrice,
-      priceDisplay: form.price.startsWith("₹") ? form.price : `₹${form.price}`,
-      templesCount: 0,
-      bookings: 0,
-      rating: 5.0,
-      liveStream: form.liveStream,
-      prasad: form.prasad,
-      status: "Active",
-      isActive: true
-    };
-    
-    setPoojasState((prev: any) => [newPooja, ...prev]);
-    setForm(emptyPoojaForm);
-    setAddOpen(false);
+    try {
+      const selectedCategory = categories.find(c => c.id === form.categoryId);
+      const selectedTemple = temples.find(t => t.id === form.templeId);
+
+      const newId = genId();
+      await PoojasService.createPooja(newId, {
+        name: form.name,
+        categoryId: form.categoryId,
+        categoryName: selectedCategory ? selectedCategory.name : "",
+        duration: form.duration,
+        price: numericPrice,
+        priceDisplay: form.price.startsWith("₹") ? form.price : `₹${form.price}`,
+        templesCount: 0,
+        bookings: 0,
+        rating: 5.0,
+        liveStream: form.liveStream,
+        prasad: form.prasad,
+        templeId: form.templeId,
+        templeName: selectedTemple ? selectedTemple.name : "",
+        status: "Active",
+        isActive: true
+      });
+      setForm(emptyPoojaForm);
+      setAddOpen(false);
+    } catch (error: any) {
+      alert("Error adding pooja: " + error.message);
+    }
   }
 
   function openEdit(p: any) {
     setEditTarget(p);
     setEditForm({
       name: p.name,
-      category: p.categoryStr,
+      categoryId: p.categoryId || "",
       duration: p.duration,
-      price: p.priceDisplay.replace("₹", ""),
+      price: p.priceDisplay ? p.priceDisplay.replace("₹", "") : p.price,
       liveStream: p.liveStream,
-      prasad: p.prasad
+      prasad: p.prasad,
+      templeId: p.templeId || ""
     });
   }
 
@@ -85,22 +83,30 @@ export function PoojasPage() {
     setEditForm(emptyPoojaForm);
   }
 
-  function handleEdit() {
+  async function handleEdit() {
     if (!editTarget) return;
     const numericPrice = parseInt(editForm.price.replace(/[^0-9]/g, ''), 10) || 0;
     
-    setPoojasState((prev: any) => prev.map((p: any) => p.id === editTarget.id ? {
-      ...p,
-      name: editForm.name,
-      categoryStr: editForm.category,
-      duration: editForm.duration,
-      price: numericPrice,
-      priceDisplay: editForm.price.startsWith("₹") ? editForm.price : `₹${editForm.price}`,
-      liveStream: editForm.liveStream,
-      prasad: editForm.prasad
-    } : p));
+    try {
+      const selectedCategory = categories.find(c => c.id === editForm.categoryId);
+      const selectedTemple = temples.find(t => t.id === editForm.templeId);
 
-    closeEditModal();
+      await PoojasService.updatePooja(editTarget.id, {
+        name: editForm.name,
+        categoryId: editForm.categoryId,
+        categoryName: selectedCategory ? selectedCategory.name : "",
+        duration: editForm.duration,
+        price: numericPrice,
+        priceDisplay: editForm.price.startsWith("₹") ? editForm.price : `₹${editForm.price}`,
+        liveStream: editForm.liveStream,
+        prasad: editForm.prasad,
+        templeId: editForm.templeId,
+        templeName: selectedTemple ? selectedTemple.name : "",
+      });
+      closeEditModal();
+    } catch (error: any) {
+      alert("Error updating pooja: " + error.message);
+    }
   }
 
   return (
@@ -143,7 +149,7 @@ export function PoojasPage() {
                   </div>
                   <div>
                     <div className="text-sm" style={{ color: "#1F1F1F", fontWeight: 600 }}>{p.name}</div>
-                    <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259" }}>{p.categoryStr}</span>
+                    <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259" }}>{p.categoryName || "Uncategorized"}</span>
                   </div>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.status === "Active" ? "#F0FDF4" : "#FFFBEB", color: p.status === "Active" ? "#16A34A" : "#D97706", fontWeight: 600 }}>{p.status}</span>
@@ -155,7 +161,7 @@ export function PoojasPage() {
                   <Star size={11} fill="#D4A017" style={{ color: "#D4A017" }} />
                   <span style={{ fontWeight: 600 }}>{p.rating}</span>
                 </span>
-                <span style={{ color: "#6B7280" }}>{p.bookings.toLocaleString()} bookings</span>
+                <span style={{ color: "#6B7280" }}>{(p.bookings || 0).toLocaleString()} bookings</span>
               </div>
               <div className="flex items-center gap-3 text-xs">
                 {p.liveStream && <span className="flex items-center gap-1" style={{ color: "#22C55E" }}><CheckCircle size={11} /> Live</span>}
@@ -189,11 +195,11 @@ export function PoojasPage() {
                       <span className="text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{p.name}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5"><span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259" }}>{p.categoryStr}</span></td>
+                  <td className="px-4 py-3.5"><span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F3E8FF", color: "#4A1259" }}>{p.categoryName || "Uncategorized"}</span></td>
                   <td className="px-4 py-3.5 text-xs" style={{ color: "#6B7280" }}>{p.duration}</td>
                   <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{p.priceDisplay}</td>
                   <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F" }}>{p.templesCount}</td>
-                  <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{p.bookings.toLocaleString()}</td>
+                  <td className="px-4 py-3.5 text-xs" style={{ color: "#1F1F1F", fontWeight: 600 }}>{(p.bookings || 0).toLocaleString()}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1">
                       <Star size={11} fill="#D4A017" style={{ color: "#D4A017" }} />
@@ -223,8 +229,9 @@ export function PoojasPage() {
             <input className={inputCls} style={inputStyle} placeholder="e.g. Rudrabhishek" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </Field>
           <Field label="Category">
-            <select className={inputCls} style={selectStyle} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-              {["Abhishek", "Homam", "Archana", "Katha", "Aarti", "Festival Puja", "Deeparadhana", "Sahasranama"].map(c => <option key={c}>{c}</option>)}
+            <select className={inputCls} style={selectStyle} value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}>
+              <option value="">Select Category</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-4">
@@ -235,6 +242,12 @@ export function PoojasPage() {
               <input className={inputCls} style={inputStyle} placeholder="e.g. 2,400" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
             </Field>
           </div>
+          <Field label="Temple">
+            <select className={inputCls} style={selectStyle} value={form.templeId} onChange={e => setForm(f => ({ ...f, templeId: e.target.value }))}>
+              <option value="">Select Temple</option>
+              {temples.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </Field>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.liveStream} onChange={e => setForm(f => ({ ...f, liveStream: e.target.checked }))} />
@@ -256,8 +269,9 @@ export function PoojasPage() {
             <input className={inputCls} style={inputStyle} value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
           </Field>
           <Field label="Category">
-            <select className={inputCls} style={selectStyle} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
-              {["Abhishek", "Homam", "Archana", "Katha", "Aarti", "Festival Puja", "Deeparadhana", "Sahasranama"].map(c => <option key={c}>{c}</option>)}
+            <select className={inputCls} style={selectStyle} value={editForm.categoryId} onChange={e => setEditForm(f => ({ ...f, categoryId: e.target.value }))}>
+              <option value="">Select Category</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-4">
@@ -268,6 +282,12 @@ export function PoojasPage() {
               <input className={inputCls} style={inputStyle} value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} />
             </Field>
           </div>
+          <Field label="Temple">
+            <select className={inputCls} style={selectStyle} value={editForm.templeId} onChange={e => setEditForm(f => ({ ...f, templeId: e.target.value }))}>
+              <option value="">Select Temple</option>
+              {temples.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </Field>
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={editForm.liveStream} onChange={e => setEditForm(f => ({ ...f, liveStream: e.target.checked }))} />
