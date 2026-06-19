@@ -2,18 +2,32 @@ import { collection, doc, onSnapshot, query, where, updateDoc, setDoc, getDocs, 
 import { db, auth } from '../../lib/firebase';
 import { withAudit, softDelete } from './core';
 
-const COLLECTION = 'live_streams';
+const COLLECTION = 'liveStreams';
 
 export type StreamStatus = "Scheduled" | "Live" | "Ended" | "Archived";
 
 export const LiveStreamsService = {
   subscribeToStreams(callback: (streams: any[]) => void) {
-    const q = query(collection(db, COLLECTION), where('isDeleted', '==', false));
+    const q = query(collection(db, COLLECTION));
     return onSnapshot(q, (snapshot) => {
-      const streams = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const streams = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let streamStatus = data.streamStatus;
+        
+        // Handle streams created by pro-panel that use 'status' field and Devaseva Core enums
+        if (!streamStatus && data.status) {
+          if (data.status === 'SCHEDULED') streamStatus = 'Scheduled';
+          else if (data.status === 'LIVE') streamStatus = 'Live';
+          else if (data.status === 'ENDED') streamStatus = 'Ended';
+          else streamStatus = data.status;
+        }
+
+        return {
+          id: doc.id,
+          ...data,
+          streamStatus
+        };
+      }).filter(s => s.isDeleted !== true);
       callback(streams);
     });
   },

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { safeStorage } from '../../src/old_app/lib/storage';
-import { firestore } from '../../src/lib/firebase';
+import { firestoreProvider as firestore } from '../../src/lib/firebaseProvider';
 
 const DEMO_VIDEOS: Record<string, string> = {
   default:     'https://www.w3schools.com/html/mov_bbb.mp4',

@@ -5,9 +5,11 @@ import { ArrowLeft, Calendar, Clock, User, Star, ChevronRight, X, MapPin } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
-import { firestore } from '../../src/lib/firebase';
-import { createBookingTransaction } from '../../src/lib/bookingService';
 import { safeStorage } from '../../src/old_app/lib/storage';
+import { PoojasService } from '../../src/services/firebase/poojas';
+import { TemplesService } from '../../src/services/firebase/temples';
+import { SlotsService } from '../../src/services/firebase/slots';
+import { BookingsService } from '../../src/services/firebase/bookings';
 
 interface BookingFormData {
   selectedSlotId: string;
@@ -116,46 +118,42 @@ export default function BookingFlow() {
   const placeholderColor = theme === 'dark' ? '#A8A29E' : '#78716C';
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const poojaDoc = await firestore().collection('poojas').doc(poojaId).get();
-        if (!poojaDoc.exists) return;
+    if (!poojaId) return;
+
+    let unsubTemple = () => {};
+    let unsubSlots = () => {};
+
+    const unsubPooja = PoojasService.subscribeToPoojaById(poojaId, (pData) => {
+      if (pData) {
+        setPoojaData(pData);
         
-        const pData = poojaDoc.data();
-        setPoojaData({ id: poojaDoc.id, ...pData });
-        
-        const templeDoc = await firestore().collection('temples').doc(pData?.templeId).get();
-        if (templeDoc.exists) {
-          setTempleData({ id: templeDoc.id, ...templeDoc.data() });
-        }
-        
-        // Load active slots
-        const slotsSnap = await firestore()
-          .collection('slots')
-          .where('poojaId', '==', poojaId)
-          .where('status', '==', 'AVAILABLE')
-          .where('isDeleted', '==', false)
-          .get();
-          
-        const loadedSlots = slotsSnap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter((s: any) => s.availableSeats > 0);
-          
-        // Sort slots by date and time
-        loadedSlots.sort((a: any, b: any) => {
-          if (a.date !== b.date) return a.date.localeCompare(b.date);
-          return a.startTime.localeCompare(b.startTime);
+        unsubTemple();
+        unsubTemple = TemplesService.subscribeToTempleById(pData.templeId, (tData) => {
+          if (tData) {
+            setTempleData(tData);
+          }
         });
-        
-        setSlots(loadedSlots);
-      } catch (err) {
-        console.error("Failed to load booking data", err);
-      } finally {
+
+        unsubSlots();
+        unsubSlots = SlotsService.subscribeToSlotsByPooja(poojaId, (loadedSlots) => {
+          // Sort slots by date and time
+          const sorted = [...loadedSlots].sort((a: any, b: any) => {
+            if (a.date !== b.date) return (a.date || '').localeCompare(b.date || '');
+            return (a.startTime || '').localeCompare(b.startTime || '');
+          });
+          setSlots(sorted);
+          setLoading(false);
+        });
+      } else {
         setLoading(false);
       }
+    });
+
+    return () => {
+      unsubPooja();
+      unsubTemple();
+      unsubSlots();
     };
-    
-    if (poojaId) loadData();
   }, [poojaId]);
 
   const handleContinue = async () => {
@@ -174,8 +172,12 @@ export default function BookingFlow() {
       if (!selectedSlot) throw new Error("Slot not found");
 
       const bookingData = {
+        poojaId: poojaId,
         poojaName: poojaData.name,
+        templeId: poojaData.templeId,
         templeName: templeData ? templeData.name : 'Unknown Temple',
+        scheduledDate: selectedSlot.date,
+        scheduledTime: selectedSlot.startTime,
         devoteeDetails: {
           name: formData.devoteeNames,
           gotra: formData.gothram,
@@ -184,12 +186,13 @@ export default function BookingFlow() {
         hasPrasadDelivery: poojaData.prasad ?? true,
         amountPaid: poojaData.price || 1200,
         specialRequests: formData.specialRequests,
-        imageUrl: poojaData.imageUrl || 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080'
+        imageUrl: poojaData.imageUrl || 'https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080',
+        isDeleted: false
       };
 
-      const newBookingId = await createBookingTransaction(
-        formData.selectedSlotId,
+      const newBookingId = await BookingsService.createBooking(
         userId,
+        formData.selectedSlotId,
         bookingData
       );
 

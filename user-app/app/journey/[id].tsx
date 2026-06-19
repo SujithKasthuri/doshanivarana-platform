@@ -7,7 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { poojaCatalog, getTempleKey } from '../../src/old_app/constants/catalog';
-import { firestore } from '../../src/lib/firebase';
+import { firestoreProvider as firestore } from '../../src/lib/firebaseProvider';
+import { DeliveriesService } from '../../src/services/firebase/deliveries';
 
 export default function PoojaJourneyScreen() {
   const router = useRouter();
@@ -24,44 +25,63 @@ export default function PoojaJourneyScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBookingAndDelivery = async () => {
-      try {
-        if (!cleanId) {
-          setLoading(false);
-          return;
-        }
+    if (!cleanId) {
+      setLoading(false);
+      return;
+    }
 
-        const db = firestore();
-        
-        // 1. Fetch Booking
-        const bookingDoc = await db.collection('bookings').doc(cleanId).get();
-        if (bookingDoc.exists) {
-          setBooking({ id: bookingDoc.id, ...bookingDoc.data() });
+    let unsubDelivery = () => {};
+
+    const unsubBooking = firestore().collection('bookings').doc(cleanId)
+      .onSnapshot((doc) => {
+        if (doc && doc.exists) {
+          const foundBooking = { id: doc.id, ...doc.data() };
+          setBooking(foundBooking);
+          
+          unsubDelivery();
+          unsubDelivery = firestore().collection('deliveries')
+            .where('bookingId', '==', foundBooking.id)
+            .limit(1)
+            .onSnapshot((snap) => {
+              if (snap && !snap.empty) {
+                setDelivery({ id: snap.docs[0].id, ...snap.docs[0].data() });
+              }
+              setLoading(false);
+            });
         } else {
-          // fallback search by old format if needed
-          const q = await db.collection('bookings').where('id', '==', displayId).get();
-          if (!q.empty) {
-            setBooking({ id: q.docs[0].id, ...q.docs[0].data() });
-          }
-        }
+          firestore().collection('bookings')
+            .where('id', '==', displayId)
+            .get()
+            .then(q => {
+              if (!q.empty) {
+                const foundBooking = { id: q.docs[0].id, ...q.docs[0].data() };
+                setBooking(foundBooking);
 
-        // 2. Fetch Delivery
-        const deliveryQuery = await db.collection('deliveries').where('bookingId', '==', cleanId).limit(1).get();
-        if (!deliveryQuery.empty) {
-          setDelivery({ id: deliveryQuery.docs[0].id, ...deliveryQuery.docs[0].data() });
+                unsubDelivery();
+                unsubDelivery = firestore().collection('deliveries')
+                  .where('bookingId', '==', foundBooking.id)
+                  .limit(1)
+                  .onSnapshot((snap) => {
+                    if (snap && !snap.empty) {
+                      setDelivery({ id: snap.docs[0].id, ...snap.docs[0].data() });
+                    }
+                    setLoading(false);
+                  });
+              } else {
+                setLoading(false);
+              }
+            });
         }
+      });
 
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+    return () => {
+      unsubBooking();
+      unsubDelivery();
     };
-    fetchBookingAndDelivery();
   }, [cleanId, displayId]);
 
   const pooja = poojaCatalog.find(p => p.id.toString() === (booking?.poojaId?.toString() || poojaId?.toString() || '1')) || poojaCatalog[0];
-  const templeKey = getTempleKey(pooja.temple);
+  const templeKey = getTempleKey(pooja.templeName || pooja.temple || '');
 
   const translateNakshatraLocal = (val: string, lang: string): string => {
     return val; // Simplified for brevity in rewrite, usually comes from map
@@ -117,7 +137,7 @@ export default function PoojaJourneyScreen() {
       id: 1,
       nameKey: 'journey.sevaOffered',
       descKey: 'journey.sevaOfferedDesc',
-      timestamp: booking?.createdAt ? new Date(booking.createdAt.seconds * 1000).toLocaleString() : undefined,
+      timestamp: booking?.createdAt ? (booking.createdAt.toDate ? booking.createdAt.toDate().toLocaleString() : new Date(booking.createdAt.seconds * 1000).toLocaleString()) : undefined,
     },
     {
       id: 2,

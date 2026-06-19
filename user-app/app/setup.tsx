@@ -6,6 +6,7 @@ import { View, Text, Pressable, ScrollView, TextInput, Modal, Image } from 'reac
 import { useLanguage } from '../src/old_app/context/LanguageContext';
 import { useTheme } from '../src/old_app/context/ThemeContext';
 import { safeStorage } from '../src/old_app/lib/storage';
+import { AuthService } from '../src/services/firebase/auth';
 
 const deities = [
   { id: 'ganesha', image: require('../assets/deities/ganesha.png') },
@@ -155,7 +156,7 @@ export default function ProfileSetup() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const userProfile = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -172,22 +173,45 @@ export default function ProfileSetup() {
       dateOfBirth: 'Jan 15, 1990',
     };
 
-    // Retrieve active session to preserve verified mobile number
+    // Retrieve active session to preserve verified mobile number and uid
     const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+    let uid = 'anonymous_user';
     if (userSession) {
       try {
         const sessionObj = JSON.parse(userSession);
         userProfile.phone = sessionObj.mobile || userProfile.phone;
+        uid = sessionObj.id || uid;
       } catch (e) {}
     }
 
-    // Persist full profile
+    // Persist full profile locally
     safeStorage.setItem('doshanivarana_user_profile', JSON.stringify(userProfile));
 
-    // Update logged in user session summary
+    // Save/update to Firestore
+    try {
+      await AuthService.createUser(uid, {
+        firstName: userProfile.firstName,
+        lastName: userProfile.lastName,
+        name: userProfile.name,
+        phoneNumber: userProfile.phone,
+        email: userProfile.email,
+        appUiLanguage: userProfile.appUiLanguage,
+        communicationLanguage: userProfile.communicationLanguage,
+        ishtaDevatas: userProfile.ishtaDevatas,
+        gothram: userProfile.gothram,
+        nakshatra: userProfile.nakshatra,
+        rashi: userProfile.rashi,
+      });
+      // create/update session on Firestore
+      await AuthService.createSession(uid, 'mock-device-token');
+    } catch (e) {
+      console.error("Failed to save profile to Firestore:", e);
+    }
+
+    // Update logged in user session summary locally
     safeStorage.setItem(
       'doshanivarana_logged_in_user',
-      JSON.stringify({ mobile: userProfile.phone, name: userProfile.name, id: 'anonymous_user' })
+      JSON.stringify({ mobile: userProfile.phone, name: userProfile.name, id: uid })
     );
 
     // Notify listeners

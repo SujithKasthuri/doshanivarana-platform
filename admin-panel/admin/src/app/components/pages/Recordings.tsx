@@ -30,11 +30,11 @@ export function RecordingsPage() {
     return () => { unsubRecs(); unsubStreams(); };
   }, []);
 
-  const eligibleStreams = streams.filter(s => (s.streamStatus === "Ended" || s.streamStatus === "Archived") && !s.recordingGenerated && s.actualEndTime);
+  const eligibleStreams = streams.filter(s => (s.streamStatus === "Ended" || s.streamStatus === "Archived") && !s.recordingGenerated);
 
   const filtered = recordings.filter((r: any) =>
-    r.recordingTitle.toLowerCase().includes(search.toLowerCase()) ||
-    r.templeName.toLowerCase().includes(search.toLowerCase())
+    (r.recordingTitle || "").toLowerCase().includes(search.toLowerCase()) ||
+    (r.templeName || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const groupedByDate = filtered.reduce((acc: any, curr: any) => {

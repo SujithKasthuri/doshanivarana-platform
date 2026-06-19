@@ -1,23 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>user-app</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <link rel="preload" href="/_expo/static/css/web-875c6684e359465a1023971b93319461.css" as="style"><link rel="stylesheet" href="/_expo/static/css/web-875c6684e359465a1023971b93319461.css"></head>
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Devaseva - Prototype</title>
-      <meta name="description" content="Effortlessly extract and process content from various file formats, streamlining data management for professionals and enhancing productivity." />
-      <meta name="robots" content="noindex, nofollow" />
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-      
-      <script type="module" crossorigin src="/assets/index-CYzZkg_N.js"></script>
-      <link rel="stylesheet" crossorigin href="/assets/index-CBB4nTkK.css">
-    </head>
-
-    <body>
-      
-      <div id="root"></div>
-      
-    </body>
-  </html>
-  
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  <script src="/_expo/static/js/web/entry-4f9b2135958f74e9eda8341c7168ca3b.js" defer></script>
+</body>
+</html>

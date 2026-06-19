@@ -1,0 +1,26 @@
+import { firestoreProvider as firestore } from '../../lib/firebaseProvider';
+
+export const DeliveriesService = {
+  async getDeliveryByBooking(bookingId: string) {
+    const snapshot = await firestore().collection('deliveries')
+      .where('bookingId', '==', bookingId)
+      .limit(1)
+      .get();
+    return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+  },
+
+  async getUserDeliveries(userId: string) {
+    const snapshot = await firestore().collection('deliveries')
+      .where('userId', '==', userId)
+      .get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  },
+
+  async trackDelivery(trackingId: string) {
+    const snapshot = await firestore().collection('deliveries')
+      .where('trackingNumber', '==', trackingId)
+      .limit(1)
+      .get();
+    return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+  }
+};

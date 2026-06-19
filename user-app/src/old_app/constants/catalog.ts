@@ -279,8 +279,8 @@ export const getTranslatedTemple = (templeName: string, t: (k: string) => string
   return templeName;
 };
 
-export const getCategorySteps = (category: string) => {
-  const cat = category.toLowerCase().trim();
+export const getCategorySteps = (category?: string) => {
+  const cat = (category || '').toLowerCase().trim();
   if (cat.includes('homam')) {
     return [
       { nameKey: 'poojaDetail.homamStep1Name', descKey: 'poojaDetail.homamStep1Desc' },
@@ -316,8 +316,8 @@ export const getCategorySteps = (category: string) => {
   }
 };
 
-export const getCategoryBlessings = (category: string) => {
-  const cat = category.toLowerCase().trim();
+export const getCategoryBlessings = (category?: string) => {
+  const cat = (category || '').toLowerCase().trim();
   if (cat.includes('homam')) {
     return ['wealthProsperity', 'protectionNegative', 'peaceMind'];
   } else if (cat.includes('archana')) {
@@ -329,8 +329,8 @@ export const getCategoryBlessings = (category: string) => {
   }
 };
 
-export const getCategoryRashis = (category: string) => {
-  const cat = category.toLowerCase().trim();
+export const getCategoryRashis = (category?: string) => {
+  const cat = (category || '').toLowerCase().trim();
   if (cat.includes('homam')) {
     return ['Mesha', 'Vrishabha', 'Tula'];
   } else if (cat.includes('archana')) {

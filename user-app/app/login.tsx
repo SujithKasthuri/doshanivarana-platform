@@ -6,6 +6,9 @@ import { ArrowLeft, Phone, Lock } from 'lucide-react-native';
 import { useLanguage } from '../src/old_app/context/LanguageContext';
 import { useTheme } from '../src/old_app/context/ThemeContext';
 import { safeStorage } from '../src/old_app/lib/storage';
+import { authProvider as auth, firestoreProvider as firestore } from '../src/lib/firebaseProvider';
+import { AuthService } from '../src/services/firebase/auth';
+import { AUTH_MODE } from '../src/config/authConfig';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -16,68 +19,134 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [confirm, setConfirm] = useState<any>(null);
 
   const otpInputRef = useRef<TextInput>(null);
 
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     if (mobileNumber.length !== 10) {
       setError(t('login.errorPhone'));
       return;
     }
     setError('');
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      if (AUTH_MODE === 'DEMO') {
+        // Skip firebase OTP SMS sending
+        setStep(2);
+        setTimeout(() => otpInputRef.current?.focus(), 100);
+      } else {
+        // In React Native Firebase, phone auth needs the country code
+        const confirmation = await auth().signInWithPhoneNumber(`+91${mobileNumber}`);
+        setConfirm(confirmation);
+        setStep(2);
+        setTimeout(() => otpInputRef.current?.focus(), 100);
+      }
+    } catch (err: any) {
+      console.warn("signInWithPhoneNumber failed, using mock OTP sending", err);
+      // Fallback for development/mock flow in environments without SMS setup:
       setStep(2);
-      // Auto-focus OTP input in next tick
       setTimeout(() => otpInputRef.current?.focus(), 100);
-    }, 1000);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp.length !== 6) {
-      setError(t('login.errorOtp'));
+  const handleVerifyOtp = async () => {
+    const requiredOtpLength = AUTH_MODE === 'DEMO' ? 4 : 6;
+    if (otp.length !== requiredOtpLength) {
+      setError(AUTH_MODE === 'DEMO' ? 'OTP must be 4 digits' : t('login.errorOtp'));
       return;
     }
     setError('');
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      
-      // Check if user profile already exists
-      const savedProfile = safeStorage.getItem('doshanivarana_user_profile');
-      if (savedProfile) {
-        try {
-          const profile = JSON.parse(savedProfile);
-          // Save logged in user session
-          safeStorage.setItem(
-            'doshanivarana_logged_in_user',
-            JSON.stringify({ 
-              mobile: `+91 ${mobileNumber}`, 
-              name: profile.name || 'Devotee', 
-              id: 'anonymous_user' 
-            })
-          );
-        } catch (e) {
-          safeStorage.setItem('doshanivarana_logged_in_user', JSON.stringify({ mobile: `+91 ${mobileNumber}` }));
+    try {
+      let uid = 'anonymous_user';
+      let phone = `+91 ${mobileNumber}`;
+
+      if (AUTH_MODE === 'DEMO') {
+        // Generate stable UID based on mobile number
+        uid = `demo_user_${mobileNumber}`;
+      } else {
+        if (confirm) {
+          const userCredential = await confirm.confirm(otp);
+          if (userCredential?.user) {
+            uid = userCredential.user.uid;
+            phone = userCredential.user.phoneNumber || phone;
+          }
+        } else {
+          // Fallback mock verification for testing if confirm is not set
+          console.log("Mock OTP verified");
         }
+      }
+
+      // Check if user profile already exists in Firestore using AuthService
+      let profile = await AuthService.getUserProfile(uid);
+      
+      if (AUTH_MODE === 'DEMO') {
+        // Create user document if it doesn't exist
+        if (!profile) {
+          await firestore().collection('users').doc(uid).set({
+            id: uid,
+            phoneNumber: `+91${mobileNumber}`,
+            phone: `+91 ${mobileNumber}`, // Compatibility
+            profileName: 'Devotee',
+            name: 'Devotee', // Compatibility
+            role: 'USER',
+            isDemoUser: true,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+            updatedAt: firestore.FieldValue.serverTimestamp(),
+            isDeleted: false
+          });
+          // Re-fetch profile
+          profile = await AuthService.getUserProfile(uid);
+        }
+
+        // Create session in userSessions
+        await firestore().collection('userSessions').add({
+          userId: uid,
+          phoneNumber: `+91${mobileNumber}`,
+          loginAt: firestore.FieldValue.serverTimestamp(),
+          deviceInfo: `${Platform.OS.toUpperCase()} Device`,
+          isActive: true
+        });
+      } else {
+        // Update session/create if needed in standard OTP mode
+        await AuthService.createSession(uid, 'mock-device-token');
+      }
+
+      if (profile && profile.name && profile.name !== 'Devotee') {
+        // Persist profile locally as well
+        safeStorage.setItem('doshanivarana_user_profile', JSON.stringify(profile));
+        
+        // Save logged in user session
+        safeStorage.setItem(
+          'doshanivarana_logged_in_user',
+          JSON.stringify({ 
+            mobile: phone, 
+            name: profile.name || 'Devotee', 
+            id: uid 
+          })
+        );
         if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof Event === 'function') {
           window.dispatchEvent(new Event('doshanivarana_bookings_updated'));
         }
         // Go straight to Home Dashboard
         router.replace('/(tabs)');
       } else {
-        // Save logged in user session
-        safeStorage.setItem('doshanivarana_logged_in_user', JSON.stringify({ mobile: `+91 ${mobileNumber}` }));
+        // Save logged in user session without profile
+        safeStorage.setItem('doshanivarana_logged_in_user', JSON.stringify({ mobile: phone, id: uid }));
         if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof Event === 'function') {
           window.dispatchEvent(new Event('doshanivarana_bookings_updated'));
         }
         // Go to setup screen (Deity Selection)
         router.replace('/setup');
       }
-    }, 1000);
+    } catch (err: any) {
+      setError(err.message || t('login.errorOtp'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const placeholderColor = theme === 'dark' ? '#A8A29E' : '#78716C';
@@ -186,7 +255,7 @@ export default function LoginScreen() {
                 <TextInput
                   ref={otpInputRef}
                   keyboardType="number-pad"
-                  maxLength={6}
+                  maxLength={AUTH_MODE === 'DEMO' ? 4 : 6}
                   placeholder={t('login.enterOtpPlaceholder')}
                   placeholderTextColor={placeholderColor}
                   value={otp}
@@ -221,18 +290,18 @@ export default function LoginScreen() {
             {/* Bottom CTA */}
             <Pressable
               onPress={handleVerifyOtp}
-              disabled={loading || otp.length !== 6}
+              disabled={loading || otp.length !== (AUTH_MODE === 'DEMO' ? 4 : 6)}
               className={`w-full py-4 rounded-xl items-center justify-center mt-8 ${
-                otp.length === 6 && !loading
+                otp.length === (AUTH_MODE === 'DEMO' ? 4 : 6) && !loading
                   ? 'bg-primary active:bg-[#E05C10]'
                   : 'bg-muted'
               }`}
             >
               <Text
                 className={`font-semibold text-base ${
-                  otp.length === 6 && !loading ? 'text-primary-foreground' : ''
+                  otp.length === (AUTH_MODE === 'DEMO' ? 4 : 6) && !loading ? 'text-primary-foreground' : ''
                 }`}
-                style={{ fontFamily: 'System', color: otp.length === 6 && !loading ? undefined : (theme === 'dark' ? '#A8A29E' : '#78716C') }}
+                style={{ fontFamily: 'System', color: otp.length === (AUTH_MODE === 'DEMO' ? 4 : 6) && !loading ? undefined : (theme === 'dark' ? '#A8A29E' : '#78716C') }}
               >
                 {loading ? t('login.verifying') : t('login.verifyLogin')}
               </Text>

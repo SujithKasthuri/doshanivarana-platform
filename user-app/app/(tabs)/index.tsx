@@ -7,7 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { safeStorage } from '../../src/old_app/lib/storage';
-import { firestore } from '../../src/lib/firebase';
+import { firestoreProvider as firestore } from '../../src/lib/firebaseProvider';
+import { DashboardService } from '../../src/services/firebase/dashboard';
+import { TemplesService } from '../../src/services/firebase/temples';
+import { PoojasService } from '../../src/services/firebase/poojas';
+import { BookingsService } from '../../src/services/firebase/bookings';
 import { PoojaCard } from '../../components/PoojaCard';
 import { TempleCard } from '../../components/TempleCard';
 import { CategoryCard } from '../../components/CategoryCard';
@@ -19,6 +23,11 @@ export default function Home() {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [userName, setUserName] = useState('Devotee');
+  const [temples, setTemples] = useState<any[]>([]);
+  const [recommendedPoojas, setRecommendedPoojas] = useState<any[]>([]);
+  const [nextPooja, setNextPooja] = useState<any>(null);
+  const [countdownText, setCountdownText] = useState('02:34:18');
 
   const [categoriesList, setCategoriesList] = useState<any[]>([
     {
@@ -84,12 +93,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const snap = await firestore()
-          .collection('categories')
-          .orderBy('sortOrder', 'asc')
-          .get();
+    const unsubscribe = firestore()
+      .collection('categories')
+      .orderBy('sortOrder', 'asc')
+      .onSnapshot((snap) => {
         if (snap && !snap.empty) {
           const list = snap.docs.map(doc => {
             const data = doc.data();
@@ -103,12 +110,73 @@ export default function Home() {
           });
           setCategoriesList(list);
         }
-      } catch (e) {
-        // Fallback silently to static list
-      }
-    };
-    fetchCategories();
+      }, (e) => {
+        console.error('Error fetching categories:', e);
+      });
+    return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+    const session = userSession ? JSON.parse(userSession) : null;
+    const userId = session?.id || 'anonymous_user';
+    setUserName(session?.name || 'Devotee');
+
+    // 1. Subscribe to temples
+    const unsubTemples = TemplesService.subscribeToTemples((templeList) => {
+      setTemples(templeList);
+    });
+
+    // 2. Subscribe to poojas
+    const unsubPoojas = PoojasService.subscribeToPoojas((poojaList) => {
+      setRecommendedPoojas(poojaList.slice(0, 5));
+    });
+
+    // 3. Subscribe to bookings for next/upcoming pooja
+    let unsubBookings = () => {};
+    if (userId !== 'anonymous_user') {
+      unsubBookings = BookingsService.subscribeToUserBookings(userId, (bookingsList) => {
+        const upcoming = bookingsList.filter((b: any) => b.status === 'CONFIRMED');
+        if (upcoming && upcoming.length > 0) {
+          const sorted = [...upcoming].sort((a: any, b: any) => {
+            return (a.scheduledDate || '').localeCompare(b.scheduledDate || '');
+          });
+          setNextPooja(sorted[0]);
+        } else {
+          setNextPooja(null);
+        }
+      });
+    }
+
+    return () => {
+      unsubTemples();
+      unsubPoojas();
+      unsubBookings();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!nextPooja) {
+      setCountdownText('02:34:18'); // Default fallback
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      let targetTime = new Date(nextPooja.scheduledDate).getTime();
+      const diff = targetTime - Date.now();
+      if (diff <= 0) {
+        setCountdownText('00:00:00');
+        clearInterval(interval);
+      } else {
+        const hrs = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        setCountdownText(`${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [nextPooja]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -269,15 +337,15 @@ export default function Home() {
         {/* Greeting */}
         <View className="mb-8">
           <Text className="text-2xl font-bold mb-1 text-foreground" style={{ fontFamily: 'System' }}>
-            {t('home.greeting')}, {t('profile.val.priya')} 🙏
+            {t('home.greeting')}, {userName} 🙏
           </Text>
           <Text className="text-sm text-muted-foreground" style={{ fontFamily: 'System' }}>
             {t('home.subtitle')}
           </Text>
         </View>
-
+ 
         {/* Live Pooja Countdown Card */}
-        <Link href="/pooja/1" asChild>
+        <Link href={nextPooja ? (`/journey/${nextPooja.id}` as any) : "/pooja/1"} asChild>
           <Pressable className="rounded-2xl p-5 border-l-4 border-primary mb-8 bg-card border border-border/50 relative overflow-hidden">
             <View className="absolute top-3 right-3">
               <View className="px-3 py-1 rounded-full bg-red-600">
@@ -289,15 +357,17 @@ export default function Home() {
               {t('home.nextLivePooja')}
             </Text>
             <Text className="text-xl font-bold mb-3 text-foreground" style={{ fontFamily: 'System' }}>
-              {t('home.nextLivePoojaName')}
+              {nextPooja ? nextPooja.poojaName : t('home.nextLivePoojaName')}
             </Text>
             
             <Text className="text-3xl font-bold text-primary mb-4" style={{ fontFamily: 'System' }}>
-              02:34:18
+              {countdownText}
             </Text>
             
             <View className="px-5 py-2 rounded-lg bg-primary items-center self-start">
-              <Text className="text-primary-foreground font-medium text-sm">{t('home.offerSevaAmount')}</Text>
+              <Text className="text-primary-foreground font-medium text-sm">
+                {nextPooja ? t('common.viewDetails') : t('home.offerSevaAmount')}
+              </Text>
             </View>
           </Pressable>
         </Link>
@@ -314,33 +384,53 @@ export default function Home() {
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
-            <PoojaCard
-              id="1"
-              title={t('home.lakshmiPooja')}
-              temple={t('home.maduraiTemple')}
-              price="₹800"
-              imageUrl="https://images.unsplash.com/photo-1598089842456-ac3c6ef91f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMGRlaXR5JTIwc2hyaW5lJTIwY2xvc2V1cHxlbnwxfHx8fDE3NzM4MjU0NTN8MA&ixlib=rb-4.1.0&q=80&w=1080"
-              badge={t('home.forYou')}
-            />
-            <PoojaCard
-              id="2"
-              title={t('categories.abhishekam')}
-              temple={t('home.rameshwaramTemple')}
-              price="₹1,200"
-              imageUrl="https://images.unsplash.com/photo-1680342786718-39d1febb5349?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB0ZW1wbGUlMjB3b3JzaGlwJTIwcml0dWFsfGVufDF8fHx8MTc3MzgyNTQ1Mnww&ixlib=rb-4.1.0&q=80&w=1080"
-              badge={t('home.live')}
-              isLive
-            />
-            <PoojaCard
-              id="3"
-              title={t('home.satyanarayanaPooja')}
-              temple={t('home.tirumalaTemple')}
-              price="₹900"
-              imageUrl="https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080"
-            />
+            {recommendedPoojas.length > 0 ? (
+              recommendedPoojas.map((pooja) => {
+                const title = t('poojaDb.' + pooja.id + '.title') === 'poojaDb.' + pooja.id + '.title' ? pooja.name : t('poojaDb.' + pooja.id + '.title');
+                const temple = t('templeDb.' + pooja.templeId + '.name') === 'templeDb.' + pooja.templeId + '.name' ? pooja.templeName || 'Temple' : t('templeDb.' + pooja.templeId + '.name');
+                return (
+                  <PoojaCard
+                    key={pooja.id}
+                    id={pooja.id}
+                    title={title}
+                    temple={temple}
+                    price={`₹${pooja.price}`}
+                    imageUrl={pooja.imageUrl}
+                    badge={pooja.category || pooja.categoryName}
+                  />
+                );
+              })
+            ) : (
+              <>
+                <PoojaCard
+                  id="1"
+                  title={t('home.lakshmiPooja')}
+                  temple={t('home.maduraiTemple')}
+                  price="₹800"
+                  imageUrl="https://images.unsplash.com/photo-1598089842456-ac3c6ef91f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMGRlaXR5JTIwc2hyaW5lJTIwY2xvc2V1cHxlbnwxfHx8fDE3NzM4MjU0NTN8MA&ixlib=rb-4.1.0&q=80&w=1080"
+                  badge={t('home.forYou')}
+                />
+                <PoojaCard
+                  id="2"
+                  title={t('categories.abhishekam')}
+                  temple={t('home.rameshwaramTemple')}
+                  price="₹1,200"
+                  imageUrl="https://images.unsplash.com/photo-1680342786718-39d1febb5349?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjB0ZW1wbGUlMjB3borsaGlwJTIwcml0dWFsfGVufDF8fHx8MTc3MzgyNTQ1Mnww&ixlib=rb-4.1.0&q=80&w=1080"
+                  badge={t('home.live')}
+                  isLive
+                />
+                <PoojaCard
+                  id="3"
+                  title={t('home.satyanarayanaPooja')}
+                  temple={t('home.tirumalaTemple')}
+                  price="₹900"
+                  imageUrl="https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080"
+                />
+              </>
+            )}
           </ScrollView>
         </View>
-
+ 
         {/* Featured Temples */}
         <View className="mb-8">
           <View className="flex-row items-center justify-between mb-4">
@@ -355,24 +445,43 @@ export default function Home() {
           </View>
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-6 px-6">
-            <TempleCard 
-              name={t('home.tirumala')} 
-              deity={t('home.lordVenkateswara')}
-              city={t('home.tirupati')}
-              imageUrl="https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080" 
-            />
-            <TempleCard 
-              name={t('home.rameshwaram')} 
-              deity={t('home.lordShiva')}
-              city={t('home.tamilNadu')}
-              imageUrl="https://images.unsplash.com/photo-1772787429537-77ba39d3f855?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZW1wbGUlMjBmbG93ZXIlMjBvZmZlcmluZ3MlMjBpbmNlbnNlfGVufDF8fHx8MTc3MzgyNTQ1Nnww&ixlib=rb-4.1.0&q=80&w=1080" 
-            />
-            <TempleCard 
-              name={t('home.madurai')} 
-              deity={t('home.goddessMeenakshi')}
-              city={t('home.tamilNadu')}
-              imageUrl="https://images.unsplash.com/photo-1598089842456-ac3c6ef91f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMGRlaXR5JTIwc2hyaW5lJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080" 
-            />
+            {temples.length > 0 ? (
+              temples.map((temple) => {
+                const name = t('templeDb.' + temple.id + '.name') === 'templeDb.' + temple.id + '.name' ? temple.name : t('templeDb.' + temple.id + '.name');
+                const deity = t('templeDb.' + temple.id + '.deity') === 'templeDb.' + temple.id + '.deity' ? temple.deity : t('templeDb.' + temple.id + '.deity');
+                const city = temple.city || temple.location || '';
+                return (
+                  <TempleCard
+                    key={temple.id}
+                    name={name}
+                    deity={deity}
+                    city={city}
+                    imageUrl={temple.imageUrl}
+                  />
+                );
+              })
+            ) : (
+              <>
+                <TempleCard 
+                  name={t('home.tirumala')} 
+                  deity={t('home.lordVenkateswara')}
+                  city={t('home.tirupati')}
+                  imageUrl="https://images.unsplash.com/photo-1761471658531-51ce97fc5b89?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMHRlbXBsZSUyMGFsdGFyJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080" 
+                />
+                <TempleCard 
+                  name={t('home.rameshwaram')} 
+                  deity={t('home.lordShiva')}
+                  city={t('home.tamilNadu')}
+                  imageUrl="https://images.unsplash.com/photo-1772787429537-77ba39d3f855?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZW1wbGUlMjBmbG93ZXIlMjBvZmZlcmluZ3MlMjBpbmNlbnNlfGVufDF8fHx8MTc3MzgyNTQ1Nnww&ixlib=rb-4.1.0&q=80&w=1080" 
+                />
+                <TempleCard 
+                  name={t('home.madurai')} 
+                  deity={t('home.goddessMeenakshi')}
+                  city={t('home.tamilNadu')}
+                  imageUrl="https://images.unsplash.com/photo-1598089842456-ac3c6ef91f43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoaW5kdSUyMGRlaXR5JTIwc2hyaW5lJTIwZGl5YSUyMGxhbXB8ZW58MXx8fHwxNzczODI1NDUyfDA&ixlib=rb-4.1.0&q=80&w=1080" 
+                />
+              </>
+            )}
           </ScrollView>
         </View>
 

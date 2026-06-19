@@ -6,7 +6,7 @@ import { Bell, Share2 } from 'lucide-react-native';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { poojaCatalog, getTempleKey } from '../../src/old_app/constants/catalog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { firestoreProvider as firestore } from '../../src/lib/firebaseProvider';
 
 export default function BookingConfirmation() {
   const { bookingId, poojaId } = useLocalSearchParams();
@@ -18,32 +18,26 @@ export default function BookingConfirmation() {
   const [booking, setBooking] = useState<any>(null);
 
   useEffect(() => {
-    const fetchBooking = async () => {
-      try {
-        const data = await AsyncStorage.getItem('doshanivarana_bookings');
-        if (data) {
-          const list = JSON.parse(data);
-          const found = list.find((b: any) => b.id === displayId);
-          if (found) {
-            setBooking(found);
-          }
+    const unsubscribe = firestore().collection('bookings').doc(displayId)
+      .onSnapshot((doc) => {
+        if (doc && doc.exists) {
+          setBooking({ id: doc.id, ...doc.data() });
         }
-      } catch (err) {
+      }, (err) => {
         console.error(err);
-      }
-    };
-    fetchBooking();
+      });
+    return () => unsubscribe();
   }, [displayId]);
 
   const pooja = poojaCatalog.find(p => p.id.toString() === (booking?.poojaId?.toString() || currentPoojaId)) || poojaCatalog[0];
-  const templeKey = getTempleKey(pooja.temple);
+  const templeKey = getTempleKey(pooja.templeName || pooja.temple || '');
 
   const getDisplayDate = () => {
     if (booking?.dateKey && booking.dateKey.startsWith('booking.date')) {
       return t(booking.dateKey);
     }
-    const dateVal = booking?.dateVal || '2026-04-15';
-    const timeVal = booking?.timeVal || '9:00 AM';
+    const dateVal = booking?.scheduledDate || booking?.dateVal || '2026-04-15';
+    const timeVal = booking?.scheduledTime || booking?.timeVal || '9:00 AM';
     
     const monthMap: Record<string, Record<string, string>> = {
       '03': { en: 'March', te: 'మార్చి', hi: 'मार्च', gu: 'માર્ચ' },
@@ -124,7 +118,7 @@ export default function BookingConfirmation() {
           className="text-xl font-bold mb-2 text-foreground"
           style={{ fontFamily: 'System' }}
         >
-          {t('poojaDb.' + pooja.id + '.title')}
+          {booking?.poojaName || t('poojaDb.' + pooja.id + '.title')}
         </Text>
         <Text 
           className="text-xs mb-1" 
@@ -133,7 +127,7 @@ export default function BookingConfirmation() {
             fontFamily: 'System' 
           }}
         >
-          {t('templeDb.' + templeKey + '.name')}, {t('templeDb.' + templeKey + '.location')}
+          {booking?.templeName || `${t('templeDb.' + templeKey + '.name')}, ${t('templeDb.' + templeKey + '.location')}`}
         </Text>
         <Text 
           className="text-xs mb-4" 

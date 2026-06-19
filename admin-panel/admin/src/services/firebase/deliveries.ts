@@ -8,12 +8,27 @@ export type DeliveryStatus = "Processing" | "Packed" | "Shipped" | "Out For Deli
 
 export const DeliveriesService = {
   subscribeToDeliveries(callback: (deliveries: any[]) => void) {
-    const q = query(collection(db, COLLECTION), where('isDeleted', '==', false));
+    const q = query(collection(db, COLLECTION));
     return onSnapshot(q, (snapshot) => {
-      const deliveries = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const deliveries = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let status = data.status || 'Processing';
+        
+        // Map uppercase PRO panel statuses to TitleCase for Admin Kanban
+        if (status === 'PACKED') status = 'Packed';
+        else if (status === 'SHIPPED') status = 'Shipped';
+        else if (status === 'OUT_FOR_DELIVERY') status = 'Out For Delivery';
+        else if (status === 'DELIVERED') status = 'Delivered';
+        else if (status === 'RETURNED') status = 'Returned';
+        else if (status === 'FAILED') status = 'Failed';
+        else if (status === 'PROCESSING') status = 'Processing';
+
+        return {
+          id: doc.id,
+          ...data,
+          status
+        };
+      }).filter(d => d.isDeleted !== true);
       callback(deliveries);
     });
   },

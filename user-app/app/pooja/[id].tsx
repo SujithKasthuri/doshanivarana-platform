@@ -1,11 +1,13 @@
 // @ts-nocheck
-import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Image } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Share2, MapPin, Clock, Play } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
+import { PoojasService } from '../../src/services/firebase/poojas';
+import { TemplesService } from '../../src/services/firebase/temples';
 import {
   poojaCatalog,
   getTempleKey,
@@ -48,7 +50,53 @@ export default function PoojaDetail() {
   const { t } = useLanguage();
 
   const poojaId = id ? id.toString() : '1';
-  const pooja = poojaCatalog.find(p => p.id.toString() === poojaId) || poojaCatalog[0];
+  const [pooja, setPooja] = useState<any>(null);
+  const [temple, setTemple] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let unsubTemple = () => {};
+    
+    const unsubPooja = PoojasService.subscribeToPoojaById(poojaId, (pDoc) => {
+      if (pDoc) {
+        setPooja(pDoc);
+        unsubTemple();
+        unsubTemple = TemplesService.subscribeToTempleById(pDoc.templeId, (tDoc) => {
+          if (tDoc) {
+            setTemple(tDoc);
+          }
+          setLoading(false);
+        });
+      } else {
+        setPooja(null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      unsubPooja();
+      unsubTemple();
+    };
+  }, [poojaId]);
+
+  if (loading) {
+    return (
+      <View className="flex-1 bg-background items-center justify-center">
+        <ActivityIndicator size="large" color="#F97316" />
+      </View>
+    );
+  }
+
+  if (!pooja) {
+    return (
+      <View className="flex-1 bg-background items-center justify-center">
+        <Text className="text-foreground">Pooja not found</Text>
+      </View>
+    );
+  }
+
+  const durationText = pooja.durationMinutes ? `${pooja.durationMinutes} mins` : pooja.duration || '30 mins';
+  const displayPrice = `₹${pooja.price}`;
 
   return (
     <View className="flex-1 bg-background pb-24">
@@ -104,8 +152,8 @@ export default function PoojaDetail() {
 
         {/* Tab Content */}
         <View className="px-6 py-6">
-          {activeTab === 'overview' && <OverviewTab poojaId={pooja.id.toString()} pooja={pooja} />}
-          {activeTab === 'where' && <WhereTab pooja={pooja} />}
+          {activeTab === 'overview' && <OverviewTab poojaId={pooja.id.toString()} pooja={pooja} temple={temple} />}
+          {activeTab === 'where' && <WhereTab pooja={pooja} temple={temple} />}
           {activeTab === 'how' && <HowTab pooja={pooja} />}
           {activeTab === 'why' && <WhyTab poojaId={pooja.id.toString()} pooja={pooja} />}
         </View>
@@ -118,7 +166,7 @@ export default function PoojaDetail() {
           className="w-full py-4 rounded-xl bg-primary items-center justify-center active:bg-[#E05C10]"
         >
           <Text className="text-primary-foreground font-semibold text-base" style={{ fontFamily: 'System' }}>
-            {t('poojaDetail.offerPooja')} — {pooja.price}
+            {t('poojaDetail.offerPooja')} — {displayPrice}
           </Text>
         </Pressable>
       </View>
@@ -129,7 +177,7 @@ export default function PoojaDetail() {
 function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const tKey = getTempleKey(pooja.temple);
+  const tKey = getTempleKey(pooja.templeName || pooja.temple || '');
 
   return (
     <View>
@@ -239,7 +287,7 @@ function OverviewTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
 function WhereTab({ pooja }: { pooja: any }) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const tKey = getTempleKey(pooja.temple);
+  const tKey = getTempleKey(pooja.templeName || pooja.temple || '');
 
   return (
     <View>
@@ -285,8 +333,9 @@ function WhereTab({ pooja }: { pooja: any }) {
 function HowTab({ pooja }: { pooja: any }) {
   const { t, language } = useLanguage();
   const { theme } = useTheme();
-  const steps = getCategorySteps(pooja.category);
-  const formattedDuration = pooja.duration.replace(' mins', ' ' + t('poojas.min')).replace(' min', ' ' + t('poojas.min'));
+  const steps = getCategorySteps(pooja.categoryName || pooja.category);
+  const durationStr = pooja.durationMinutes ? `${pooja.durationMinutes} mins` : pooja.duration || '30 mins';
+  const formattedDuration = durationStr.replace(' mins', ' ' + t('poojas.min')).replace(' min', ' ' + t('poojas.min'));
 
   const getLanguageText = () => {
     switch (language) {
@@ -414,8 +463,8 @@ function HowTab({ pooja }: { pooja: any }) {
 function WhyTab({ poojaId, pooja }: { poojaId: string; pooja: any }) {
   const { t, language } = useLanguage();
   const { theme } = useTheme();
-  const blessingKeys = getCategoryBlessings(pooja.category);
-  const rashis = getCategoryRashis(pooja.category);
+  const blessingKeys = getCategoryBlessings(pooja.categoryName || pooja.category);
+  const rashis = getCategoryRashis(pooja.categoryName || pooja.category);
 
   const colors = [
     { bg: 'bg-green-500/10', text: 'text-green-500' },

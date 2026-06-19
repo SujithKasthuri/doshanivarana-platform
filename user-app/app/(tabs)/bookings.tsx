@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { safeStorage } from '../../src/old_app/lib/storage';
-import { firestore } from '../../src/lib/firebase';
+import { BookingsService } from '../../src/services/firebase/bookings';
+import { FeedbackService } from '../../src/services/firebase/feedback';
 import type { Booking } from '@devaseva/core';
 import { Star, X } from 'lucide-react-native';
 
@@ -46,22 +47,18 @@ export default function Bookings() {
   const [review, setReview] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
-  const fetchBookings = useCallback(async () => {
-    setLoading(true);
-    try {
-      const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
-      const userId = userSession ? JSON.parse(userSession).id : 'anonymous_user';
+  useEffect(() => {
+    const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+    const userId = userSession ? JSON.parse(userSession).id : 'anonymous_user';
+    if (userId === 'anonymous_user') {
+      setLoading(false);
+      return;
+    }
 
-      const snapshot = await firestore()
-        .collection('bookings')
-        .where('userId', '==', userId)
-        .where('isDeleted', '==', false)
-        .get();
-
-      const loadedBookings = snapshot.docs.map(doc => {
-        const data = doc.data();
+    const unsubscribe = BookingsService.subscribeToUserBookings(userId, (bookings) => {
+      const loadedBookings = bookings.map(data => {
         return {
-          id: doc.id,
+          id: data.id,
           poojaId: data.poojaId,
           poojaName: data.poojaName || 'Pooja',
           templeId: data.templeId,
@@ -82,18 +79,11 @@ export default function Bookings() {
       });
 
       setBookingsList(loadedBookings);
-    } catch (err) {
-      console.error("Failed to load bookings", err);
-    } finally {
       setLoading(false);
-    }
-  }, []);
+    });
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchBookings();
-    }, [fetchBookings])
-  );
+    return () => unsubscribe();
+  }, []);
 
   const filteredBookings = bookingsList.filter(booking => 
     activeTab === 'active' ? booking.status === 'upcoming' : booking.status === 'completed'
@@ -107,33 +97,7 @@ export default function Bookings() {
       const userId = userSession ? JSON.parse(userSession).id : 'anonymous_user';
       const b = feedbackModal.booking;
 
-      // 1. Create Feedback doc with bookingId as ID to prevent duplicates
-      await firestore().collection('feedback').doc(b.id).set({
-        bookingId: b.id,
-        userId: userId,
-        templeId: b.templeId,
-        poojaId: b.poojaId,
-        rating: rating,
-        review: review,
-        status: 'PENDING',
-        createdAt: firestore.FieldValue.serverTimestamp()
-      });
-
-      // 2. Generate System Event
-      await firestore().collection('systemEvents').doc().set({
-        eventType: 'feedback.created',
-        entityId: b.id,
-        entityType: 'feedback',
-        payload: {
-          feedbackId: b.id,
-          bookingId: b.id,
-          userId: userId,
-          templeId: b.templeId,
-          rating: rating
-        },
-        status: 'PENDING',
-        createdAt: firestore.FieldValue.serverTimestamp()
-      });
+      await FeedbackService.submitFeedback(userId, b.id, rating, review);
 
       setFeedbackModal({isOpen: false, booking: null});
       setRating(5);

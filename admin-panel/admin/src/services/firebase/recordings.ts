@@ -8,12 +8,12 @@ export type RecordingStatus = "Draft" | "Published" | "Archived";
 
 export const RecordingsService = {
   subscribeToRecordings(callback: (recordings: any[]) => void) {
-    const q = query(collection(db, COLLECTION), where('isDeleted', '==', false));
+    const q = query(collection(db, COLLECTION));
     return onSnapshot(q, (snapshot) => {
       const recordings = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).filter((r: any) => r.isDeleted !== true);
       callback(recordings);
     });
   },
@@ -22,7 +22,7 @@ export const RecordingsService = {
     const uid = adminUid ?? (auth.currentUser?.uid || 'system');
 
     await runTransaction(db, async (transaction) => {
-      const streamRef = doc(db, 'live_streams', streamId);
+      const streamRef = doc(db, 'liveStreams', streamId);
       const streamSnap = await transaction.get(streamRef);
 
       if (!streamSnap.exists()) {
@@ -164,7 +164,7 @@ export const RecordingsService = {
 
       // Update Stream Sync Reversal
       if (streamId) {
-        const streamRef = doc(db, 'live_streams', streamId);
+        const streamRef = doc(db, 'liveStreams', streamId);
         const streamSnap = await transaction.get(streamRef);
         if (streamSnap.exists()) {
            const streamData = streamSnap.data();

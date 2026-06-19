@@ -45,7 +45,7 @@ const initialSlots: Record<string, any> = {};
 
 poojaCatalog.forEach((p) => {
   const pId = p.id.toString();
-  const tKey = getTempleKey(p.temple);
+  const tKey = getTempleKey(p.templeName || p.temple || '');
   
   initialPoojas[pId] = {
     id: pId,

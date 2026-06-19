@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '../../src/old_app/context/LanguageContext';
 import { useTheme } from '../../src/old_app/context/ThemeContext';
 import { safeStorage } from '../../src/old_app/lib/storage';
+import { AuthService } from '../../src/services/firebase/auth';
+import { BookingsService } from '../../src/services/firebase/bookings';
 
 const deitiesList = [
   { id: 'ganesha', name: 'Ganesha', image: require('../../assets/deities/ganesha.png') },
@@ -185,7 +187,7 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    const fetchProfile = () => {
+    const fetchProfile = async () => {
       const savedProfile = safeStorage.getItem('doshanivarana_user_profile');
       if (savedProfile) {
         try {
@@ -198,46 +200,46 @@ export default function Profile() {
       }
 
       const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
-      const mobile = userSession ? JSON.parse(userSession).mobile : '+91 98765 43216'; // default Suresh Raina for demo
-      
-      const bookingsData = safeStorage.getItem('doshanivarana_bookings');
-      const bookings = bookingsData ? JSON.parse(bookingsData) : [];
-      
-      const cleanMobile = mobile.replace(/[^0-9]/g, '').slice(-10);
-      const userBooking = bookings.find((b: any) => b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile);
-      const userBookings = bookings.filter((b: any) => b.mobile && b.mobile.replace(/[^0-9]/g, '').slice(-10) === cleanMobile);
-      
-      const upcomingCount = userBookings.filter((b: any) => b.streamStatus !== 'Ended' && b.tab !== 'completed').length;
-      setStats({
-        totalPoojas: userBookings.length,
-        upcoming: upcomingCount,
-        devotionScore: userBookings.length > 0 ? 5.0 : 0.0,
-      });
+      const session = userSession ? JSON.parse(userSession) : null;
+      const mobile = session ? session.mobile : '+91 98765 43216';
+      const userId = session ? session.id : 'anonymous_user';
 
-      if (!savedProfile) {
-        if (userBooking) {
-          setProfile({
-            name: userBooking.devoteeName,
-            email: userBooking.email || 'devotee@doshanivarana.in',
-            phone: userBooking.mobile,
-            location: userBooking.deliveryAddress && userBooking.deliveryAddress !== 'N/A' ? userBooking.deliveryAddress : 'Bangalore, Karnataka',
-            nakshatra: userBooking.nakshatra || 'Shravana',
-            rashi: 'Makara (Capricorn)',
-            dateOfBirth: 'Jan 15, 1990',
-            gothram: userBooking.gotra || 'Bharadwaja',
+      if (userId !== 'anonymous_user') {
+        try {
+          const fProfile = await AuthService.getUserProfile(userId);
+          if (fProfile) {
+            const merged = {
+              name: fProfile.name || profile.name,
+              email: fProfile.email || profile.email,
+              phone: fProfile.phoneNumber || profile.phone,
+              location: fProfile.location || profile.location || 'Bangalore, Karnataka',
+              nakshatra: fProfile.nakshatra || profile.nakshatra || 'Shravana',
+              rashi: fProfile.rashi || profile.rashi || 'Makara (Capricorn)',
+              dateOfBirth: fProfile.dateOfBirth || profile.dateOfBirth || 'Jan 15, 1990',
+              gothram: fProfile.gothram || profile.gothram || 'Bharadwaja',
+            };
+            setProfile(merged);
+            if (Array.isArray(fProfile.ishtaDevatas)) {
+              setSelectedDeities(fProfile.ishtaDevatas);
+            }
+          }
+
+          const userBookings = await BookingsService.getUserBookings(userId);
+          const upcomingCount = userBookings.filter((b: any) => b.status === 'CONFIRMED').length;
+          setStats({
+            totalPoojas: userBookings.length,
+            upcoming: upcomingCount,
+            devotionScore: userBookings.length > 0 ? 5.0 : 0.0,
           });
-        } else {
-          setProfile({
-            name: mobile.includes('9876543216') || mobile.includes('98765 43216') ? 'Suresh Raina' : 'Raghavan Iyer',
-            email: 'suresh.raina@example.com',
-            phone: mobile,
-            location: 'Delhi, India',
-            nakshatra: 'Swati',
-            rashi: 'Thula (Libra)',
-            dateOfBirth: 'Nov 27, 1986',
-            gothram: 'Bharadwaja',
-          });
+        } catch (err) {
+          console.error("Failed to load profile details from firestore", err);
         }
+      } else {
+        setStats({
+          totalPoojas: 0,
+          upcoming: 0,
+          devotionScore: 0.0,
+        });
       }
     };
 
@@ -531,7 +533,20 @@ export default function Profile() {
                 />
               </View>
               <Pressable
-                onPress={() => {
+                onPress={async () => {
+                  try {
+                    const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+                    const session = userSession ? JSON.parse(userSession) : null;
+                    if (session?.id && session.id !== 'anonymous_user') {
+                      await AuthService.updateUserProfile(session.id, {
+                        name: profile.name,
+                        email: profile.email,
+                        location: profile.location
+                      });
+                    }
+                  } catch (e) {
+                    console.error("Failed to update profile", e);
+                  }
                   safeStorage.setItem('doshanivarana_user_profile', JSON.stringify(profile));
                   setIsEditingProfile(false);
                 }}
@@ -583,7 +598,20 @@ export default function Profile() {
                 />
               </View>
               <Pressable
-                onPress={() => {
+                onPress={async () => {
+                  try {
+                    const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+                    const session = userSession ? JSON.parse(userSession) : null;
+                    if (session?.id && session.id !== 'anonymous_user') {
+                      await AuthService.updateUserProfile(session.id, {
+                        nakshatra: profile.nakshatra,
+                        gothram: profile.gothram,
+                        dateOfBirth: profile.dateOfBirth
+                      });
+                    }
+                  } catch (e) {
+                    console.error("Failed to update personal info", e);
+                  }
                   safeStorage.setItem('doshanivarana_user_profile', JSON.stringify(profile));
                   setIsEditingPersonal(false);
                 }}
@@ -750,10 +778,21 @@ export default function Profile() {
               </View>
             </ScrollView>
             <Pressable
-              onPress={() => {
+              onPress={async () => {
                 setSelectedDeities(tempSelectedDeities);
                 const updatedProfile = { ...profile, ishtaDevatas: tempSelectedDeities };
                 setProfile(updatedProfile);
+                try {
+                  const userSession = safeStorage.getItem('doshanivarana_logged_in_user');
+                  const session = userSession ? JSON.parse(userSession) : null;
+                  if (session?.id && session.id !== 'anonymous_user') {
+                    await AuthService.updateUserProfile(session.id, {
+                      ishtaDevatas: tempSelectedDeities
+                    });
+                  }
+                } catch (e) {
+                  console.error("Failed to update deities preference", e);
+                }
                 safeStorage.setItem('doshanivarana_user_profile', JSON.stringify(updatedProfile));
                 setIsEditingDeities(false);
               }}
